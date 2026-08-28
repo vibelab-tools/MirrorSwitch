@@ -9,7 +9,9 @@ pub mod catalog;
 pub mod context;
 pub mod plan;
 pub mod platform;
+pub mod transaction;
 
 pub use adapter::{Adapter, AdapterError, Runtime};
 pub use catalog::MirrorCatalog;
 pub use context::SystemContext;
+pub use transaction::{ApplyOutcome, TransactionEngine, TransactionError};

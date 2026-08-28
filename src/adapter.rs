@@ -7,8 +7,9 @@ use crate::{
     context::SystemContext,
     plan::{
         ChangePlan, CurrentConfiguration, DetectedTool, MirrorSelection, RestoreResult,
-        TransactionReceipt, VerificationResult,
+        VerificationResult,
     },
+    transaction::{ApplyOutcome, TransactionReceipt},
 };
 
 /// Narrow access to the host. Concrete filesystem and process behavior is
@@ -56,7 +57,7 @@ pub trait Adapter: Send + Sync {
         context: &SystemContext,
         runtime: &mut dyn Runtime,
         plan: &ChangePlan,
-    ) -> Result<TransactionReceipt, AdapterError>;
+    ) -> Result<ApplyOutcome, AdapterError>;
 
     fn verify(
         &self,

@@ -1,6 +1,7 @@
 use std::{fmt, path::PathBuf};
 
 use crate::catalog::{ConfigurationScope, Endpoint};
+use crate::transaction::content_digest;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DetectedTool {
@@ -57,14 +58,48 @@ impl fmt::Debug for ChangePlan {
     }
 }
 
+impl ChangePlan {
+    /// Builds a safe-to-display plan without exposing configuration contents.
+    pub fn preview(&self) -> ChangePlanPreview {
+        ChangePlanPreview {
+            adapter_key: self.adapter_key.clone(),
+            tool_id: self.tool_id.clone(),
+            scope: self.scope,
+            requires_elevation: self.requires_elevation,
+            service_impact: self.service_impact,
+            changes: self
+                .changes
+                .iter()
+                .map(PlannedFileChange::preview)
+                .collect(),
+        }
+    }
+}
+
 /// Proposed bytes remain in memory for apply, but Debug output never exposes
 /// them because configuration can contain private repository credentials.
 #[derive(Clone, Eq, PartialEq)]
 pub struct PlannedFileChange {
     pub target: PathBuf,
-    pub expected_digest: Option<String>,
+    /// Contents observed while planning. `None` means the file did not exist.
+    pub old_contents: Option<Vec<u8>>,
+    /// Unix permission bits observed while planning, when available.
+    pub old_mode: Option<u32>,
     pub new_contents: Vec<u8>,
+    /// Requested Unix permission bits. Existing mode is retained when omitted.
+    pub new_mode: Option<u32>,
     pub summary: String,
+}
+
+impl PlannedFileChange {
+    pub fn preview(&self) -> PlannedFilePreview {
+        PlannedFilePreview {
+            target: self.target.clone(),
+            old: FileValuePreview::new(self.old_contents.as_deref(), self.old_mode),
+            new: FileValuePreview::new(Some(&self.new_contents), self.new_mode.or(self.old_mode)),
+            summary: self.summary.clone(),
+        }
+    }
 }
 
 impl fmt::Debug for PlannedFileChange {
@@ -72,13 +107,58 @@ impl fmt::Debug for PlannedFileChange {
         formatter
             .debug_struct("PlannedFileChange")
             .field("target", &self.target)
-            .field("expected_digest", &self.expected_digest)
+            .field(
+                "old_contents",
+                &self
+                    .old_contents
+                    .as_ref()
+                    .map(|contents| format!("<redacted:{} bytes>", contents.len())),
+            )
+            .field("old_mode", &self.old_mode)
             .field(
                 "new_contents",
                 &format_args!("<redacted:{} bytes>", self.new_contents.len()),
             )
+            .field("new_mode", &self.new_mode)
             .field("summary", &self.summary)
             .finish()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ChangePlanPreview {
+    pub adapter_key: String,
+    pub tool_id: String,
+    pub scope: ConfigurationScope,
+    pub requires_elevation: bool,
+    pub service_impact: ServiceImpact,
+    pub changes: Vec<PlannedFilePreview>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlannedFilePreview {
+    pub target: PathBuf,
+    pub old: FileValuePreview,
+    pub new: FileValuePreview,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FileValuePreview {
+    pub exists: bool,
+    pub bytes: usize,
+    pub sha256: Option<String>,
+    pub mode: Option<u32>,
+}
+
+impl FileValuePreview {
+    fn new(contents: Option<&[u8]>, mode: Option<u32>) -> Self {
+        Self {
+            exists: contents.is_some(),
+            bytes: contents.map_or(0, <[u8]>::len),
+            sha256: contents.map(content_digest),
+            mode,
+        }
     }
 }
 
@@ -87,20 +167,6 @@ pub enum ServiceImpact {
     None,
     ReloadRequired,
     RestartRequired,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct TransactionReceipt {
-    pub transaction_id: String,
-    pub adapter_key: String,
-    pub tool_id: String,
-    pub backups: Vec<BackupRecord>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BackupRecord {
-    pub original: PathBuf,
-    pub backup: PathBuf,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

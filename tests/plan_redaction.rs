@@ -13,8 +13,10 @@ fn debug_plan_redacts_rendered_configuration() {
         scope: ConfigurationScope::User,
         changes: vec![PlannedFileChange {
             target: PathBuf::from("/tmp/pip.conf"),
-            expected_digest: None,
+            old_contents: Some(b"index-url=https://old:secret@example.invalid/simple".to_vec()),
+            old_mode: Some(0o600),
             new_contents: b"index-url=https://user:secret@example.invalid/simple".to_vec(),
+            new_mode: Some(0o600),
             summary: "replace the public PyPI source".into(),
         }],
         requires_elevation: false,
@@ -25,4 +27,5 @@ fn debug_plan_redacts_rendered_configuration() {
     assert!(output.contains("<redacted:"));
     assert!(!output.contains("secret"));
     assert!(!output.contains("user:"));
+    assert!(!output.contains("old:"));
 }
