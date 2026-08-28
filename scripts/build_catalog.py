@@ -69,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "17"
+CATALOG_FORMAT_REVISION = "18"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -154,6 +154,8 @@ NPM_RUNTIME_UPSTREAM = "npm--language-registry"
 NPM_RUNTIME_ENTRY_NAMES = {"npm", "NPM"}
 NPM_ACTIONABLE_PROVIDERS = {"huaweicloud"}
 NPM_REGISTRY_TOOLS = {"npm", "yarn"}
+CONDA_RUNTIME_UPSTREAM = "anaconda--language-registry"
+CONDA_ACTIONABLE_PROVIDERS = {"nju", "tuna", "ustc"}
 
 
 def utc_now() -> str:
@@ -173,6 +175,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["system", "user", "project"]
     if tool_id == "yarn":
         return ["user", "project"]
+    if tool_id == "conda":
+        return ["user"]
     if tool_id in SYSTEM_TOOLS:
         return ["system"]
     if tool_id in USER_ONLY_TOOLS:
@@ -529,6 +533,53 @@ def runtime_properties(
                 "expected_content_type": "application/octet-stream",
             },
         ]
+    elif (
+        tool_id == "conda"
+        and upstream_key == CONDA_RUNTIME_UPSTREAM
+        and entry["provider_id"] in CONDA_ACTIONABLE_PROVIDERS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/pkgs/main/noarch/repodata.json.zst",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/octet-stream",
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/pkgs/main/{subdir}/repodata.json.zst",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/octet-stream",
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/cloud/conda-forge/noarch/repodata.json.zst",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/octet-stream",
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/cloud/conda-forge/{subdir}/repodata.json.zst",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/octet-stream",
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/pkgs/main/{subdir}/{representative_package}",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/octet-stream",
+            },
+        ]
     return compatibility, delivery_mode, probes
 
 
@@ -576,6 +627,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                     in {
                         "apk",
                         "apt",
+                        "conda",
                         "dnf",
                         "flatpak",
                         "guix",

@@ -1,5 +1,6 @@
 mod apk;
 mod apt;
+mod conda;
 mod dnf;
 mod flatpak;
 mod guix;
@@ -20,6 +21,7 @@ use crate::Adapter;
 
 pub use apk::ApkAdapter;
 pub use apt::AptAdapter;
+pub use conda::CondaAdapter;
 pub use dnf::DnfAdapter;
 pub use flatpak::FlatpakAdapter;
 pub use guix::GuixAdapter;
@@ -36,6 +38,7 @@ pub use zypper::ZypperAdapter;
 
 static APK: ApkAdapter = ApkAdapter;
 static APT: AptAdapter = AptAdapter;
+static CONDA: CondaAdapter = CondaAdapter;
 static DNF: DnfAdapter = DnfAdapter;
 static FLATPAK: FlatpakAdapter = FlatpakAdapter;
 static GUIX: GuixAdapter = GuixAdapter;
@@ -53,7 +56,7 @@ static ZYPPER: ZypperAdapter = ZypperAdapter;
 pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
         &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK, &OPKG,
-        &PIP, &NPM, &YARN,
+        &PIP, &NPM, &YARN, &CONDA,
     ]
 }
 
