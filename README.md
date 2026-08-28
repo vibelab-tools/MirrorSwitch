@@ -47,6 +47,7 @@ real-boundary checks have passed.
 - [Yarn adapter](docs/adapters/yarn.md)
 - [Conda/Mamba adapter](docs/adapters/conda.md)
 - [PDM adapter](docs/adapters/pdm.md)
+- [Poetry adapter](docs/adapters/poetry.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License
