@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+f827e94f2861",
-  "content_revision": 202608290011,
-  "generated_at": "2026-08-28T20:15:00Z",
+  "content_version": "2026.08.28+c96f1d3bfac4",
+  "content_revision": 202608290012,
+  "generated_at": "2026-08-28T21:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1816,12 +1816,10 @@
       "id": "guix",
       "adapter_key": "guix",
       "display_name": "guix",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/36",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "system"
       ],
       "composition": "single"
     },
@@ -6833,6 +6831,54 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "36ac660be2333ceaf746e10f",
+      "provider_id": "sjtug",
+      "upstream_id": "guix-bordeaux--static-files",
+      "tool_id": "guix",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "guix-bordeaux"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/guix-bordeaux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{store_hash}.narinfo",
+          "expected_status": [
+            200
+          ],
+          "contains": "Signature: 1;bayfront;"
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "38fd0fc4c52a8bcb0375ed6f",
       "provider_id": "aliyun",
       "upstream_id": "mariadb--static-files",
@@ -11510,36 +11556,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "7a1dd96713d47bf6e0c11e95",
-      "provider_id": "sjtug",
-      "upstream_id": "guix--static-files",
-      "tool_id": "guix",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "guix"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/guix/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -19312,6 +19328,54 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "cefc925360ab3ef1680aec75",
+      "provider_id": "sjtug",
+      "upstream_id": "guix--static-files",
+      "tool_id": "guix",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "guix"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/guix/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{store_hash}.narinfo",
+          "expected_status": [
+            200
+          ],
+          "contains": "Signature: 1;berlin.guix.gnu.org;"
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "cfb2b7836718f83eb239fd13",
       "provider_id": "ustc",
       "upstream_id": "centos-vault--repository-metadata",
@@ -20274,36 +20338,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/flathub.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "ddf09da0f962e73d371ac372",
-      "provider_id": "sjtug",
-      "upstream_id": "guix-bordeaux--static-files",
-      "tool_id": "guix",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "guix-bordeaux"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/guix-bordeaux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

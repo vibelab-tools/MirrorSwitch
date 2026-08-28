@@ -1,6 +1,7 @@
 mod apk;
 mod apt;
 mod dnf;
+mod guix;
 mod nix;
 mod pacman;
 mod portage;
@@ -15,6 +16,7 @@ use crate::Adapter;
 pub use apk::ApkAdapter;
 pub use apt::AptAdapter;
 pub use dnf::DnfAdapter;
+pub use guix::GuixAdapter;
 pub use nix::NixAdapter;
 pub use pacman::PacmanAdapter;
 pub use portage::PortageAdapter;
@@ -25,6 +27,7 @@ pub use zypper::ZypperAdapter;
 static APK: ApkAdapter = ApkAdapter;
 static APT: AptAdapter = AptAdapter;
 static DNF: DnfAdapter = DnfAdapter;
+static GUIX: GuixAdapter = GuixAdapter;
 static NIX: NixAdapter = NixAdapter;
 static PACMAN: PacmanAdapter = PacmanAdapter;
 static PORTAGE: PortageAdapter = PortageAdapter;
@@ -34,7 +37,7 @@ static ZYPPER: ZypperAdapter = ZypperAdapter;
 
 pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
-        &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX,
+        &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX,
     ]
 }
 

@@ -38,6 +38,7 @@ real-boundary checks have passed.
 - [APK adapter](docs/adapters/apk.md)
 - [XBPS adapter](docs/adapters/xbps.md)
 - [Nix adapter](docs/adapters/nix.md)
+- [GNU Guix adapter](docs/adapters/guix.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

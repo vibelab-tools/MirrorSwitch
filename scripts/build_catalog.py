@@ -22,6 +22,7 @@ SYSTEM_TOOLS = {
     "elasticstack",
     "gitlab-runner",
     "grafana",
+    "guix",
     "influxdb",
     "jenkins",
     "kubernetes-images",
@@ -68,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "11"
+CATALOG_FORMAT_REVISION = "12"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -130,6 +131,10 @@ PORTAGE_RUNTIME_UPSTREAMS = {
 APK_RUNTIME_UPSTREAM = "alpine--repository-metadata"
 XBPS_RUNTIME_UPSTREAM = "void--repository-metadata"
 NIX_RUNTIME_UPSTREAM = "nix-channels--binary-cache"
+GUIX_RUNTIME_UPSTREAMS = {
+    "guix--static-files": "Signature: 1;berlin.guix.gnu.org;",
+    "guix-bordeaux--static-files": "Signature: 1;bayfront;",
+}
 
 
 def utc_now() -> str:
@@ -382,6 +387,21 @@ def runtime_properties(
                 "contains": "Sig: cache.nixos.org-1:",
             },
         ]
+    elif tool_id == "guix" and upstream_key in GUIX_RUNTIME_UPSTREAMS:
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/{store_hash}.narinfo",
+                "expected_status": [200],
+                "contains": GUIX_RUNTIME_UPSTREAMS[upstream_key],
+            }
+        ]
     return compatibility, delivery_mode, probes
 
 
@@ -430,6 +450,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "apk",
                         "apt",
                         "dnf",
+                        "guix",
                         "nix",
                         "yum",
                         "pacman",
