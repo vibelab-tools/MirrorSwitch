@@ -43,6 +43,7 @@ real-boundary checks have passed.
 - [opkg adapter](docs/adapters/opkg.md)
 - [pip adapter](docs/adapters/pip.md)
 - [npm adapter](docs/adapters/npm.md)
+- [pnpm adapter](docs/adapters/pnpm.md)
 - [Yarn adapter](docs/adapters/yarn.md)
 - [Conda/Mamba adapter](docs/adapters/conda.md)
 - [PDM adapter](docs/adapters/pdm.md)

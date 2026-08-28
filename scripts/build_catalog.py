@@ -69,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "19"
+CATALOG_FORMAT_REVISION = "20"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -161,7 +161,7 @@ PDM_ARTIFACT_ENDPOINTS = {
 NPM_RUNTIME_UPSTREAM = "npm--language-registry"
 NPM_RUNTIME_ENTRY_NAMES = {"npm", "NPM"}
 NPM_ACTIONABLE_PROVIDERS = {"huaweicloud"}
-NPM_REGISTRY_TOOLS = {"npm", "yarn"}
+NPM_REGISTRY_TOOLS = {"npm", "pnpm", "yarn"}
 CONDA_RUNTIME_UPSTREAM = "anaconda--language-registry"
 CONDA_ACTIONABLE_PROVIDERS = {"nju", "tuna", "ustc"}
 
@@ -183,6 +183,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["system", "user", "project"]
     if tool_id == "pdm":
         return ["user", "project"]
+    if tool_id == "pnpm":
+        return ["user"]
     if tool_id == "yarn":
         return ["user", "project"]
     if tool_id == "conda":
@@ -674,6 +676,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "opkg",
                         "pdm",
                         "pip",
+                        "pnpm",
                         "yum",
                         "yarn",
                         "pacman",
