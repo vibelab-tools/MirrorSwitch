@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+79e17276bbbb",
-  "content_revision": 202608290016,
+  "content_version": "2026.08.28+27b6920a2530",
+  "content_revision": 202608290017,
   "generated_at": "2026-08-29T00:00:00Z",
   "providers": [
     {
@@ -2335,12 +2335,11 @@
       "id": "yarn",
       "adapter_key": "yarn",
       "display_name": "yarn",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/41",
       "supported_scopes": [
         "user",
-        "project",
-        "environment"
+        "project"
       ],
       "composition": "single"
     },
@@ -4612,43 +4611,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "1ada09f9865bb160ffd88685",
-      "provider_id": "huaweicloud",
-      "upstream_id": "npm--language-registry",
-      "tool_id": "yarn",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "npm"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/npm/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "1bcbe4ef532779c3f5caa1ad",
       "provider_id": "tuna",
       "upstream_id": "manjaro--repository-metadata",
@@ -4908,6 +4870,66 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "1eada0c07461e441fe684fb9",
+      "provider_id": "huaweicloud",
+      "upstream_id": "npm--language-registry",
+      "tool_id": "yarn",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "npm"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/npm/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/is-number/latest",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"name\":\"is-number\""
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/is-number/-/is-number-7.0.0.tgz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        }
+      ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
       ],

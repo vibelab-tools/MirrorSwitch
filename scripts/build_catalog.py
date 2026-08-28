@@ -69,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "16"
+CATALOG_FORMAT_REVISION = "17"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -153,6 +153,7 @@ PIP_SIMPLE_ENDPOINTS = {
 NPM_RUNTIME_UPSTREAM = "npm--language-registry"
 NPM_RUNTIME_ENTRY_NAMES = {"npm", "NPM"}
 NPM_ACTIONABLE_PROVIDERS = {"huaweicloud"}
+NPM_REGISTRY_TOOLS = {"npm", "yarn"}
 
 
 def utc_now() -> str:
@@ -170,6 +171,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["system", "user", "site"]
     if tool_id == "npm":
         return ["system", "user", "project"]
+    if tool_id == "yarn":
+        return ["user", "project"]
     if tool_id in SYSTEM_TOOLS:
         return ["system"]
     if tool_id in USER_ONLY_TOOLS:
@@ -499,7 +502,7 @@ def runtime_properties(
             }
         ]
     elif (
-        tool_id == "npm"
+        tool_id in NPM_REGISTRY_TOOLS
         and upstream_key == NPM_RUNTIME_UPSTREAM
         and entry["raw_name"] in NPM_RUNTIME_ENTRY_NAMES
         and entry["provider_id"] in NPM_ACTIONABLE_PROVIDERS
@@ -581,6 +584,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "opkg",
                         "pip",
                         "yum",
+                        "yarn",
                         "pacman",
                         "portage",
                         "xbps",

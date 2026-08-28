@@ -22,7 +22,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             .collect::<Vec<_>>(),
         [
             "apk", "apt", "dnf", "flatpak", "guix", "nix", "npm", "opkg", "pacman", "pip",
-            "portage", "xbps", "yum", "zypper"
+            "portage", "xbps", "yarn", "yum", "zypper"
         ]
     );
 }

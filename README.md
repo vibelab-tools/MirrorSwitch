@@ -43,6 +43,7 @@ real-boundary checks have passed.
 - [opkg adapter](docs/adapters/opkg.md)
 - [pip adapter](docs/adapters/pip.md)
 - [npm adapter](docs/adapters/npm.md)
+- [Yarn adapter](docs/adapters/yarn.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

@@ -10,6 +10,7 @@ mod pacman;
 mod pip;
 mod portage;
 mod xbps;
+mod yarn;
 mod yum;
 mod zypper;
 
@@ -29,6 +30,7 @@ pub use pacman::PacmanAdapter;
 pub use pip::PipAdapter;
 pub use portage::PortageAdapter;
 pub use xbps::XbpsAdapter;
+pub use yarn::YarnAdapter;
 pub use yum::YumAdapter;
 pub use zypper::ZypperAdapter;
 
@@ -44,13 +46,14 @@ static PACMAN: PacmanAdapter = PacmanAdapter;
 static PIP: PipAdapter = PipAdapter;
 static PORTAGE: PortageAdapter = PortageAdapter;
 static XBPS: XbpsAdapter = XbpsAdapter;
+static YARN: YarnAdapter = YarnAdapter;
 static YUM: YumAdapter = YumAdapter;
 static ZYPPER: ZypperAdapter = ZypperAdapter;
 
 pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
         &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK, &OPKG,
-        &PIP, &NPM,
+        &PIP, &NPM, &YARN,
     ]
 }
 
