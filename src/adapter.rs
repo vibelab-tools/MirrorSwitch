@@ -27,6 +27,9 @@ pub trait Runtime {
     fn project_dir(&self) -> Option<PathBuf> {
         None
     }
+    fn environment_variable(&self, _name: &str) -> Option<String> {
+        None
+    }
     fn read(&self, path: &Path) -> Result<Option<Vec<u8>>, AdapterError>;
     fn list_files(&self, directory: &Path) -> Result<Vec<PathBuf>, AdapterError> {
         Err(AdapterError::Unsupported(format!(

@@ -346,6 +346,7 @@ pub struct OsRuntime {
     executable_path: Vec<PathBuf>,
     home: Option<PathBuf>,
     project_dir: Option<PathBuf>,
+    environment: Option<BTreeMap<String, String>>,
 }
 
 impl OsRuntime {
@@ -355,6 +356,7 @@ impl OsRuntime {
             executable_path,
             home: None,
             project_dir: None,
+            environment: None,
         }
     }
 
@@ -365,6 +367,11 @@ impl OsRuntime {
 
     pub fn with_project_dir(mut self, project_dir: impl Into<PathBuf>) -> Self {
         self.project_dir = Some(project_dir.into());
+        self
+    }
+
+    pub fn with_environment(mut self, environment: BTreeMap<String, String>) -> Self {
+        self.environment = Some(environment);
         self
     }
 
@@ -391,6 +398,13 @@ impl Runtime for OsRuntime {
 
     fn project_dir(&self) -> Option<PathBuf> {
         self.project_dir.clone()
+    }
+
+    fn environment_variable(&self, name: &str) -> Option<String> {
+        self.environment.as_ref().map_or_else(
+            || std::env::var(name).ok(),
+            |values| values.get(name).cloned(),
+        )
     }
 
     fn read(&self, path: &Path) -> Result<Option<Vec<u8>>, AdapterError> {

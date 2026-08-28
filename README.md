@@ -45,6 +45,7 @@ real-boundary checks have passed.
 - [npm adapter](docs/adapters/npm.md)
 - [Yarn adapter](docs/adapters/yarn.md)
 - [Conda/Mamba adapter](docs/adapters/conda.md)
+- [PDM adapter](docs/adapters/pdm.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License
