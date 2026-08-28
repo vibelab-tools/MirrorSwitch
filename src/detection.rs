@@ -405,7 +405,7 @@ impl Runtime for OsRuntime {
         Ok(paths)
     }
 
-    fn run(&mut self, program: &str, arguments: &[String]) -> Result<Output, AdapterError> {
+    fn run(&self, program: &str, arguments: &[String]) -> Result<Output, AdapterError> {
         let logical = self.find_command(program).ok_or_else(|| {
             AdapterError::Runtime(format!("command {program} is not available on PATH"))
         })?;

@@ -504,6 +504,34 @@ fn real_http_probe_uses_repository_metadata_path_and_validates_content() {
 }
 
 #[test]
+fn repository_path_probe_context_cannot_escape_the_mirror_endpoint() {
+    let mut catalog = catalog();
+    catalog.candidates.retain(|candidate| candidate.id == "tie");
+    catalog.candidates[0].probes[0].path = "/{repository_path}repodata/repomd.xml".into();
+    let (prober, calls) = DeterministicProber::tracked();
+    let selector = MirrorSelector::with_prober(&catalog, prober, ProbeLimits::default());
+    let mut request = request();
+    request.probe_contexts.insert(
+        "pypi--language-registry".into(),
+        vec![BTreeMap::from([(
+            "repository_path".into(),
+            "safe/../escape/".into(),
+        )])],
+    );
+
+    let outcome = selector.select_at(&request, 15).unwrap();
+
+    assert!(!outcome.actionable);
+    assert!(calls.borrow().is_empty());
+    let CandidateEvaluation::ProbeFailed { reason } =
+        &outcome.repositories[0].candidates[0].evaluation
+    else {
+        panic!("unsafe repository path should fail before network access")
+    };
+    assert!(reason.contains("not a safe path segment"));
+}
+
+#[test]
 fn real_http_probe_rejects_an_oversized_response() {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let address = listener.local_addr().unwrap();

@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+6fcbf3507ca1",
-  "content_revision": 202608280003,
-  "generated_at": "2026-08-28T12:10:00Z",
+  "content_version": "2026.08.28+53057b6fbe6f",
+  "content_revision": 202608280004,
+  "generated_at": "2026-08-28T12:50:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1643,7 +1643,7 @@
       "id": "dnf",
       "adapter_key": "dnf",
       "display_name": "dnf",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/28",
       "supported_scopes": [
         "system"
@@ -3736,47 +3736,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "0bef22fa55ee577c940c82f5",
-      "provider_id": "nju",
-      "upstream_id": "fedora--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "fedora"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/fedora/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "fedora",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "0ca74222ba81fc7b05b48b7f",
       "provider_id": "nju",
       "upstream_id": "nix4loong--binary-cache",
@@ -4195,6 +4154,60 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "142269eab113e9da68aad8d5",
+      "provider_id": "tuna",
+      "upstream_id": "fedora--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "fedora"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/fedora/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "fedora",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -5010,47 +5023,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "200db01b9c7c106fa1860b32",
-      "provider_id": "aliyun",
-      "upstream_id": "rocky--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rockylinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/rockylinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "rocky",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "2016eac0ba4bb4772cca8578",
       "provider_id": "sjtug",
       "upstream_id": "pypi--language-registry",
@@ -5526,6 +5498,60 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "247541785e06e24a4d7a15db",
+      "provider_id": "sjtug",
+      "upstream_id": "fedora--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "fedora"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/fedora/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "fedora",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "25276c88ffb7ca6b0040f922",
       "provider_id": "tuna",
       "upstream_id": "archlinuxcn--repository-metadata",
@@ -5665,47 +5691,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/docker-ce.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "273373127f347557bd2ed00c",
-      "provider_id": "sjtug",
-      "upstream_id": "rocky--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rocky"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/rocky/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "rocky",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -5856,47 +5841,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "297881d9f87fbf4767c438ba",
-      "provider_id": "nju",
-      "upstream_id": "rocky--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rocky"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/rocky/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "rocky",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -7103,47 +7047,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "3d92f9412e3841f0ab098daf",
-      "provider_id": "sjtug",
-      "upstream_id": "fedora--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "fedora"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/fedora/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "fedora",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "3e18a50ff817f549665ff91e",
       "provider_id": "nju",
       "upstream_id": "guix--git-mirror",
@@ -7515,49 +7418,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "42e345b7c5036dbc00e1f364",
-      "provider_id": "huaweicloud",
-      "upstream_id": "fedora--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "fedora"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/fedora/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "fedora",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "4400b8ca795f0746365815f8",
       "provider_id": "huaweicloud",
       "upstream_id": "ros2--static-files",
@@ -7779,6 +7639,60 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "47b29a7cfa7a718066ad8d7b",
+      "provider_id": "huaweicloud",
+      "upstream_id": "fedora--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "fedora"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/fedora/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "fedora",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -8053,6 +7967,60 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "4b971cf6605ae59994f42481",
+      "provider_id": "nju",
+      "upstream_id": "rocky--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rocky"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/rocky/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "rocky",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -9157,6 +9125,60 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "5daf8b081c4e5631a6e0abb0",
+      "provider_id": "aliyun",
+      "upstream_id": "rocky--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rockylinux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/rockylinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "rocky",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "5dfaff98661eee133dcbfa5f",
       "provider_id": "sjtug",
       "upstream_id": "ubuntu-ports--repository-metadata",
@@ -9290,6 +9312,114 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "6049209a4176400fac2ef0b6",
+      "provider_id": "aliyun",
+      "upstream_id": "fedora--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "fedora"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/fedora/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "fedora",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "6064092f35c87214cee05add",
+      "provider_id": "aliyun",
+      "upstream_id": "almalinux--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "almalinux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/almalinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "almalinux",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -10369,47 +10499,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "7133ef3f208fd85c80e07dac",
-      "provider_id": "aliyun",
-      "upstream_id": "fedora--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "fedora"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/fedora/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "fedora",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "717624518feb7e3284da40b7",
       "provider_id": "ustc",
       "upstream_id": "archlinuxarm--repository-metadata",
@@ -11476,6 +11565,60 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "7bb229d6ed1449e2d8539c25",
+      "provider_id": "sjtug",
+      "upstream_id": "fedora--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "fedora/linux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/fedora%2Flinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "fedora",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "7c7fdcf627318d19f75f4cdb",
       "provider_id": "nju",
       "upstream_id": "gentoo-portage--git-mirror",
@@ -12137,47 +12280,6 @@
           "host"
         ],
         "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "85318a59705b294d00d952a0",
-      "provider_id": "nju",
-      "upstream_id": "almalinux--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "almalinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/almalinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "almalinux",
-            "versions": [],
-            "codenames": []
-          }
-        ],
         "repository_versions": []
       },
       "probes": [],
@@ -12929,50 +13031,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "910ece2f7f3c6ab2ad4c5020",
-      "provider_id": "huaweicloud",
-      "upstream_id": "rocky--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rockylinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/rockylinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "arm64",
-          "x86_64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "rocky",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "9156d454773da793697405bc",
       "provider_id": "sjtug",
       "upstream_id": "archlinuxarm--repository-metadata",
@@ -13280,6 +13338,60 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "95d5e21b51cf184ab1cb1b20",
+      "provider_id": "sjtug",
+      "upstream_id": "rocky--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rocky"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/rocky/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "rocky",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -13593,88 +13705,6 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "98e61f5532b0e1408bed1677",
-      "provider_id": "aliyun",
-      "upstream_id": "almalinux--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "almalinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/almalinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "almalinux",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "993805dfce326ecd0376d1bc",
-      "provider_id": "ustc",
-      "upstream_id": "rocky--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rocky"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/rocky/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "rocky",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/rocky.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -14176,6 +14206,60 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "a1e17e5c364d614005937844",
+      "provider_id": "ustc",
+      "upstream_id": "rocky--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rocky"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/rocky/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "rocky",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/rocky.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -14697,47 +14781,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/centos-vault.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "a74ce6b9b93a1f45ce090c25",
-      "provider_id": "sjtug",
-      "upstream_id": "fedora--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "fedora/linux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/fedora%2Flinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "fedora",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -16178,47 +16221,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "b71ad8124003284045eb03bd",
-      "provider_id": "ustc",
-      "upstream_id": "fedora--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "fedora"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/fedora/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "fedora",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/fedora.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "b77066c983e11bf713cfba78",
       "provider_id": "ustc",
       "upstream_id": "archlinuxcn--repository-metadata",
@@ -16606,6 +16608,60 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "be50ac0e44d6303313de8872",
+      "provider_id": "huaweicloud",
+      "upstream_id": "rocky--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rockylinux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/rockylinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "rocky",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17053,6 +17109,60 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "c71df978948111a55c82a874",
+      "provider_id": "huaweicloud",
+      "upstream_id": "almalinux--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "almalinux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/almalinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "almalinux",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17573,6 +17683,60 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "cbc74dc89c1da3d0bfd9178e",
+      "provider_id": "nju",
+      "upstream_id": "fedora--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "fedora"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/fedora/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "fedora",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "cc9c0f49053c344d7e032b62",
       "provider_id": "nju",
       "upstream_id": "centos--repository-metadata",
@@ -18005,6 +18169,60 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "d26ec19d7ec57f7ddd3853b8",
+      "provider_id": "nju",
+      "upstream_id": "almalinux--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "almalinux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/almalinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "almalinux",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "d2f19877f1dfc93275a1eaa0",
       "provider_id": "huaweicloud",
       "upstream_id": "centos-vault--repository-metadata",
@@ -18370,47 +18588,6 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "d865885db9458bea517df5d2",
-      "provider_id": "tuna",
-      "upstream_id": "fedora--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "fedora"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/fedora/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "fedora",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -20205,49 +20382,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "efb45441aee8f6f9252eec3b",
-      "provider_id": "huaweicloud",
-      "upstream_id": "almalinux--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "almalinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/almalinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "almalinux",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "f08aec3173a2a3e952412f10",
       "provider_id": "tuna",
       "upstream_id": "ros2--static-files",
@@ -20826,6 +20960,60 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "f849b90c10fe6c99ef55d395",
+      "provider_id": "ustc",
+      "upstream_id": "fedora--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "fedora"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/fedora/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "fedora",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/fedora.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

@@ -30,6 +30,7 @@ real-boundary checks have passed.
 - [Runtime catalog and safe updates](docs/catalog-updates.md)
 - [Per-repository mirror selection](docs/mirror-selection.md)
 - [APT adapter](docs/adapters/apt.md)
+- [DNF adapter](docs/adapters/dnf.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

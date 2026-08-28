@@ -555,11 +555,15 @@ fn expand_probe_path(template: &str, values: &BTreeMap<String, String>) -> Resul
         let value = values
             .get(key)
             .ok_or_else(|| format!("probe path requires {{{key}}}"))?;
-        if value.is_empty()
-            || !value.bytes().all(|byte| {
-                byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'+' | b'-')
-            })
-        {
+        let safe_value = if key == "repository_path" {
+            value
+                .split('/')
+                .filter(|segment| !segment.is_empty())
+                .all(safe_probe_segment)
+        } else {
+            safe_probe_segment(value)
+        };
+        if value.is_empty() || !safe_value {
             return Err(format!(
                 "probe value for {{{key}}} is not a safe path segment"
             ));
@@ -572,6 +576,13 @@ fn expand_probe_path(template: &str, values: &BTreeMap<String, String>) -> Resul
     }
     expanded.push_str(remainder);
     Ok(expanded)
+}
+
+fn safe_probe_segment(value: &str) -> bool {
+    !matches!(value, "" | "." | "..")
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'+' | b'-'))
 }
 
 fn probe_url(endpoint: &Endpoint, probe_path: &str) -> Result<String, String> {

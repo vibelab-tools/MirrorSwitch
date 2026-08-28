@@ -68,13 +68,19 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "3"
+CATALOG_FORMAT_REVISION = "4"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
     "debian-security--repository-metadata": ["x86_64", "arm64"],
     "ubuntu--repository-metadata": ["x86_64"],
     "ubuntu-ports--repository-metadata": ["arm64"],
+}
+
+DNF_RUNTIME_UPSTREAMS = {
+    "fedora--repository-metadata": ["x86_64", "arm64"],
+    "rocky--repository-metadata": ["x86_64", "arm64"],
+    "almalinux--repository-metadata": ["x86_64", "arm64"],
 }
 
 
@@ -181,6 +187,18 @@ def runtime_properties(
                 "contains": "Architecture:",
             },
         ]
+    elif tool_id == "dnf" and upstream_key in DNF_RUNTIME_UPSTREAMS:
+        compatibility["architectures"] = DNF_RUNTIME_UPSTREAMS[upstream_key]
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/{repository_path}repodata/repomd.xml",
+                "expected_status": [200],
+                "contains": "<repomd",
+            }
+        ]
     return compatibility, delivery_mode, probes
 
 
@@ -222,7 +240,9 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                 "id": tool_id,
                 "adapter_key": tool_id,
                 "display_name": tool_id,
-                "state": "supported" if tool_id == "apt" else target["state"],
+                "state": "supported"
+                if tool_id in {"apt", "dnf"}
+                else target["state"],
                 "implementation_issue": target["issue"],
                 "supported_scopes": tool_scopes(tool_id),
                 "composition": "single",

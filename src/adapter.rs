@@ -28,7 +28,7 @@ pub trait Runtime {
             directory.display()
         )))
     }
-    fn run(&mut self, program: &str, arguments: &[String]) -> Result<Output, AdapterError>;
+    fn run(&self, program: &str, arguments: &[String]) -> Result<Output, AdapterError>;
     fn apply_plan(&mut self, _plan: &ChangePlan) -> Result<ApplyOutcome, AdapterError> {
         Err(AdapterError::Unsupported(
             "transaction apply is unavailable in this runtime".into(),
