@@ -68,7 +68,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "9"
+CATALOG_FORMAT_REVISION = "10"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -128,6 +128,7 @@ PORTAGE_RUNTIME_UPSTREAMS = {
 }
 
 APK_RUNTIME_UPSTREAM = "alpine--repository-metadata"
+XBPS_RUNTIME_UPSTREAM = "void--repository-metadata"
 
 
 def utc_now() -> str:
@@ -338,6 +339,20 @@ def runtime_properties(
                 "expected_status": [200],
             }
         ]
+    elif tool_id == "xbps" and upstream_key == XBPS_RUNTIME_UPSTREAM:
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["distributions"] = [
+            {"id": "void", "versions": [], "codenames": []}
+        ]
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/{repository_path}/{xbps_arch}-repodata",
+                "expected_status": [200],
+            }
+        ]
     return compatibility, delivery_mode, probes
 
 
@@ -379,9 +394,21 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                 "id": tool_id,
                 "adapter_key": tool_id,
                 "display_name": tool_id,
-                "state": "supported"
-                if tool_id in {"apk", "apt", "dnf", "yum", "pacman", "portage", "zypper"}
-                else target["state"],
+                "state": (
+                    "supported"
+                    if tool_id
+                    in {
+                        "apk",
+                        "apt",
+                        "dnf",
+                        "yum",
+                        "pacman",
+                        "portage",
+                        "xbps",
+                        "zypper",
+                    }
+                    else target["state"]
+                ),
                 "implementation_issue": target["issue"],
                 "supported_scopes": tool_scopes(tool_id),
                 "composition": "single",

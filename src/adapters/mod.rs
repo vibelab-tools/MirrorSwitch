@@ -3,6 +3,7 @@ mod apt;
 mod dnf;
 mod pacman;
 mod portage;
+mod xbps;
 mod yum;
 mod zypper;
 
@@ -15,6 +16,7 @@ pub use apt::AptAdapter;
 pub use dnf::DnfAdapter;
 pub use pacman::PacmanAdapter;
 pub use portage::PortageAdapter;
+pub use xbps::XbpsAdapter;
 pub use yum::YumAdapter;
 pub use zypper::ZypperAdapter;
 
@@ -23,11 +25,12 @@ static APT: AptAdapter = AptAdapter;
 static DNF: DnfAdapter = DnfAdapter;
 static PACMAN: PacmanAdapter = PacmanAdapter;
 static PORTAGE: PortageAdapter = PortageAdapter;
+static XBPS: XbpsAdapter = XbpsAdapter;
 static YUM: YumAdapter = YumAdapter;
 static ZYPPER: ZypperAdapter = ZypperAdapter;
 
 pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
-    vec![&APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK]
+    vec![&APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS]
 }
 
 pub fn compiled_adapter_allowlist() -> HashSet<String> {

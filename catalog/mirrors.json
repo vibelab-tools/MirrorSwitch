@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+d721bd03d2b1",
-  "content_revision": 202608280009,
-  "generated_at": "2026-08-28T18:45:00Z",
+  "content_version": "2026.08.28+4026a52756db",
+  "content_revision": 202608280010,
+  "generated_at": "2026-08-28T19:30:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -2328,7 +2328,7 @@
       "id": "xbps",
       "adapter_key": "xbps",
       "display_name": "xbps",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/34",
       "supported_scopes": [
         "system"
@@ -3938,47 +3938,6 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "0f6dd26140ba5a222a0283fe",
-      "provider_id": "nju",
-      "upstream_id": "void--repository-metadata",
-      "tool_id": "xbps",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "voidlinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/voidlinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "void",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -6692,6 +6651,59 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "3534c23043a1599cde09019c",
+      "provider_id": "tuna",
+      "upstream_id": "void--repository-metadata",
+      "tool_id": "xbps",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "voidlinux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/voidlinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "void",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/{xbps_arch}-repodata",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "353afb9184cb8b8f6975796f",
       "provider_id": "nju",
       "upstream_id": "maven--language-registry",
@@ -8043,47 +8055,6 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "4825f5ab341467ec749c2e5f",
-      "provider_id": "tuna",
-      "upstream_id": "void--repository-metadata",
-      "tool_id": "xbps",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "voidlinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/voidlinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "void",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -10531,47 +10502,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "6ea2d510d303c704e56d995d",
-      "provider_id": "sjtug",
-      "upstream_id": "void--repository-metadata",
-      "tool_id": "xbps",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "voidlinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/voidlinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "void",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17711,6 +17641,59 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "c38032368b4d2fcbc8ae4834",
+      "provider_id": "nju",
+      "upstream_id": "void--repository-metadata",
+      "tool_id": "xbps",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "voidlinux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/voidlinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "void",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/{xbps_arch}-repodata",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "c3eb72be92a4def19e0c52f0",
       "provider_id": "nju",
       "upstream_id": "opensuse-ports--repository-metadata",
@@ -22785,6 +22768,59 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "ff85be324fd5fefce66a0adb",
+      "provider_id": "sjtug",
+      "upstream_id": "void--repository-metadata",
+      "tool_id": "xbps",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "voidlinux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/voidlinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "void",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/{xbps_arch}-repodata",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

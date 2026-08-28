@@ -36,6 +36,7 @@ real-boundary checks have passed.
 - [Zypper adapter](docs/adapters/zypper.md)
 - [Portage adapter](docs/adapters/portage.md)
 - [APK adapter](docs/adapters/apk.md)
+- [XBPS adapter](docs/adapters/xbps.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License
