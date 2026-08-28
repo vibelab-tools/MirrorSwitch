@@ -43,6 +43,7 @@ release gate.
 | --- | --- | --- | --- |
 | System | Selected only for a detected supported system tool | Plan without privilege; request elevation only for apply/restore | Preserve unrelated repositories and security settings |
 | User | Selected for a detected supported user tool | No elevation unless the tool requires it | Prefer the tool’s supported user-level API/config file |
+| Site/environment installation | Off | Explicit opt-in; no elevation unless the installation requires it | Use only a client-reported installation/virtual-environment path |
 | Project | Off | Explicit opt-in for each project | Show exact project diff; never change lock files |
 | Environment/session | Off unless supplied by the user | No persistence by default | Report precedence over persistent settings |
 
@@ -67,7 +68,7 @@ release gate.
 
 | Ecosystem | Tools and implementation issues | Default scope | Required compatibility/validation | v0.1 status |
 | --- | --- | --- | --- | --- |
-| Python packages | [pip #39](https://github.com/vibelab-tools/MirrorSwitch/issues/39), [uv #46](https://github.com/vibelab-tools/MirrorSwitch/issues/46), [Poetry #45](https://github.com/vibelab-tools/MirrorSwitch/issues/45), [PDM #43](https://github.com/vibelab-tools/MirrorSwitch/issues/43) | User; project off | Client version, Simple API, metadata and artifact download; client-specific multi-index rules | Planned |
+| Python packages | [pip #39](https://github.com/vibelab-tools/MirrorSwitch/issues/39), [uv #46](https://github.com/vibelab-tools/MirrorSwitch/issues/46), [Poetry #45](https://github.com/vibelab-tools/MirrorSwitch/issues/45), [PDM #43](https://github.com/vibelab-tools/MirrorSwitch/issues/43) | User; project/site off | Client version, Simple API, metadata and artifact download; client-specific multi-index rules | pip Supported; uv/Poetry/PDM Planned |
 | Python distributions | [Conda/Mamba #42](https://github.com/vibelab-tools/MirrorSwitch/issues/42), [pyenv #69](https://github.com/vibelab-tools/MirrorSwitch/issues/69) | User | channel/subdir/architecture or exact source release and checksum | Planned |
 | Node packages | [npm #40](https://github.com/vibelab-tools/MirrorSwitch/issues/40), [pnpm #44](https://github.com/vibelab-tools/MirrorSwitch/issues/44), [Yarn #41](https://github.com/vibelab-tools/MirrorSwitch/issues/41) | User; project off | client version, metadata, tarball, scopes/auth preservation | Planned |
 | Node distributions | [nvm #49](https://github.com/vibelab-tools/MirrorSwitch/issues/49), [fnm #50](https://github.com/vibelab-tools/MirrorSwitch/issues/50) | User environment | version index, checksum, `x64`/`arm64` assets | Planned |

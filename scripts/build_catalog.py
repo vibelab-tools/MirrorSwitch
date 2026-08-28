@@ -69,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "14"
+CATALOG_FORMAT_REVISION = "15"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -140,6 +140,16 @@ OPKG_RUNTIME_UPSTREAMS = {
     "openwrt--repository-metadata": "openwrt",
     "immortalwrt--repository-metadata": "immortalwrt",
 }
+PIP_RUNTIME_UPSTREAM = "pypi--language-registry"
+PIP_RUNTIME_ENTRY_NAMES = {"pypi", "pypi/web/simple"}
+PIP_SIMPLE_ENDPOINTS = {
+    "aliyun": "https://mirrors.aliyun.com/pypi/simple/",
+    "huaweicloud": "https://repo.huaweicloud.com/repository/pypi/simple/",
+    "nju": "https://mirrors.nju.edu.cn/pypi/web/simple/",
+    "sjtug": "https://mirror.sjtu.edu.cn/pypi/web/simple/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/",
+    "ustc": "https://mirrors.ustc.edu.cn/pypi/simple/",
+}
 
 
 def utc_now() -> str:
@@ -153,6 +163,8 @@ def upstream_id(family: str, content_type: str) -> str:
 def tool_scopes(tool_id: str) -> list[str]:
     if tool_id in {"flatpak", "nix"}:
         return ["system", "user"]
+    if tool_id == "pip":
+        return ["system", "user", "site"]
     if tool_id in SYSTEM_TOOLS:
         return ["system"]
     if tool_id in USER_ONLY_TOOLS:
@@ -191,6 +203,12 @@ def candidate_endpoints(
             url = url.replace("nix-channels%2Fstore", "nix-channels/store")
             if not url.rstrip("/").endswith("/store"):
                 url = url.rstrip("/") + "/store/"
+        if (
+            tool_id == "pip"
+            and upstream_key == PIP_RUNTIME_UPSTREAM
+            and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
+        ):
+            url = PIP_SIMPLE_ENDPOINTS[entry["provider_id"]]
         endpoints.append({"role": role, "protocol": item["protocol"], "url": url})
     return endpoints
 
@@ -455,6 +473,26 @@ def runtime_properties(
                 "expected_status": [200, 206],
             },
         ]
+    elif (
+        tool_id == "pip"
+        and upstream_key == PIP_RUNTIME_UPSTREAM
+        and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "proxy" if entry["provider_id"] == "ustc" else "mirror"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/sampleproject/",
+                "expected_status": [200],
+                "expected_content_type": "text/html",
+                "contains": "sampleproject-",
+            }
+        ]
     return compatibility, delivery_mode, probes
 
 
@@ -507,6 +545,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "guix",
                         "nix",
                         "opkg",
+                        "pip",
                         "yum",
                         "pacman",
                         "portage",

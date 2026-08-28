@@ -199,6 +199,7 @@ pub enum DeliveryMode {
 pub enum ConfigurationScope {
     System,
     User,
+    Site,
     Project,
     Environment,
 }

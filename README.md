@@ -41,6 +41,7 @@ real-boundary checks have passed.
 - [GNU Guix adapter](docs/adapters/guix.md)
 - [Flatpak adapter](docs/adapters/flatpak.md)
 - [opkg adapter](docs/adapters/opkg.md)
+- [pip adapter](docs/adapters/pip.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License
