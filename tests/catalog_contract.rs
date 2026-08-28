@@ -7,6 +7,7 @@ const MINIMAL_CATALOG: &str = r#"
 {
   "schema_version": 1,
   "content_version": "2026.08.28.1",
+  "content_revision": 202608280001,
   "generated_at": "2026-08-28T00:00:00Z",
   "providers": [
     {
@@ -18,6 +19,7 @@ const MINIMAL_CATALOG: &str = r#"
   "upstreams": [
     {
       "id": "pypi",
+      "family": "pypi",
       "display_name": "Python Package Index",
       "content_kind": "language-registry",
       "aliases": ["PyPI"]
@@ -28,16 +30,20 @@ const MINIMAL_CATALOG: &str = r#"
       "id": "pip",
       "adapter_key": "pip",
       "display_name": "pip",
+      "state": "planned",
+      "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/39",
       "supported_scopes": ["user", "project", "environment"],
       "composition": "single"
     }
   ],
   "candidates": [
     {
+      "id": "example-pypi-pip",
       "provider_id": "example",
       "upstream_id": "pypi",
       "tool_id": "pip",
       "catalog_state": "cataloged",
+      "raw_names": ["pypi"],
       "endpoints": [
         {
           "role": "index",
@@ -60,7 +66,7 @@ const MINIMAL_CATALOG: &str = r#"
           "expected_content_type": "text/html"
         }
       ],
-      "source_url": "https://example.invalid/help/pypi",
+      "source_urls": ["https://example.invalid/help/pypi"],
       "observed_at": "2026-08-28T00:00:00Z"
     }
   ]

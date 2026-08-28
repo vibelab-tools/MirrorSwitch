@@ -6,6 +6,7 @@
 
 pub mod adapter;
 pub mod catalog;
+pub mod catalog_update;
 pub mod context;
 pub mod detection;
 pub mod plan;

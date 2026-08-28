@@ -14,6 +14,7 @@ pub enum OperatingSystem {
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Architecture {
+    #[serde(rename = "x86_64", alias = "x86-64")]
     X86_64,
     Arm64,
 }

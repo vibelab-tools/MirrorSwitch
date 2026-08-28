@@ -1,4 +1,7 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use crate::context::{Architecture, ExecutionEnvironment, OperatingSystem};
 
@@ -7,6 +10,7 @@ use crate::context::{Architecture, ExecutionEnvironment, OperatingSystem};
 pub struct MirrorCatalog {
     pub schema_version: u32,
     pub content_version: String,
+    pub content_revision: u64,
     pub generated_at: String,
     pub providers: Vec<Provider>,
     pub upstreams: Vec<UpstreamRepository>,
@@ -26,6 +30,7 @@ pub struct Provider {
 #[serde(deny_unknown_fields)]
 pub struct UpstreamRepository {
     pub id: String,
+    pub family: String,
     pub display_name: String,
     pub content_kind: ContentKind,
     #[serde(default)]
@@ -40,6 +45,8 @@ pub struct Tool {
     /// cataloged but cannot become supported at runtime.
     pub adapter_key: String,
     pub display_name: String,
+    pub state: ToolCatalogState,
+    pub implementation_issue: String,
     pub supported_scopes: Vec<ConfigurationScope>,
     pub composition: CompositionPolicy,
 }
@@ -47,14 +54,16 @@ pub struct Tool {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MirrorCandidate {
+    pub id: String,
     pub provider_id: String,
     pub upstream_id: String,
     pub tool_id: String,
     pub catalog_state: CatalogEntryState,
+    pub raw_names: Vec<String>,
     pub endpoints: Vec<Endpoint>,
     pub compatibility: Compatibility,
     pub probes: Vec<ProbeSpec>,
-    pub source_url: String,
+    pub source_urls: Vec<String>,
     pub observed_at: String,
 }
 
@@ -63,6 +72,13 @@ pub struct MirrorCandidate {
 pub enum CatalogEntryState {
     Cataloged,
     Partial,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ToolCatalogState {
+    Planned,
+    Supported,
 }
 
 /// Runtime evaluation is deliberately separate from catalog inventory state.
@@ -131,11 +147,14 @@ pub enum HttpMethod {
 #[serde(rename_all = "kebab-case")]
 pub enum ContentKind {
     SystemPackages,
+    RepositoryMetadata,
     LanguageRegistry,
     BinaryCache,
     ContainerRegistry,
     GitMirror,
     ReleaseArtifacts,
+    ReleaseProxy,
+    RawProxy,
     StaticFiles,
 }
 
@@ -149,6 +168,7 @@ pub enum EndpointRole {
     Registry,
     Git,
     Releases,
+    Raw,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -176,4 +196,169 @@ pub enum CompositionPolicy {
     Single,
     OrderedFallback,
     Priority,
+}
+
+impl MirrorCatalog {
+    /// Validates reference integrity and ensures only adapters compiled into
+    /// the current binary can become actionable.
+    pub fn validate(
+        &self,
+        adapter_allowlist: &HashSet<String>,
+    ) -> Result<(), CatalogValidationError> {
+        if self.schema_version != 1 {
+            return Err(CatalogValidationError::UnsupportedSchema(
+                self.schema_version,
+            ));
+        }
+        if self.content_version.is_empty()
+            || self.content_revision == 0
+            || self.generated_at.is_empty()
+        {
+            return Err(CatalogValidationError::MissingVersionMetadata);
+        }
+
+        let provider_ids = unique_ids(
+            "provider",
+            self.providers.iter().map(|item| item.id.as_str()),
+        )?;
+        let upstream_ids = unique_ids(
+            "upstream",
+            self.upstreams.iter().map(|item| item.id.as_str()),
+        )?;
+        let tool_ids = unique_ids("tool", self.tools.iter().map(|item| item.id.as_str()))?;
+        unique_ids(
+            "candidate",
+            self.candidates.iter().map(|item| item.id.as_str()),
+        )?;
+
+        for tool in &self.tools {
+            if tool.supported_scopes.is_empty()
+                || tool.implementation_issue.is_empty()
+                || tool.adapter_key.is_empty()
+            {
+                return Err(CatalogValidationError::InvalidTool(tool.id.clone()));
+            }
+            if tool.state == ToolCatalogState::Supported {
+                if tool.id != tool.adapter_key {
+                    return Err(CatalogValidationError::AdapterIdentityMismatch {
+                        tool_id: tool.id.clone(),
+                        adapter_key: tool.adapter_key.clone(),
+                    });
+                }
+                if !adapter_allowlist.contains(&tool.adapter_key) {
+                    return Err(CatalogValidationError::AdapterUnavailable {
+                        tool_id: tool.id.clone(),
+                        adapter_key: tool.adapter_key.clone(),
+                    });
+                }
+            }
+        }
+
+        for candidate in &self.candidates {
+            if !provider_ids.contains(candidate.provider_id.as_str()) {
+                return Err(CatalogValidationError::UnknownReference {
+                    candidate_id: candidate.id.clone(),
+                    field: "provider_id",
+                    value: candidate.provider_id.clone(),
+                });
+            }
+            if !upstream_ids.contains(candidate.upstream_id.as_str()) {
+                return Err(CatalogValidationError::UnknownReference {
+                    candidate_id: candidate.id.clone(),
+                    field: "upstream_id",
+                    value: candidate.upstream_id.clone(),
+                });
+            }
+            if !tool_ids.contains(candidate.tool_id.as_str()) {
+                return Err(CatalogValidationError::UnknownReference {
+                    candidate_id: candidate.id.clone(),
+                    field: "tool_id",
+                    value: candidate.tool_id.clone(),
+                });
+            }
+            if candidate.endpoints.is_empty()
+                || candidate.raw_names.is_empty()
+                || candidate.source_urls.is_empty()
+                || candidate.observed_at.is_empty()
+            {
+                return Err(CatalogValidationError::InvalidCandidate(
+                    candidate.id.clone(),
+                ));
+            }
+            for endpoint in &candidate.endpoints {
+                let valid_protocol = match endpoint.protocol {
+                    Protocol::Https => endpoint.url.starts_with("https://"),
+                    Protocol::Http => endpoint.url.starts_with("http://"),
+                    Protocol::Git => endpoint.url.starts_with("git://"),
+                    Protocol::Rsync => endpoint.url.starts_with("rsync://"),
+                    Protocol::Oci => endpoint.url.starts_with("oci://"),
+                };
+                if !valid_protocol {
+                    return Err(CatalogValidationError::InvalidEndpoint {
+                        candidate_id: candidate.id.clone(),
+                        url: endpoint.url.clone(),
+                    });
+                }
+            }
+            for probe in &candidate.probes {
+                if !probe.path.starts_with('/') || probe.path.contains("://") {
+                    return Err(CatalogValidationError::InvalidProbe {
+                        candidate_id: candidate.id.clone(),
+                        path: probe.path.clone(),
+                    });
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+fn unique_ids<'a>(
+    kind: &'static str,
+    values: impl Iterator<Item = &'a str>,
+) -> Result<HashSet<&'a str>, CatalogValidationError> {
+    let mut unique = HashSet::new();
+    for value in values {
+        if value.is_empty() || !unique.insert(value) {
+            return Err(CatalogValidationError::DuplicateOrEmptyId {
+                kind,
+                value: value.into(),
+            });
+        }
+    }
+    Ok(unique)
+}
+
+#[derive(Debug, Error)]
+pub enum CatalogValidationError {
+    #[error("unsupported catalog schema version {0}")]
+    UnsupportedSchema(u32),
+    #[error("catalog version metadata is incomplete")]
+    MissingVersionMetadata,
+    #[error("{kind} identifier is empty or duplicated: {value}")]
+    DuplicateOrEmptyId { kind: &'static str, value: String },
+    #[error("catalog tool is invalid: {0}")]
+    InvalidTool(String),
+    #[error("tool {tool_id} cannot activate adapter {adapter_key}")]
+    AdapterIdentityMismatch {
+        tool_id: String,
+        adapter_key: String,
+    },
+    #[error("tool {tool_id} requires adapter {adapter_key}, which is not compiled in")]
+    AdapterUnavailable {
+        tool_id: String,
+        adapter_key: String,
+    },
+    #[error("candidate {candidate_id} references unknown {field} {value}")]
+    UnknownReference {
+        candidate_id: String,
+        field: &'static str,
+        value: String,
+    },
+    #[error("catalog candidate is incomplete: {0}")]
+    InvalidCandidate(String),
+    #[error("candidate {candidate_id} has an endpoint inconsistent with its protocol: {url}")]
+    InvalidEndpoint { candidate_id: String, url: String },
+    #[error("candidate {candidate_id} has an invalid declarative probe path: {path}")]
+    InvalidProbe { candidate_id: String, path: String },
 }
