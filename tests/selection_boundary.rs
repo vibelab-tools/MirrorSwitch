@@ -447,6 +447,23 @@ fn multiple_sources_require_matching_compiled_composition_policy() {
 }
 
 #[test]
+fn probe_content_marker_expands_safe_runtime_context() {
+    let mut catalog = catalog();
+    catalog.candidates.retain(|candidate| candidate.id == "tie");
+    catalog.candidates[0].probes[0].contains = Some("{package}-release".into());
+    let selector = MirrorSelector::with_prober(
+        &catalog,
+        DeterministicProber::standard(),
+        ProbeLimits::default(),
+    );
+
+    let outcome = selector.select_at(&request(), 13).unwrap();
+
+    assert!(outcome.actionable);
+    assert_eq!(outcome.selections[0].candidate_id, "tie");
+}
+
+#[test]
 fn adapter_identity_is_a_configuration_format_boundary() {
     let catalog = catalog();
     let selector = MirrorSelector::with_prober(

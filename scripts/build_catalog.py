@@ -69,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "12"
+CATALOG_FORMAT_REVISION = "13"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -135,6 +135,7 @@ GUIX_RUNTIME_UPSTREAMS = {
     "guix--static-files": "Signature: 1;berlin.guix.gnu.org;",
     "guix-bordeaux--static-files": "Signature: 1;bayfront;",
 }
+FLATPAK_RUNTIME_UPSTREAM = "flathub--static-files"
 
 
 def utc_now() -> str:
@@ -146,7 +147,7 @@ def upstream_id(family: str, content_type: str) -> str:
 
 
 def tool_scopes(tool_id: str) -> list[str]:
-    if tool_id == "nix":
+    if tool_id in {"flatpak", "nix"}:
         return ["system", "user"]
     if tool_id in SYSTEM_TOOLS:
         return ["system"]
@@ -402,6 +403,28 @@ def runtime_properties(
                 "contains": GUIX_RUNTIME_UPSTREAMS[upstream_key],
             }
         ]
+    elif tool_id == "flatpak" and upstream_key == FLATPAK_RUNTIME_UPSTREAM:
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "proxy"
+        probes = [
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/config",
+                "expected_status": [200],
+                "contains": "collection-id=org.flathub.Stable",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/summary.idx",
+                "expected_status": [200],
+                "contains": "{flatpak_arch}",
+            },
+        ]
     return compatibility, delivery_mode, probes
 
 
@@ -450,6 +473,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "apk",
                         "apt",
                         "dnf",
+                        "flatpak",
                         "guix",
                         "nix",
                         "yum",

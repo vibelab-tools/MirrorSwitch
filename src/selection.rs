@@ -364,7 +364,12 @@ impl<'a, P: CandidateProber> MirrorSelector<'a, P> {
                     .prober
                     .probe(probe.method, &url, self.limits)
                     .map_err(|error| error.to_string())?;
-                validate_observation(probe, &observation)?;
+                let marker = probe
+                    .contains
+                    .as_deref()
+                    .map(|marker| expand_probe_marker(marker, context))
+                    .transpose()?;
+                validate_observation(probe, marker.as_deref(), &observation)?;
                 total_latency = total_latency.saturating_add(observation.latency_ms);
             }
         }
@@ -585,6 +590,34 @@ fn safe_probe_segment(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'+' | b'-'))
 }
 
+fn expand_probe_marker(
+    template: &str,
+    values: &BTreeMap<String, String>,
+) -> Result<String, String> {
+    let mut expanded = String::with_capacity(template.len());
+    let mut remainder = template;
+    while let Some(open) = remainder.find('{') {
+        let (prefix, after_open) = remainder.split_at(open);
+        expanded.push_str(prefix);
+        let after_open = &after_open[1..];
+        let close = after_open
+            .find('}')
+            .ok_or_else(|| "probe marker has an unterminated placeholder".to_owned())?;
+        let (key, after_key) = after_open.split_at(close);
+        let value = values
+            .get(key)
+            .filter(|value| safe_probe_segment(value))
+            .ok_or_else(|| format!("probe marker requires safe {{{key}}}"))?;
+        expanded.push_str(value);
+        remainder = &after_key[1..];
+    }
+    if remainder.contains('}') {
+        return Err("probe marker has an unmatched closing brace".into());
+    }
+    expanded.push_str(remainder);
+    Ok(expanded)
+}
+
 fn probe_url(endpoint: &Endpoint, probe_path: &str) -> Result<String, String> {
     let mut url = reqwest::Url::parse(&endpoint.url)
         .map_err(|error| format!("invalid endpoint URL: {error}"))?;
@@ -602,7 +635,11 @@ fn probe_url(endpoint: &Endpoint, probe_path: &str) -> Result<String, String> {
     Ok(url.into())
 }
 
-fn validate_observation(probe: &ProbeSpec, observation: &ProbeObservation) -> Result<(), String> {
+fn validate_observation(
+    probe: &ProbeSpec,
+    marker: Option<&str>,
+    observation: &ProbeObservation,
+) -> Result<(), String> {
     if !probe.expected_status.contains(&observation.status) {
         return Err(format!("unexpected HTTP status {}", observation.status));
     }
@@ -619,7 +656,7 @@ fn validate_observation(probe: &ProbeSpec, observation: &ProbeObservation) -> Re
             ));
         }
     }
-    if let Some(expected) = &probe.contains {
+    if let Some(expected) = marker {
         let expected = expected.as_bytes();
         if expected.is_empty() {
             return Err("repository metadata marker cannot be empty".into());

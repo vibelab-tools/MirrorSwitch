@@ -39,6 +39,7 @@ real-boundary checks have passed.
 - [XBPS adapter](docs/adapters/xbps.md)
 - [Nix adapter](docs/adapters/nix.md)
 - [GNU Guix adapter](docs/adapters/guix.md)
+- [Flatpak adapter](docs/adapters/flatpak.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

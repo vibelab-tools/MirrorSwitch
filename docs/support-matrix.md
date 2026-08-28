@@ -60,7 +60,7 @@ release gate.
 | XBPS | [#34](https://github.com/vibelab-tools/MirrorSwitch/issues/34) | Installed; extended scope | System / elevated apply | repository config | index refresh/query | Planned |
 | Nix | [#35](https://github.com/vibelab-tools/MirrorSwitch/issues/35) | Installed; extended scope | User or daemon-specific | substituters, trusted keys, channels/flakes | effective config and real query | Planned |
 | GNU Guix | [#36](https://github.com/vibelab-tools/MirrorSwitch/issues/36) | Installed daemon on a foreign Linux distribution; extended scope | System daemon / elevated apply | systemd substitute URLs; authorized keys and channels are read-only | effective unit/ACL parse and `guix weather` | Supported |
-| Flatpak | [#37](https://github.com/vibelab-tools/MirrorSwitch/issues/37) | Installed with a mapped remote | User/system selected explicitly | OSTree remotes | remote refresh/query | Planned |
+| Flatpak | [#37](https://github.com/vibelab-tools/MirrorSwitch/issues/37) | Installed with an existing mapped Flathub remote | System or user / scope-specific elevation | OSTree remote URL; GPG policy, priority and custom remotes preserved | architecture-specific `remote-ls` | Supported |
 | opkg | [#38](https://github.com/vibelab-tools/MirrorSwitch/issues/38) | Installed; extended scope | System / elevated apply | distribution feeds | signed index refresh/query | Planned |
 
 ## Language and build tools
