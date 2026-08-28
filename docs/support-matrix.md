@@ -61,7 +61,7 @@ release gate.
 | Nix | [#35](https://github.com/vibelab-tools/MirrorSwitch/issues/35) | Installed; extended scope | User or daemon-specific | substituters, trusted keys, channels/flakes | effective config and real query | Planned |
 | GNU Guix | [#36](https://github.com/vibelab-tools/MirrorSwitch/issues/36) | Installed daemon on a foreign Linux distribution; extended scope | System daemon / elevated apply | systemd substitute URLs; authorized keys and channels are read-only | effective unit/ACL parse and `guix weather` | Supported |
 | Flatpak | [#37](https://github.com/vibelab-tools/MirrorSwitch/issues/37) | Installed with an existing mapped Flathub remote | System or user / scope-specific elevation | OSTree remote URL; GPG policy, priority and custom remotes preserved | architecture-specific `remote-ls` | Supported |
-| opkg | [#38](https://github.com/vibelab-tools/MirrorSwitch/issues/38) | Installed; extended scope | System / elevated apply | distribution feeds | signed index refresh/query | Planned |
+| opkg | [#38](https://github.com/vibelab-tools/MirrorSwitch/issues/38) | OpenWrt / ImmortalWrt with exact release, target, subtarget and package architecture | System / elevated apply | mapped `distfeeds.conf` roots; custom feeds, order and signature policy preserved | per-feed `Packages.gz` + `Packages.sig`, then `opkg update` and `opkg list` | Supported |
 
 ## Language and build tools
 

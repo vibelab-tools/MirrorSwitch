@@ -4,6 +4,7 @@ mod dnf;
 mod flatpak;
 mod guix;
 mod nix;
+mod opkg;
 mod pacman;
 mod portage;
 mod xbps;
@@ -20,6 +21,7 @@ pub use dnf::DnfAdapter;
 pub use flatpak::FlatpakAdapter;
 pub use guix::GuixAdapter;
 pub use nix::NixAdapter;
+pub use opkg::OpkgAdapter;
 pub use pacman::PacmanAdapter;
 pub use portage::PortageAdapter;
 pub use xbps::XbpsAdapter;
@@ -32,6 +34,7 @@ static DNF: DnfAdapter = DnfAdapter;
 static FLATPAK: FlatpakAdapter = FlatpakAdapter;
 static GUIX: GuixAdapter = GuixAdapter;
 static NIX: NixAdapter = NixAdapter;
+static OPKG: OpkgAdapter = OpkgAdapter;
 static PACMAN: PacmanAdapter = PacmanAdapter;
 static PORTAGE: PortageAdapter = PortageAdapter;
 static XBPS: XbpsAdapter = XbpsAdapter;
@@ -40,7 +43,7 @@ static ZYPPER: ZypperAdapter = ZypperAdapter;
 
 pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
-        &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK,
+        &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK, &OPKG,
     ]
 }
 

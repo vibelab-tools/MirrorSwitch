@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+60158b26be41",
-  "content_revision": 202608290013,
-  "generated_at": "2026-08-28T22:00:00Z",
+  "content_version": "2026.08.28+9ae9103eb9db",
+  "content_revision": 202608290014,
+  "generated_at": "2026-08-28T23:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -2081,7 +2081,7 @@
       "id": "opkg",
       "adapter_key": "opkg",
       "display_name": "opkg",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/38",
       "supported_scopes": [
         "system"
@@ -3814,47 +3814,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "0deae484993ce21304949e71",
-      "provider_id": "nju",
-      "upstream_id": "openwrt--repository-metadata",
-      "tool_id": "opkg",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "openwrt"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/openwrt/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "openwrt",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "0e02bc5333d7fac53989a057",
       "provider_id": "ustc",
       "upstream_id": "gentoo--repository-metadata",
@@ -4869,6 +4828,69 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "1db0c72c1b6bbee6947f093d",
+      "provider_id": "nju",
+      "upstream_id": "immortalwrt--repository-metadata",
+      "tool_id": "opkg",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "immortalwrt"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/immortalwrt/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "immortalwrt",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.gz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.sig",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
@@ -6246,47 +6268,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "2f52937d76e966a144a6b94a",
-      "provider_id": "aliyun",
-      "upstream_id": "openwrt--repository-metadata",
-      "tool_id": "opkg",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "openwrt"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/openwrt/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "openwrt",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -8681,6 +8662,69 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "508753ef3340e2a0e73c0f15",
+      "provider_id": "ustc",
+      "upstream_id": "immortalwrt--repository-metadata",
+      "tool_id": "opkg",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "immortalwrt"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/immortalwrt/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "immortalwrt",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.gz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.sig",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/immortalwrt.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -13260,47 +13304,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "8c41a38d28ad6d0c6b211753",
-      "provider_id": "ustc",
-      "upstream_id": "openwrt--repository-metadata",
-      "tool_id": "opkg",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "openwrt"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/openwrt/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "openwrt",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/openwrt.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "8c83f2e3b3386b907ac229f4",
       "provider_id": "nju",
       "upstream_id": "maven--language-registry",
@@ -13927,47 +13930,6 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "94e3e0fd5fa64fb8aa0e12bd",
-      "provider_id": "nju",
-      "upstream_id": "immortalwrt--repository-metadata",
-      "tool_id": "opkg",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "immortalwrt"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/immortalwrt/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "immortalwrt",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -15445,6 +15407,69 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "a6ba4fe7b27d3a652837e624",
+      "provider_id": "sjtug",
+      "upstream_id": "openwrt--repository-metadata",
+      "tool_id": "opkg",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "openwrt"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/openwrt/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "openwrt",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.gz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.sig",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "a7783d415675f675612d8f99",
       "provider_id": "nju",
       "upstream_id": "ros2-rhel--repository-metadata",
@@ -16115,6 +16140,69 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "ae607a60fa98dceb76603a24",
+      "provider_id": "ustc",
+      "upstream_id": "openwrt--repository-metadata",
+      "tool_id": "opkg",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "openwrt"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/openwrt/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "openwrt",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.gz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.sig",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/openwrt.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -19455,47 +19543,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "cfe691e4510b22b547cc8273",
-      "provider_id": "ustc",
-      "upstream_id": "immortalwrt--repository-metadata",
-      "tool_id": "opkg",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "immortalwrt"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/immortalwrt/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "immortalwrt",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/immortalwrt.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "d26ec19d7ec57f7ddd3853b8",
       "provider_id": "nju",
       "upstream_id": "almalinux--repository-metadata",
@@ -20226,47 +20273,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "dbca2794c9788f2f3cbf83f3",
-      "provider_id": "sjtug",
-      "upstream_id": "openwrt--repository-metadata",
-      "tool_id": "opkg",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "openwrt"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/openwrt/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "openwrt",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -21192,6 +21198,69 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "e83a6a601a749d7f4a87f0e3",
+      "provider_id": "aliyun",
+      "upstream_id": "openwrt--repository-metadata",
+      "tool_id": "opkg",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "openwrt"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/openwrt/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "openwrt",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.gz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.sig",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "e8970a3ad126e628a0497fa9",
       "provider_id": "tuna",
       "upstream_id": "msys2--static-files",
@@ -21222,6 +21291,69 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "e8b4d4f69d4b06d671a73979",
+      "provider_id": "nju",
+      "upstream_id": "openwrt--repository-metadata",
+      "tool_id": "opkg",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "openwrt"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/openwrt/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "openwrt",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.gz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.sig",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -21972,6 +22104,69 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "f173fbd827828ba9f6493e22",
+      "provider_id": "tuna",
+      "upstream_id": "openwrt--repository-metadata",
+      "tool_id": "opkg",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "openwrt"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/openwrt/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "openwrt",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.gz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}/Packages.sig",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "f1ae4f3ec10494abd5e88bbc",
       "provider_id": "nju",
       "upstream_id": "centos-riscv--repository-metadata",
@@ -22177,47 +22372,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "f699ed749c62717e592c3ea0",
-      "provider_id": "tuna",
-      "upstream_id": "openwrt--repository-metadata",
-      "tool_id": "opkg",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "openwrt"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/openwrt/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "openwrt",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

@@ -69,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "13"
+CATALOG_FORMAT_REVISION = "14"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -136,6 +136,10 @@ GUIX_RUNTIME_UPSTREAMS = {
     "guix-bordeaux--static-files": "Signature: 1;bayfront;",
 }
 FLATPAK_RUNTIME_UPSTREAM = "flathub--static-files"
+OPKG_RUNTIME_UPSTREAMS = {
+    "openwrt--repository-metadata": "openwrt",
+    "immortalwrt--repository-metadata": "immortalwrt",
+}
 
 
 def utc_now() -> str:
@@ -425,6 +429,32 @@ def runtime_properties(
                 "contains": "{flatpak_arch}",
             },
         ]
+    elif tool_id == "opkg" and upstream_key in OPKG_RUNTIME_UPSTREAMS:
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = [
+            {
+                "id": OPKG_RUNTIME_UPSTREAMS[upstream_key],
+                "versions": [],
+                "codenames": [],
+            }
+        ]
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/{repository_path}/Packages.gz",
+                "expected_status": [200, 206],
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/{repository_path}/Packages.sig",
+                "expected_status": [200, 206],
+            },
+        ]
     return compatibility, delivery_mode, probes
 
 
@@ -476,6 +506,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "flatpak",
                         "guix",
                         "nix",
+                        "opkg",
                         "yum",
                         "pacman",
                         "portage",
