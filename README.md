@@ -42,6 +42,7 @@ real-boundary checks have passed.
 - [Flatpak adapter](docs/adapters/flatpak.md)
 - [opkg adapter](docs/adapters/opkg.md)
 - [pip adapter](docs/adapters/pip.md)
+- [npm adapter](docs/adapters/npm.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

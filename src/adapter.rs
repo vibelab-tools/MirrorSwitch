@@ -24,6 +24,9 @@ pub trait Runtime {
     fn home_dir(&self) -> Option<PathBuf> {
         None
     }
+    fn project_dir(&self) -> Option<PathBuf> {
+        None
+    }
     fn read(&self, path: &Path) -> Result<Option<Vec<u8>>, AdapterError>;
     fn list_files(&self, directory: &Path) -> Result<Vec<PathBuf>, AdapterError> {
         Err(AdapterError::Unsupported(format!(
@@ -32,6 +35,14 @@ pub trait Runtime {
         )))
     }
     fn run(&self, program: &str, arguments: &[String]) -> Result<Output, AdapterError>;
+    fn run_in(
+        &self,
+        _directory: &Path,
+        program: &str,
+        arguments: &[String],
+    ) -> Result<Output, AdapterError> {
+        self.run(program, arguments)
+    }
     fn apply_plan(&mut self, _plan: &ChangePlan) -> Result<ApplyOutcome, AdapterError> {
         Err(AdapterError::Unsupported(
             "transaction apply is unavailable in this runtime".into(),

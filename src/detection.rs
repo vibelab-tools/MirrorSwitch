@@ -213,8 +213,11 @@ pub fn detect_linux(
 
     let architecture = parse_architecture(&options.architecture)?;
     let distribution = read_distribution(&options.root)?;
-    let runtime = OsRuntime::new(&options.root, options.executable_path.clone())
+    let mut runtime = OsRuntime::new(&options.root, options.executable_path.clone())
         .with_home(options.home.clone());
+    if let Some(project_dir) = &options.project_dir {
+        runtime = runtime.with_project_dir(project_dir.clone());
+    }
     let (environment, container) = detect_container(options, &distribution);
     let context = SystemContext {
         os: OperatingSystem::Linux,
@@ -342,6 +345,7 @@ pub struct OsRuntime {
     root: PathBuf,
     executable_path: Vec<PathBuf>,
     home: Option<PathBuf>,
+    project_dir: Option<PathBuf>,
 }
 
 impl OsRuntime {
@@ -350,11 +354,17 @@ impl OsRuntime {
             root: root.into(),
             executable_path,
             home: None,
+            project_dir: None,
         }
     }
 
     pub fn with_home(mut self, home: impl Into<PathBuf>) -> Self {
         self.home = Some(home.into());
+        self
+    }
+
+    pub fn with_project_dir(mut self, project_dir: impl Into<PathBuf>) -> Self {
+        self.project_dir = Some(project_dir.into());
         self
     }
 
@@ -377,6 +387,10 @@ impl Runtime for OsRuntime {
 
     fn home_dir(&self) -> Option<PathBuf> {
         self.home.clone()
+    }
+
+    fn project_dir(&self) -> Option<PathBuf> {
+        self.project_dir.clone()
     }
 
     fn read(&self, path: &Path) -> Result<Option<Vec<u8>>, AdapterError> {
@@ -435,6 +449,27 @@ impl Runtime for OsRuntime {
             .args(arguments)
             .output()
             .map_err(|error| AdapterError::Runtime(format!("could not run {program}: {error}")))
+    }
+
+    fn run_in(
+        &self,
+        directory: &Path,
+        program: &str,
+        arguments: &[String],
+    ) -> Result<Output, AdapterError> {
+        let logical = self.find_command(program).ok_or_else(|| {
+            AdapterError::Runtime(format!("command {program} is not available on PATH"))
+        })?;
+        Command::new(physical_path(&self.root, &logical))
+            .current_dir(physical_path(&self.root, directory))
+            .args(arguments)
+            .output()
+            .map_err(|error| {
+                AdapterError::Runtime(format!(
+                    "could not run {program} in {}: {error}",
+                    directory.display()
+                ))
+            })
     }
 
     fn apply_plan(

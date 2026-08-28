@@ -69,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "15"
+CATALOG_FORMAT_REVISION = "16"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -150,6 +150,9 @@ PIP_SIMPLE_ENDPOINTS = {
     "tuna": "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/",
     "ustc": "https://mirrors.ustc.edu.cn/pypi/simple/",
 }
+NPM_RUNTIME_UPSTREAM = "npm--language-registry"
+NPM_RUNTIME_ENTRY_NAMES = {"npm", "NPM"}
+NPM_ACTIONABLE_PROVIDERS = {"huaweicloud"}
 
 
 def utc_now() -> str:
@@ -165,6 +168,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["system", "user"]
     if tool_id == "pip":
         return ["system", "user", "site"]
+    if tool_id == "npm":
+        return ["system", "user", "project"]
     if tool_id in SYSTEM_TOOLS:
         return ["system"]
     if tool_id in USER_ONLY_TOOLS:
@@ -493,6 +498,34 @@ def runtime_properties(
                 "contains": "sampleproject-",
             }
         ]
+    elif (
+        tool_id == "npm"
+        and upstream_key == NPM_RUNTIME_UPSTREAM
+        and entry["raw_name"] in NPM_RUNTIME_ENTRY_NAMES
+        and entry["provider_id"] in NPM_ACTIONABLE_PROVIDERS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "proxy"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/is-number/latest",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": '"name":"is-number"',
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/is-number/-/is-number-7.0.0.tgz",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/octet-stream",
+            },
+        ]
     return compatibility, delivery_mode, probes
 
 
@@ -544,6 +577,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "flatpak",
                         "guix",
                         "nix",
+                        "npm",
                         "opkg",
                         "pip",
                         "yum",
