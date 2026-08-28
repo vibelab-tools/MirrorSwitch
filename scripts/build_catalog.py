@@ -68,7 +68,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "8"
+CATALOG_FORMAT_REVISION = "9"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -126,6 +126,8 @@ PORTAGE_RUNTIME_UPSTREAMS = {
     "gentoo--repository-metadata",
     "gentoo-portage--repository-metadata",
 }
+
+APK_RUNTIME_UPSTREAM = "alpine--repository-metadata"
 
 
 def utc_now() -> str:
@@ -322,6 +324,20 @@ def runtime_properties(
                         "expected_status": [200],
                     },
                 ]
+    elif tool_id == "apk" and upstream_key == APK_RUNTIME_UPSTREAM:
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["distributions"] = [
+            {"id": "alpine", "versions": [], "codenames": []}
+        ]
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/{branch}/{repository}/{architecture}/APKINDEX.tar.gz",
+                "expected_status": [200],
+            }
+        ]
     return compatibility, delivery_mode, probes
 
 
@@ -364,7 +380,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                 "adapter_key": tool_id,
                 "display_name": tool_id,
                 "state": "supported"
-                if tool_id in {"apt", "dnf", "yum", "pacman", "portage", "zypper"}
+                if tool_id in {"apk", "apt", "dnf", "yum", "pacman", "portage", "zypper"}
                 else target["state"],
                 "implementation_issue": target["issue"],
                 "supported_scopes": tool_scopes(tool_id),

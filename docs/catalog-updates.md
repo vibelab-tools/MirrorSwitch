@@ -8,8 +8,8 @@ Regenerate the catalog deterministically after reviewing an inventory change:
 
 ```bash
 python3 -B scripts/build_catalog.py \
-  --content-revision 202608280008 \
-  --generated-at 2026-08-28T18:00:00Z
+  --content-revision 202608280009 \
+  --generated-at 2026-08-28T18:45:00Z
 cargo run --bin catalogctl -- validate catalog/mirrors.json
 ```
 
