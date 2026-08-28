@@ -1,14 +1,17 @@
 # DNF adapter
 
-The DNF adapter supports Fedora, Rocky Linux and AlmaLinux on Linux at system scope. It detects
-DNF5 before DNF4, reads enabled `.repo` files from `/etc/yum.repos.d`, and derives `$releasever`
-and `$basearch` from the detected system context. Rocky Linux and AlmaLinux use the major release
-for their repository paths; arm64 maps to DNF's `aarch64` base architecture.
+The DNF adapter supports Fedora, Rocky Linux, AlmaLinux and CentOS Stream on Linux at system
+scope. It detects DNF5 before DNF4, reads enabled `.repo` files from `/etc/yum.repos.d`, and derives
+`$releasever`, `$stream` and `$basearch` from the detected system context. Rocky Linux and
+AlmaLinux use the major release for their repository paths; arm64 maps to DNF's `aarch64` base
+architecture. CentOS Linux repositories are not treated as Stream repositories merely because a
+DNF command is installed.
 
 Only recognized distribution-owned sections and known mirror locations are eligible for rewrites.
 Fedora `fedora`, `updates` and `updates-testing` sections are kept separate from Rocky Linux and
-AlmaLinux `baseos`, `appstream`, `crb`/`powertools` and `extras` sections. EPEL, COPR, unknown and
-disabled repositories remain unchanged. Existing signature, GPG key, module and policy fields are
+AlmaLinux `baseos`, `appstream`, `crb`/`powertools` and `extras` sections, and from CentOS Stream
+`baseos`, `appstream` and `crb`. EPEL, COPR, CentOS Stream add-on/SIG, unknown and disabled
+repositories remain unchanged. Existing signature, GPG key, module and policy fields are
 preserved.
 
 An active `baseurl` is replaced in place. An active `metalink` or `mirrorlist` is retained as a

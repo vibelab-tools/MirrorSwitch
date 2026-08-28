@@ -20,7 +20,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             .filter(|tool| tool.state == ToolCatalogState::Supported)
             .map(|tool| tool.id.as_str())
             .collect::<Vec<_>>(),
-        ["apt", "dnf"]
+        ["apt", "dnf", "yum"]
     );
 }
 

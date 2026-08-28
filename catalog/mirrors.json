@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+53057b6fbe6f",
-  "content_revision": 202608280004,
-  "generated_at": "2026-08-28T12:50:00Z",
+  "content_version": "2026.08.28+e4ee20310656",
+  "content_revision": 202608280005,
+  "generated_at": "2026-08-28T14:30:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -2334,7 +2334,7 @@
       "id": "yum",
       "adapter_key": "yum",
       "display_name": "yum",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/29",
       "supported_scopes": [
         "system"
@@ -2519,6 +2519,59 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "027c0844fa73a5d0d5418c2e",
+      "provider_id": "nju",
+      "upstream_id": "centos-vault--repository-metadata",
+      "tool_id": "yum",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "centos-vault"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/centos-vault/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "centos",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -3182,47 +3235,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "06a71ddc0594b23e387e72b2",
-      "provider_id": "tuna",
-      "upstream_id": "centos-vault--repository-metadata",
-      "tool_id": "yum",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "centos-vault"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/centos-vault/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "centos",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "06c06e37e3d295645a456bbc",
       "provider_id": "ustc",
       "upstream_id": "cpan--language-registry",
@@ -3352,47 +3364,6 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "07972324216d99090a969c2d",
-      "provider_id": "aliyun",
-      "upstream_id": "centos-altarch--repository-metadata",
-      "tool_id": "yum",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "centos-altarch"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/centos-altarch/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "centos",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -3736,6 +3707,60 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "0b79989e0ac7a4351dd29729",
+      "provider_id": "tuna",
+      "upstream_id": "centos-stream--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "centos-stream"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/centos-stream/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "centos",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "0ca74222ba81fc7b05b48b7f",
       "provider_id": "nju",
       "upstream_id": "nix4loong--binary-cache",
@@ -3999,47 +4024,6 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "1289c887c1b54c15a9c5f221",
-      "provider_id": "nju",
-      "upstream_id": "centos-vault--repository-metadata",
-      "tool_id": "yum",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "centos-vault"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/centos-vault/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "centos",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -7047,6 +7031,59 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "3d6f5cdbe3b83ee9ef5cb5a9",
+      "provider_id": "aliyun",
+      "upstream_id": "centos-vault--repository-metadata",
+      "tool_id": "yum",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "centos-vault"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/centos-vault/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "centos",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "3e18a50ff817f549665ff91e",
       "provider_id": "nju",
       "upstream_id": "guix--git-mirror",
@@ -8025,47 +8062,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "4bc0f45e9fdc73180c840733",
-      "provider_id": "aliyun",
-      "upstream_id": "centos-vault--repository-metadata",
-      "tool_id": "yum",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "centos-vault"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/centos-vault/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "centos",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "4c412d21df78d02c099b2314",
       "provider_id": "huaweicloud",
       "upstream_id": "openeuler--repository-metadata",
@@ -8166,6 +8162,60 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "4ce23a89e8e1e66b5a68a7f6",
+      "provider_id": "nju",
+      "upstream_id": "centos-stream--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "centos-stream"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/centos-stream/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "centos",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -10777,47 +10827,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "73dd36555c1d04d16aa49196",
-      "provider_id": "ustc",
-      "upstream_id": "centos-stream--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "centos-stream"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/centos-stream/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "centos",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/centos-stream.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "74d9da5d88e196ea6d7b6382",
       "provider_id": "huaweicloud",
       "upstream_id": "msys2--static-files",
@@ -12429,7 +12438,7 @@
       "upstream_id": "centos-altarch--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
+      "delivery_mode": "mirror",
       "raw_names": [
         "centos-altarch"
       ],
@@ -12460,7 +12469,17 @@
         ],
         "repository_versions": []
       },
-      "probes": [],
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
       ],
@@ -12670,6 +12689,60 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "8b348da4e4a5e4fa9f67c908",
+      "provider_id": "aliyun",
+      "upstream_id": "centos-stream--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "centos-stream"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/centos-stream/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "centos",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -13785,6 +13858,59 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "9bd10ac8fdb61cc46526c789",
+      "provider_id": "aliyun",
+      "upstream_id": "centos-altarch--repository-metadata",
+      "tool_id": "yum",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "centos-altarch"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/centos-altarch/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "centos",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "9cb1bc3971d291c682565c97",
       "provider_id": "tuna",
       "upstream_id": "anaconda--language-registry",
@@ -14740,47 +14866,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "a6bcacae04f4b065c7fdf750",
-      "provider_id": "ustc",
-      "upstream_id": "centos-vault--repository-metadata",
-      "tool_id": "yum",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "centos-vault"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/centos-vault/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "centos",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/centos-vault.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -15949,47 +16034,6 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "b3eac386d6dbd1ae04ef6f21",
-      "provider_id": "nju",
-      "upstream_id": "centos-altarch--repository-metadata",
-      "tool_id": "yum",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "centos-altarch"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/centos-altarch/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "centos",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17549,47 +17593,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "cb68e3e33179ac4f7a34d002",
-      "provider_id": "tuna",
-      "upstream_id": "centos-stream--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "centos-stream"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/centos-stream/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "centos",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "cb78eacdc7d4845ebf1bf696",
       "provider_id": "ustc",
       "upstream_id": "debian-security--repository-metadata",
@@ -18093,6 +18096,59 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "cfb2b7836718f83eb239fd13",
+      "provider_id": "ustc",
+      "upstream_id": "centos-vault--repository-metadata",
+      "tool_id": "yum",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "centos-vault"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/centos-vault/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "centos",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/centos-vault.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "cfe691e4510b22b547cc8273",
       "provider_id": "ustc",
       "upstream_id": "immortalwrt--repository-metadata",
@@ -18228,7 +18284,7 @@
       "upstream_id": "centos-vault--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
+      "delivery_mode": "mirror",
       "raw_names": [
         "centos-vault"
       ],
@@ -18259,9 +18315,73 @@
         ],
         "repository_versions": []
       },
-      "probes": [],
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "d3866bde8bfe5c9e8d200872",
+      "provider_id": "ustc",
+      "upstream_id": "centos-stream--repository-metadata",
+      "tool_id": "dnf",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "centos-stream"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/centos-stream/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "centos",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/centos-stream.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -18990,47 +19110,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "de887d082f27aeced9e83ed1",
-      "provider_id": "nju",
-      "upstream_id": "centos-stream--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "centos-stream"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/centos-stream/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "centos",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "de9d3ca5d097922b202901bc",
       "provider_id": "tuna",
       "upstream_id": "bioconductor--language-registry",
@@ -19273,6 +19352,59 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "e301fa4e13e400ac7b259681",
+      "provider_id": "nju",
+      "upstream_id": "centos-altarch--repository-metadata",
+      "tool_id": "yum",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "centos-altarch"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/centos-altarch/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "centos",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
@@ -20123,6 +20255,59 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "ed518cf78ee19ceaaa031c3f",
+      "provider_id": "tuna",
+      "upstream_id": "centos-vault--repository-metadata",
+      "tool_id": "yum",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "centos-vault"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/centos-vault/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "centos",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/{repository_path}repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -21170,47 +21355,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "f9d09a982fdfa6296fa4be1b",
-      "provider_id": "aliyun",
-      "upstream_id": "centos-stream--repository-metadata",
-      "tool_id": "dnf",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "centos-stream"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/centos-stream/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "centos",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

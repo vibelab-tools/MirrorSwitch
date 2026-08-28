@@ -31,6 +31,7 @@ real-boundary checks have passed.
 - [Per-repository mirror selection](docs/mirror-selection.md)
 - [APT adapter](docs/adapters/apt.md)
 - [DNF adapter](docs/adapters/dnf.md)
+- [YUM adapter](docs/adapters/yum.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

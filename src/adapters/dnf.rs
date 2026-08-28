@@ -16,7 +16,7 @@ use crate::{
     transaction::{ApplyOutcome, TransactionReceipt},
 };
 
-const REPOSITORY_DIRECTORY: &str = "/etc/yum.repos.d";
+pub(super) const REPOSITORY_DIRECTORY: &str = "/etc/yum.repos.d";
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct DnfAdapter;
@@ -51,6 +51,14 @@ impl Adapter for DnfAdapter {
         let files = repo_paths(runtime)?;
         let command = dnf_command(runtime);
         if command.is_none() && files.is_empty() {
+            return Ok(None);
+        }
+        if context
+            .distribution
+            .as_ref()
+            .is_some_and(|distribution| distribution.id == "centos")
+            && !has_enabled_centos_stream_repository(context, runtime, &files)?
+        {
             return Ok(None);
         }
         let mut evidence = Vec::new();
@@ -114,7 +122,7 @@ impl Adapter for DnfAdapter {
                     path.display()
                 ))
             })?;
-            let sections = parse_repo_file(text, context)?;
+            let sections = parse_repo_file(text, context, classify_section)?;
             sources.extend(sections.into_iter().map(configured_source));
             documents.push(ConfigurationDocument {
                 path,
@@ -207,7 +215,7 @@ impl Adapter for DnfAdapter {
                 "DNF plan requires a system-scope DNF configuration".into(),
             ));
         }
-        let selected = selected_endpoints(selection)?;
+        let selected = selected_endpoints(selection, "dnf")?;
         let mut changes = Vec::new();
         for document in &current.documents {
             if document.format != "dnf-repo" {
@@ -219,7 +227,7 @@ impl Adapter for DnfAdapter {
             let text = std::str::from_utf8(&document.contents).map_err(|_| {
                 AdapterError::InvalidConfiguration("DNF repository file is not UTF-8".into())
             })?;
-            let sections = parse_repo_file(text, context)?;
+            let sections = parse_repo_file(text, context, classify_section)?;
             let new_contents = rewrite_repo_file(text, sections, &selected)?;
             if new_contents == document.contents {
                 continue;
@@ -294,7 +302,7 @@ impl Adapter for DnfAdapter {
 }
 
 #[derive(Clone, Debug)]
-struct RepoSection {
+pub(super) struct RepoSection {
     id: String,
     enabled: bool,
     url: String,
@@ -337,7 +345,10 @@ fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError
         .distribution
         .as_ref()
         .ok_or_else(|| AdapterError::Unsupported("DNF requires distribution metadata".into()))?;
-    if !matches!(distribution.id.as_str(), "fedora" | "rocky" | "almalinux") {
+    if !matches!(
+        distribution.id.as_str(),
+        "fedora" | "rocky" | "almalinux" | "centos"
+    ) {
         return Err(AdapterError::Unsupported(format!(
             "DNF adapter has no verified rules for {}",
             distribution.id
@@ -356,7 +367,7 @@ fn dnf_command(runtime: &dyn Runtime) -> Option<&'static str> {
     }
 }
 
-fn repo_paths(runtime: &dyn Runtime) -> Result<Vec<PathBuf>, AdapterError> {
+pub(super) fn repo_paths(runtime: &dyn Runtime) -> Result<Vec<PathBuf>, AdapterError> {
     let mut paths: Vec<_> = runtime
         .list_files(Path::new(REPOSITORY_DIRECTORY))?
         .into_iter()
@@ -366,7 +377,11 @@ fn repo_paths(runtime: &dyn Runtime) -> Result<Vec<PathBuf>, AdapterError> {
     Ok(paths)
 }
 
-fn parse_repo_file(text: &str, context: &SystemContext) -> Result<Vec<RepoSection>, AdapterError> {
+pub(super) fn parse_repo_file(
+    text: &str,
+    context: &SystemContext,
+    classifier: fn(&str, &str, &SystemContext) -> Option<(String, String)>,
+) -> Result<Vec<RepoSection>, AdapterError> {
     let mut sections = Vec::new();
     let mut current_id = None;
     let mut fields = Vec::new();
@@ -377,27 +392,27 @@ fn parse_repo_file(text: &str, context: &SystemContext) -> Result<Vec<RepoSectio
         if trimmed.starts_with('[') {
             if !trimmed.ends_with(']') || trimmed.len() < 3 {
                 return Err(AdapterError::InvalidConfiguration(
-                    "DNF repository section header is malformed".into(),
+                    "RPM repository section header is malformed".into(),
                 ));
             }
             if let Some(id) = current_id.take() {
-                sections.push(build_section(id, &fields, context));
+                sections.push(build_section(id, &fields, context, classifier));
                 fields.clear();
             }
             current_id = Some(trimmed[1..trimmed.len() - 1].to_owned());
         } else if !trimmed.is_empty() && !trimmed.starts_with(['#', ';']) {
             if current_id.is_none() {
                 return Err(AdapterError::InvalidConfiguration(
-                    "DNF field appears before a repository section".into(),
+                    "RPM field appears before a repository section".into(),
                 ));
             }
             let equals = line.find('=').ok_or_else(|| {
-                AdapterError::InvalidConfiguration("DNF repository field has no '='".into())
+                AdapterError::InvalidConfiguration("RPM repository field has no '='".into())
             })?;
             let key = line[..equals].trim().to_ascii_lowercase();
             if key.is_empty() {
                 return Err(AdapterError::InvalidConfiguration(
-                    "DNF repository field name is empty".into(),
+                    "RPM repository field name is empty".into(),
                 ));
             }
             let raw_value = &line[equals + 1..];
@@ -416,12 +431,17 @@ fn parse_repo_file(text: &str, context: &SystemContext) -> Result<Vec<RepoSectio
         offset += raw_line.len();
     }
     if let Some(id) = current_id {
-        sections.push(build_section(id, &fields, context));
+        sections.push(build_section(id, &fields, context, classifier));
     }
     Ok(sections)
 }
 
-fn build_section(id: String, fields: &[IniField], context: &SystemContext) -> RepoSection {
+fn build_section(
+    id: String,
+    fields: &[IniField],
+    context: &SystemContext,
+    classifier: fn(&str, &str, &SystemContext) -> Option<(String, String)>,
+) -> RepoSection {
     let enabled = fields
         .iter()
         .rev()
@@ -459,7 +479,7 @@ fn build_section(id: String, fields: &[IniField], context: &SystemContext) -> Re
         })
         .map(|field| field.value.clone())
         .unwrap_or_default();
-    let (upstream_id, repository_path) = classify_section(&id, &url, context)
+    let (upstream_id, repository_path) = classifier(&id, &url, context)
         .map(|(upstream, path)| (Some(upstream), Some(path)))
         .unwrap_or_default();
     RepoSection {
@@ -493,8 +513,25 @@ fn classify_section(id: &str, url: &str, context: &SystemContext) -> Option<(Str
         "almalinux" => {
             enterprise_repo_path(&id).map(|path| ("almalinux--repository-metadata".into(), path))
         }
+        "centos" if centos_stream_location(url) => {
+            let directory = match id.as_str() {
+                "baseos" => "BaseOS",
+                "appstream" => "AppStream",
+                "crb" => "CRB",
+                _ => return None,
+            };
+            Some((
+                "centos-stream--repository-metadata".into(),
+                format!("$stream/{directory}/$basearch/os/"),
+            ))
+        }
         _ => None,
     }
+}
+
+fn centos_stream_location(value: &str) -> bool {
+    let lower = value.to_ascii_lowercase();
+    lower.contains("$stream") || lower.contains("${stream}") || lower.contains("centos-stream")
 }
 
 fn enterprise_repo_path(id: &str) -> Option<String> {
@@ -526,11 +563,12 @@ fn known_repository_location(value: &str, distribution: &str) -> bool {
             "fedora" => lower.contains("fedoraproject.org"),
             "rocky" => lower.contains("rockylinux.org"),
             "almalinux" => lower.contains("almalinux.org"),
+            "centos" => lower.contains("centos.org"),
             _ => false,
         }
 }
 
-fn configured_source(section: RepoSection) -> ConfiguredSource {
+pub(super) fn configured_source(section: RepoSection) -> ConfiguredSource {
     let mut metadata = BTreeMap::from([("section".into(), vec![section.id])]);
     if let Some(path) = section.repository_path {
         metadata.insert("repository_path".into(), vec![path]);
@@ -543,12 +581,13 @@ fn configured_source(section: RepoSection) -> ConfiguredSource {
     }
 }
 
-fn selected_endpoints(
+pub(super) fn selected_endpoints(
     selections: &[MirrorSelection],
+    tool_id: &str,
 ) -> Result<BTreeMap<String, String>, AdapterError> {
     let mut selected = BTreeMap::new();
     for selection in selections {
-        if selection.tool_id != "dnf" {
+        if selection.tool_id != tool_id {
             return Err(AdapterError::InvalidConfiguration(format!(
                 "selection {} belongs to {}",
                 selection.candidate_id, selection.tool_id
@@ -579,7 +618,7 @@ fn selected_endpoints(
     Ok(selected)
 }
 
-fn rewrite_repo_file(
+pub(super) fn rewrite_repo_file(
     text: &str,
     sections: Vec<RepoSection>,
     selected: &BTreeMap<String, String>,
@@ -622,7 +661,7 @@ fn rewrite_repo_file(
     for pair in replacements.windows(2) {
         if pair[0].0.end > pair[1].0.start {
             return Err(AdapterError::InvalidConfiguration(
-                "DNF repository replacement ranges overlap".into(),
+                "RPM repository replacement ranges overlap".into(),
             ));
         }
     }
@@ -651,11 +690,14 @@ fn expand_repo_variables(template: &str, context: &SystemContext) -> Result<Stri
         Architecture::X86_64 => "x86_64",
         Architecture::Arm64 => "aarch64",
     };
+    let stream = format!("{releasever}-stream");
     let expanded = template
         .replace("${releasever}", releasever)
         .replace("$releasever", releasever)
         .replace("${basearch}", basearch)
-        .replace("$basearch", basearch);
+        .replace("$basearch", basearch)
+        .replace("${stream}", &stream)
+        .replace("$stream", &stream);
     if expanded.contains('$')
         || expanded
             .split('/')
@@ -676,6 +718,34 @@ fn safe_segment(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'+' | b'-'))
 }
 
-fn rooted(root: &Path, logical: &Path) -> PathBuf {
+pub(super) fn rooted(root: &Path, logical: &Path) -> PathBuf {
     root.join(logical.strip_prefix("/").unwrap_or(logical))
+}
+
+fn has_enabled_centos_stream_repository(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+    files: &[PathBuf],
+) -> Result<bool, AdapterError> {
+    for path in files {
+        let Some(contents) = runtime.read(path)? else {
+            continue;
+        };
+        let text = std::str::from_utf8(&contents).map_err(|_| {
+            AdapterError::InvalidConfiguration(format!(
+                "DNF repository file {} is not UTF-8",
+                path.display()
+            ))
+        })?;
+        if parse_repo_file(text, context, classify_section)?
+            .iter()
+            .any(|section| {
+                section.enabled
+                    && section.upstream_id.as_deref() == Some("centos-stream--repository-metadata")
+            })
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }

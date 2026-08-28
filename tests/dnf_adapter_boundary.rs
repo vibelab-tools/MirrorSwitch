@@ -320,10 +320,11 @@ fn embedded_catalog_has_repomd_probes_for_supported_dnf_upstreams() {
                     "fedora--repository-metadata"
                         | "rocky--repository-metadata"
                         | "almalinux--repository-metadata"
+                        | "centos-stream--repository-metadata"
                 )
         })
         .collect();
-    assert_eq!(candidates.len(), 15);
+    assert_eq!(candidates.len(), 19);
     assert!(candidates.iter().all(|candidate| {
         candidate.probes.len() == 1
             && candidate.probes[0].path == "/{repository_path}repodata/repomd.xml"
@@ -332,15 +333,21 @@ fn embedded_catalog_has_repomd_probes_for_supported_dnf_upstreams() {
 }
 
 #[test]
-fn centos_is_not_conflated_with_the_verified_enterprise_linux_upstreams() {
+fn centos_linux_is_not_conflated_with_centos_stream() {
     let directory = tempdir().unwrap();
+    install_dnf(directory.path(), "dnf", 0);
+    write_repo(
+        directory.path(),
+        "CentOS-Base.repo",
+        b"[base]\nmirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os\nenabled=1\ngpgcheck=1\n",
+    );
     let context = SystemContext {
         os: OperatingSystem::Linux,
         architecture: Architecture::X86_64,
         environment: ExecutionEnvironment::Host,
         distribution: Some(Distribution {
             id: "centos".into(),
-            version_id: Some("9".into()),
+            version_id: Some("7".into()),
             version_codename: None,
             id_like: vec!["rhel".into()],
         }),
@@ -348,7 +355,80 @@ fn centos_is_not_conflated_with_the_verified_enterprise_linux_upstreams() {
     };
     let runtime = runtime(directory.path());
 
-    let error = DnfAdapter.detect(&context, &runtime).unwrap_err();
+    assert!(DnfAdapter.detect(&context, &runtime).unwrap().is_none());
+}
 
-    assert!(error.to_string().contains("no verified rules for centos"));
+#[test]
+fn centos_stream_dnf_uses_stream_paths_without_touching_addon_repositories() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_dnf(root, "dnf", 0);
+    write_repo(
+        root,
+        "centos.repo",
+        b"[baseos]\nmetalink=https://mirrors.centos.org/metalink?repo=centos-baseos-$stream&arch=$basearch\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=0\n\n[appstream]\nmetalink=https://mirrors.centos.org/metalink?repo=centos-appstream-$stream&arch=$basearch\nenabled=1\ngpgcheck=1\n\n[extras-common]\nmetalink=https://mirrors.centos.org/metalink?repo=centos-extras-sig-extras-common-$stream&arch=$basearch\nenabled=1\ngpgcheck=1\n",
+    );
+    let context = SystemContext {
+        os: OperatingSystem::Linux,
+        architecture: Architecture::Arm64,
+        environment: ExecutionEnvironment::Container,
+        distribution: Some(Distribution {
+            id: "centos".into(),
+            version_id: Some("9".into()),
+            version_codename: None,
+            id_like: vec!["rhel".into(), "fedora".into()],
+        }),
+        root: root.to_path_buf(),
+    };
+    let adapter = DnfAdapter;
+    let runtime = runtime(root);
+    let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+    let current = adapter
+        .read_current(
+            &context,
+            &runtime,
+            &detected,
+            mirrorswitch::catalog::ConfigurationScope::System,
+        )
+        .unwrap();
+    let request = adapter
+        .selection_request(&context, &detected, &current)
+        .unwrap();
+    assert_eq!(
+        request.required_upstreams,
+        ["centos-stream--repository-metadata"]
+    );
+    let paths = request.probe_contexts["centos-stream--repository-metadata"]
+        .iter()
+        .map(|context| context["repository_path"].as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        paths,
+        [
+            "9-stream/AppStream/aarch64/os/",
+            "9-stream/BaseOS/aarch64/os/"
+        ]
+    );
+    let plan = adapter
+        .plan(
+            &context,
+            &current,
+            &[selection(
+                "centos-stream--repository-metadata",
+                "https://mirrors.aliyun.com/centos-stream/",
+            )],
+        )
+        .unwrap();
+    let preview = String::from_utf8(plan.changes[0].new_contents.clone()).unwrap();
+
+    assert!(
+        preview.contains(
+            "baseurl=https://mirrors.aliyun.com/centos-stream/$stream/BaseOS/$basearch/os/"
+        )
+    );
+    assert!(preview.contains(
+        "baseurl=https://mirrors.aliyun.com/centos-stream/$stream/AppStream/$basearch/os/"
+    ));
+    assert!(preview.contains("repo=centos-extras-sig-extras-common-$stream"));
+    assert!(preview.contains("repo_gpgcheck=0"));
 }
