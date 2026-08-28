@@ -308,6 +308,7 @@ pub(super) struct RepoSection {
     url: String,
     upstream_id: Option<String>,
     repository_path: Option<String>,
+    properties: BTreeMap<String, Vec<String>>,
     location: Option<LocationField>,
 }
 
@@ -482,12 +483,25 @@ fn build_section(
     let (upstream_id, repository_path) = classifier(&id, &url, context)
         .map(|(upstream, path)| (Some(upstream), Some(path)))
         .unwrap_or_default();
+    let mut properties = BTreeMap::new();
+    for field in fields.iter().filter(|field| {
+        matches!(
+            field.key.as_str(),
+            "autorefresh" | "priority" | "gpgcheck" | "repo_gpgcheck" | "type"
+        )
+    }) {
+        properties
+            .entry(field.key.clone())
+            .or_insert_with(Vec::new)
+            .push(field.value.clone());
+    }
     RepoSection {
         id,
         enabled,
         url,
         upstream_id,
         repository_path,
+        properties,
         location,
     }
 }
@@ -569,7 +583,8 @@ fn known_repository_location(value: &str, distribution: &str) -> bool {
 }
 
 pub(super) fn configured_source(section: RepoSection) -> ConfiguredSource {
-    let mut metadata = BTreeMap::from([("section".into(), vec![section.id])]);
+    let mut metadata = section.properties;
+    metadata.insert("section".into(), vec![section.id]);
     if let Some(path) = section.repository_path {
         metadata.insert("repository_path".into(), vec![path]);
     }
@@ -672,7 +687,10 @@ pub(super) fn rewrite_repo_file(
     Ok(output)
 }
 
-fn expand_repo_variables(template: &str, context: &SystemContext) -> Result<String, AdapterError> {
+pub(super) fn expand_repo_variables(
+    template: &str,
+    context: &SystemContext,
+) -> Result<String, AdapterError> {
     let distribution = context
         .distribution
         .as_ref()

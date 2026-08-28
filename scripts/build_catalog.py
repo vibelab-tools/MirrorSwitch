@@ -68,7 +68,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "6"
+CATALOG_FORMAT_REVISION = "7"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -101,6 +101,25 @@ PACMAN_RUNTIME_DISTRIBUTIONS = {
     "archlinuxarm--repository-metadata": ["archarm"],
     "archlinuxcn--repository-metadata": ["arch", "archarm"],
     "blackarch--repository-metadata": ["arch"],
+}
+
+ZYPPER_RUNTIME_UPSTREAMS = {
+    "opensuse--repository-metadata": ["x86_64", "arm64"],
+    "opensuse-update--repository-metadata": ["x86_64", "arm64"],
+    "opensuse-tumbleweed--repository-metadata": ["x86_64", "arm64"],
+    "opensuse-ports--repository-metadata": ["arm64"],
+    "packman--repository-metadata": ["x86_64", "arm64"],
+}
+
+ZYPPER_RUNTIME_DISTRIBUTIONS = {
+    "opensuse--repository-metadata": ["opensuse-leap"],
+    "opensuse-update--repository-metadata": [
+        "opensuse-leap",
+        "opensuse-tumbleweed",
+    ],
+    "opensuse-tumbleweed--repository-metadata": ["opensuse-tumbleweed"],
+    "opensuse-ports--repository-metadata": ["opensuse-tumbleweed"],
+    "packman--repository-metadata": ["opensuse-leap", "opensuse-tumbleweed"],
 }
 
 
@@ -239,6 +258,22 @@ def runtime_properties(
                 "expected_status": [200],
             }
         ]
+    elif tool_id == "zypper" and upstream_key in ZYPPER_RUNTIME_UPSTREAMS:
+        compatibility["architectures"] = ZYPPER_RUNTIME_UPSTREAMS[upstream_key]
+        compatibility["distributions"] = [
+            {"id": distribution, "versions": [], "codenames": []}
+            for distribution in ZYPPER_RUNTIME_DISTRIBUTIONS[upstream_key]
+        ]
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/{repository_path}repodata/repomd.xml",
+                "expected_status": [200],
+                "contains": "<repomd",
+            }
+        ]
     return compatibility, delivery_mode, probes
 
 
@@ -281,7 +316,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                 "adapter_key": tool_id,
                 "display_name": tool_id,
                 "state": "supported"
-                if tool_id in {"apt", "dnf", "yum", "pacman"}
+                if tool_id in {"apt", "dnf", "yum", "pacman", "zypper"}
                 else target["state"],
                 "implementation_issue": target["issue"],
                 "supported_scopes": tool_scopes(tool_id),

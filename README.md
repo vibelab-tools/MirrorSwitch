@@ -33,6 +33,7 @@ real-boundary checks have passed.
 - [DNF adapter](docs/adapters/dnf.md)
 - [YUM adapter](docs/adapters/yum.md)
 - [Pacman adapter](docs/adapters/pacman.md)
+- [Zypper adapter](docs/adapters/zypper.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License
