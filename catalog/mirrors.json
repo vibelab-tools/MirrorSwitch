@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+4026a52756db",
-  "content_revision": 202608280010,
-  "generated_at": "2026-08-28T19:30:00Z",
+  "content_version": "2026.08.28+f827e94f2861",
+  "content_revision": 202608290011,
+  "generated_at": "2026-08-28T20:15:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1996,12 +1996,11 @@
       "id": "nix",
       "adapter_key": "nix",
       "display_name": "nix",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/35",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "system",
+        "user"
       ],
       "composition": "single"
     },
@@ -2496,6 +2495,63 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "024a7ce4a521402e09d2ff5b",
+      "provider_id": "sjtug",
+      "upstream_id": "nix-channels--binary-cache",
+      "tool_id": "nix",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nix-channels/store"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/nix-channels/store/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/nix-cache-info",
+          "expected_status": [
+            200
+          ],
+          "contains": "StoreDir: /nix/store"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{narinfo_hash}.narinfo",
+          "expected_status": [
+            200
+          ],
+          "contains": "Sig: cache.nixos.org-1:"
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -5080,41 +5136,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "2185bf038cf335816fc98b19",
-      "provider_id": "ustc",
-      "upstream_id": "nix-channels--binary-cache",
-      "tool_id": "nix",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "nix-channels"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/nix-channels/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/nix-channels.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "21ac2f0363b258b6822b8d73",
       "provider_id": "ustc",
       "upstream_id": "nix-channels--binary-cache",
@@ -7093,6 +7114,63 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/alpine.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "3bdae37a28ef61f53e862c24",
+      "provider_id": "tuna",
+      "upstream_id": "nix-channels--binary-cache",
+      "tool_id": "nix",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nix-channels"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/nix-cache-info",
+          "expected_status": [
+            200
+          ],
+          "contains": "StoreDir: /nix/store"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{narinfo_hash}.narinfo",
+          "expected_status": [
+            200
+          ],
+          "contains": "Sig: cache.nixos.org-1:"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -10506,6 +10584,63 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "6de4df9f60c6a9db69968879",
+      "provider_id": "nju",
+      "upstream_id": "nix-channels--binary-cache",
+      "tool_id": "nix",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nix-channels"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nix-channels/store/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/nix-cache-info",
+          "expected_status": [
+            200
+          ],
+          "contains": "StoreDir: /nix/store"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{narinfo_hash}.narinfo",
+          "expected_status": [
+            200
+          ],
+          "contains": "Sig: cache.nixos.org-1:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "6fb4f7b3e44056dd9211ec0c",
       "provider_id": "tuna",
       "upstream_id": "nix-channels--binary-cache",
@@ -11474,6 +11609,63 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "7a8d1102f1047a1308f93cf6",
+      "provider_id": "ustc",
+      "upstream_id": "nix-channels--binary-cache",
+      "tool_id": "nix",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nix-channels"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/nix-channels/store/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/nix-cache-info",
+          "expected_status": [
+            200
+          ],
+          "contains": "StoreDir: /nix/store"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{narinfo_hash}.narinfo",
+          "expected_status": [
+            200
+          ],
+          "contains": "Sig: cache.nixos.org-1:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/nix-channels.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -16916,41 +17108,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "ba71bc868b03a7980226c4b9",
-      "provider_id": "nju",
-      "upstream_id": "nix-channels--binary-cache",
-      "tool_id": "nix",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "nix-channels"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/nix-channels/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "ba89605a6dfa4873249cb1fd",
       "provider_id": "ustc",
       "upstream_id": "ubuntu--repository-metadata",
@@ -19249,41 +19406,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "d10501e55535a3d2223a3a35",
-      "provider_id": "tuna",
-      "upstream_id": "nix-channels--binary-cache",
-      "tool_id": "nix",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "nix-channels"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "d26ec19d7ec57f7ddd3853b8",
       "provider_id": "nju",
       "upstream_id": "almalinux--repository-metadata",
@@ -21013,41 +21135,6 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "e8b007fe491bc4dc89aa51b3",
-      "provider_id": "sjtug",
-      "upstream_id": "nix-channels--binary-cache",
-      "tool_id": "nix",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "nix-channels/store"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/nix-channels%2Fstore/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

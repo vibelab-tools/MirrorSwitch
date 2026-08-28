@@ -21,6 +21,9 @@ use crate::{
 /// testable against controlled roots.
 pub trait Runtime {
     fn command_exists(&self, command: &str) -> bool;
+    fn home_dir(&self) -> Option<PathBuf> {
+        None
+    }
     fn read(&self, path: &Path) -> Result<Option<Vec<u8>>, AdapterError>;
     fn list_files(&self, directory: &Path) -> Result<Vec<PathBuf>, AdapterError> {
         Err(AdapterError::Unsupported(format!(
@@ -53,6 +56,14 @@ pub trait Adapter: Send + Sync {
     fn tool_id(&self) -> &'static str;
     fn supported_scopes(&self) -> &'static [ConfigurationScope];
     fn default_scope(&self) -> ConfigurationScope;
+    fn default_scope_for(
+        &self,
+        _context: &SystemContext,
+        _runtime: &dyn Runtime,
+        _detected: &DetectedTool,
+    ) -> Result<ConfigurationScope, AdapterError> {
+        Ok(self.default_scope())
+    }
     fn composition_policy(&self) -> CompositionPolicy;
 
     fn detect(

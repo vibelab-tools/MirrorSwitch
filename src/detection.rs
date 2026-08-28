@@ -213,7 +213,8 @@ pub fn detect_linux(
 
     let architecture = parse_architecture(&options.architecture)?;
     let distribution = read_distribution(&options.root)?;
-    let runtime = OsRuntime::new(&options.root, options.executable_path.clone());
+    let runtime = OsRuntime::new(&options.root, options.executable_path.clone())
+        .with_home(options.home.clone());
     let (environment, container) = detect_container(options, &distribution);
     let context = SystemContext {
         os: OperatingSystem::Linux,
@@ -274,7 +275,17 @@ pub fn detect_linux(
             continue;
         }
 
-        let default_scope = adapter.default_scope();
+        let default_scope = match adapter.default_scope_for(&context, &runtime, &detected) {
+            Ok(scope) => scope,
+            Err(error) => {
+                notices.push(adapter_notice(
+                    adapter.key(),
+                    NoticeCode::InvalidDefaultScope,
+                    &error,
+                ));
+                continue;
+            }
+        };
         if adapter.supported_scopes().contains(&default_scope)
             && matches!(
                 default_scope,
@@ -330,6 +341,7 @@ pub fn detect_linux(
 pub struct OsRuntime {
     root: PathBuf,
     executable_path: Vec<PathBuf>,
+    home: Option<PathBuf>,
 }
 
 impl OsRuntime {
@@ -337,7 +349,13 @@ impl OsRuntime {
         Self {
             root: root.into(),
             executable_path,
+            home: None,
         }
+    }
+
+    pub fn with_home(mut self, home: impl Into<PathBuf>) -> Self {
+        self.home = Some(home.into());
+        self
     }
 
     pub fn find_command(&self, command: &str) -> Option<PathBuf> {
@@ -355,6 +373,10 @@ impl OsRuntime {
 impl Runtime for OsRuntime {
     fn command_exists(&self, command: &str) -> bool {
         self.find_command(command).is_some()
+    }
+
+    fn home_dir(&self) -> Option<PathBuf> {
+        self.home.clone()
     }
 
     fn read(&self, path: &Path) -> Result<Option<Vec<u8>>, AdapterError> {
