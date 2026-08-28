@@ -55,7 +55,7 @@ fn candidate(
         "probes": [{
             "endpoint_role": "index",
             "method": "get",
-            "path": "/simple/pip/",
+            "path": "/simple/{package}/",
             "expected_status": [200],
             "expected_content_type": "text/html",
             "contains": "pip-release"
@@ -203,6 +203,10 @@ fn request() -> SelectionRequest {
         tool_version: Some("24.0".into()),
         required_upstreams: vec!["pypi--language-registry".into()],
         repository_versions: BTreeMap::from([("pypi--language-registry".into(), "1".into())]),
+        probe_contexts: BTreeMap::from([(
+            "pypi--language-registry".into(),
+            vec![BTreeMap::from([("package".into(), "pip".into())])],
+        )]),
         required_compatibility_evidence: vec![
             CompatibilityDimension::OperatingSystem,
             CompatibilityDimension::Architecture,

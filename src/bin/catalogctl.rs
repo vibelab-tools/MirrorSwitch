@@ -1,7 +1,8 @@
-use std::{collections::HashSet, env, fs, path::PathBuf, process::ExitCode};
+use std::{env, fs, path::PathBuf, process::ExitCode};
 
 use mirrorswitch::{
     MirrorCatalog,
+    adapters::compiled_adapter_allowlist,
     catalog_update::{CatalogUpdater, EMBEDDED_CATALOG},
 };
 use serde_json::json;
@@ -33,7 +34,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 None => EMBEDDED_CATALOG.to_vec(),
             };
             let catalog: MirrorCatalog = serde_json::from_slice(&bytes)?;
-            catalog.validate(&HashSet::new())?;
+            catalog.validate(&compiled_adapter_allowlist())?;
             println!(
                 "{}",
                 serde_json::to_string_pretty(&json!({
@@ -56,7 +57,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             if arguments.next().is_some() {
                 return Err("usage: catalogctl status <cache-path>".into());
             }
-            let loaded = CatalogUpdater::new(cache_path).load(&HashSet::new())?;
+            let loaded = CatalogUpdater::new(cache_path).load(&compiled_adapter_allowlist())?;
             println!("{}", serde_json::to_string_pretty(&loaded.status)?);
         }
         _ => {

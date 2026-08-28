@@ -1,20 +1,26 @@
 use std::collections::HashSet;
 
-use mirrorswitch::{MirrorCatalog, catalog::ToolCatalogState, catalog_update::EMBEDDED_CATALOG};
+use mirrorswitch::{
+    MirrorCatalog, adapters::compiled_adapter_allowlist, catalog::ToolCatalogState,
+    catalog_update::EMBEDDED_CATALOG,
+};
 
 #[test]
 fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
 
-    catalog.validate(&HashSet::new()).unwrap();
+    catalog.validate(&compiled_adapter_allowlist()).unwrap();
     assert_eq!(catalog.providers.len(), 6);
     assert_eq!(catalog.tools.len(), 75);
     assert_eq!(catalog.candidates.len(), 498);
-    assert!(
+    assert_eq!(
         catalog
             .tools
             .iter()
-            .all(|tool| tool.state == ToolCatalogState::Planned)
+            .filter(|tool| tool.state == ToolCatalogState::Supported)
+            .map(|tool| tool.id.as_str())
+            .collect::<Vec<_>>(),
+        ["apt"]
     );
 }
 
@@ -40,6 +46,6 @@ fn repository_probe_cannot_target_a_root_or_escape_its_endpoint() {
         .unwrap();
     candidate.probes[0].path = "/../".into();
 
-    let error = catalog.validate(&HashSet::new()).unwrap_err();
+    let error = catalog.validate(&compiled_adapter_allowlist()).unwrap_err();
     assert!(error.to_string().contains("invalid declarative probe path"));
 }

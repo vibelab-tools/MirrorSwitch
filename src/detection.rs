@@ -13,6 +13,7 @@ use crate::{
     catalog::ConfigurationScope,
     context::{Architecture, Distribution, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{CurrentConfiguration, DetectedTool},
+    transaction::TransactionEngine,
 };
 
 #[derive(Clone, Debug)]
@@ -370,6 +371,40 @@ impl Runtime for OsRuntime {
         }
     }
 
+    fn list_files(&self, directory: &Path) -> Result<Vec<PathBuf>, AdapterError> {
+        let physical_directory = physical_path(&self.root, directory);
+        let entries = match fs::read_dir(&physical_directory) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
+            Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
+                return Err(AdapterError::PermissionDenied(
+                    directory.display().to_string(),
+                ));
+            }
+            Err(error) => {
+                return Err(AdapterError::Runtime(format!(
+                    "could not list {}: {error}",
+                    directory.display()
+                )));
+            }
+        };
+        let mut paths = Vec::new();
+        for entry in entries {
+            let entry = entry.map_err(|error| {
+                AdapterError::Runtime(format!("could not list {}: {error}", directory.display()))
+            })?;
+            if entry
+                .file_type()
+                .map_err(|error| AdapterError::Runtime(error.to_string()))?
+                .is_file()
+            {
+                paths.push(directory.join(entry.file_name()));
+            }
+        }
+        paths.sort();
+        Ok(paths)
+    }
+
     fn run(&mut self, program: &str, arguments: &[String]) -> Result<Output, AdapterError> {
         let logical = self.find_command(program).ok_or_else(|| {
             AdapterError::Runtime(format!("command {program} is not available on PATH"))
@@ -378,6 +413,30 @@ impl Runtime for OsRuntime {
             .args(arguments)
             .output()
             .map_err(|error| AdapterError::Runtime(format!("could not run {program}: {error}")))
+    }
+
+    fn apply_plan(
+        &mut self,
+        plan: &crate::plan::ChangePlan,
+    ) -> Result<crate::transaction::ApplyOutcome, AdapterError> {
+        TransactionEngine::new(physical_path(
+            &self.root,
+            Path::new("/var/lib/mirrorswitch/transactions"),
+        ))
+        .apply(plan)
+        .map_err(|error| AdapterError::Runtime(error.to_string()))
+    }
+
+    fn restore_transaction(
+        &mut self,
+        transaction_id: &str,
+    ) -> Result<crate::transaction::RestoreReceipt, AdapterError> {
+        TransactionEngine::new(physical_path(
+            &self.root,
+            Path::new("/var/lib/mirrorswitch/transactions"),
+        ))
+        .restore(transaction_id)
+        .map_err(|error| AdapterError::Runtime(error.to_string()))
     }
 }
 

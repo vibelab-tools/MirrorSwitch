@@ -68,7 +68,14 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "2"
+CATALOG_FORMAT_REVISION = "3"
+
+APT_RUNTIME_UPSTREAMS = {
+    "debian--repository-metadata": ["x86_64", "arm64"],
+    "debian-security--repository-metadata": ["x86_64", "arm64"],
+    "ubuntu--repository-metadata": ["x86_64"],
+    "ubuntu-ports--repository-metadata": ["arm64"],
+}
 
 
 def utc_now() -> str:
@@ -145,6 +152,38 @@ def candidate_probe(entry: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def runtime_properties(
+    entry: dict[str, Any], tool_id: str, upstream_key: str
+) -> tuple[dict[str, Any], str, list[dict[str, Any]]]:
+    compatibility = candidate_compatibility(entry)
+    delivery_mode = (
+        "proxy"
+        if entry["content_type"] in {"release-proxy", "raw-proxy"}
+        else "unknown"
+    )
+    probes = candidate_probe(entry)
+    if tool_id == "apt" and upstream_key in APT_RUNTIME_UPSTREAMS:
+        compatibility["architectures"] = APT_RUNTIME_UPSTREAMS[upstream_key]
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/dists/{suite}/InRelease",
+                "expected_status": [200],
+                "contains": "-----BEGIN PGP SIGNED MESSAGE-----",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+                "expected_status": [200],
+                "contains": "Architecture:",
+            },
+        ]
+    return compatibility, delivery_mode, probes
+
+
 def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[str, Any]:
     planned_entries = [
         entry for entry in inventory["entries"] if entry["adapter_state"] == "planned"
@@ -183,7 +222,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                 "id": tool_id,
                 "adapter_key": tool_id,
                 "display_name": tool_id,
-                "state": target["state"],
+                "state": "supported" if tool_id == "apt" else target["state"],
                 "implementation_issue": target["issue"],
                 "supported_scopes": tool_scopes(tool_id),
                 "composition": "single",
@@ -193,7 +232,9 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                 raise ValueError(f"tool {tool_id} maps to multiple implementation issues")
 
             endpoints = candidate_endpoints(entry)
-            compatibility = candidate_compatibility(entry)
+            compatibility, delivery_mode, probes = runtime_properties(
+                entry, tool_id, upstream_key
+            )
             grouping = json.dumps(
                 [
                     entry["provider_id"],
@@ -220,9 +261,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         for endpoint in entry["public_endpoints"]
                     )
                     else "cataloged",
-                    "delivery_mode": "proxy"
-                    if entry["content_type"] in {"release-proxy", "raw-proxy"}
-                    else "unknown",
+                    "delivery_mode": delivery_mode,
                     "raw_names": set(),
                     "endpoints": endpoints,
                     "compatibility": compatibility,
@@ -233,7 +272,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
             )
             candidate["raw_names"].add(entry["raw_name"])
             candidate["source_urls"].add(entry["source_url"])
-            for probe in candidate_probe(entry):
+            for probe in probes:
                 if probe not in candidate["probes"]:
                     candidate["probes"].append(probe)
 

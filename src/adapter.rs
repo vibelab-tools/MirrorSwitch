@@ -1,4 +1,7 @@
-use std::{path::Path, process::Output};
+use std::{
+    path::{Path, PathBuf},
+    process::Output,
+};
 
 use thiserror::Error;
 
@@ -9,7 +12,8 @@ use crate::{
         ChangePlan, CurrentConfiguration, DetectedTool, MirrorSelection, RestoreResult,
         VerificationResult,
     },
-    transaction::{ApplyOutcome, TransactionReceipt},
+    selection::SelectionRequest,
+    transaction::{ApplyOutcome, RestoreReceipt, TransactionReceipt},
 };
 
 /// Narrow access to the host. Concrete filesystem and process behavior is
@@ -18,7 +22,26 @@ use crate::{
 pub trait Runtime {
     fn command_exists(&self, command: &str) -> bool;
     fn read(&self, path: &Path) -> Result<Option<Vec<u8>>, AdapterError>;
+    fn list_files(&self, directory: &Path) -> Result<Vec<PathBuf>, AdapterError> {
+        Err(AdapterError::Unsupported(format!(
+            "directory listing is unavailable for {}",
+            directory.display()
+        )))
+    }
     fn run(&mut self, program: &str, arguments: &[String]) -> Result<Output, AdapterError>;
+    fn apply_plan(&mut self, _plan: &ChangePlan) -> Result<ApplyOutcome, AdapterError> {
+        Err(AdapterError::Unsupported(
+            "transaction apply is unavailable in this runtime".into(),
+        ))
+    }
+    fn restore_transaction(
+        &mut self,
+        _transaction_id: &str,
+    ) -> Result<RestoreReceipt, AdapterError> {
+        Err(AdapterError::Unsupported(
+            "transaction restore is unavailable in this runtime".into(),
+        ))
+    }
 }
 
 /// Contract implemented by every tool adapter compiled into MirrorSwitch.
@@ -52,6 +75,17 @@ pub trait Adapter: Send + Sync {
         current: &CurrentConfiguration,
         selection: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError>;
+
+    fn selection_request(
+        &self,
+        _context: &SystemContext,
+        _detected: &DetectedTool,
+        _current: &CurrentConfiguration,
+    ) -> Result<SelectionRequest, AdapterError> {
+        Err(AdapterError::Unsupported(
+            "adapter does not provide mirror-selection requirements".into(),
+        ))
+    }
 
     fn apply(
         &self,

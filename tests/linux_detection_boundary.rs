@@ -335,6 +335,7 @@ impl Adapter for FixtureAdapter {
                 scope,
                 sources: Vec::new(),
                 files: Vec::new(),
+                documents: Vec::new(),
             });
         }
         let Some(path) = self.config else {
@@ -343,6 +344,7 @@ impl Adapter for FixtureAdapter {
                 scope,
                 sources: Vec::new(),
                 files: Vec::new(),
+                documents: Vec::new(),
             });
         };
         let contents = runtime
@@ -362,8 +364,10 @@ impl Adapter for FixtureAdapter {
                 upstream_id: Some("pypi".into()),
                 url: url.into(),
                 enabled: true,
+                metadata: Default::default(),
             }],
             files: vec![PathBuf::from(path)],
+            documents: Vec::new(),
         })
     }
 

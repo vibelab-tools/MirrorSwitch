@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+1a27251793a6",
-  "content_revision": 202608280002,
-  "generated_at": "2026-08-28T11:30:00Z",
+  "content_version": "2026.08.28+6fcbf3507ca1",
+  "content_revision": 202608280003,
+  "generated_at": "2026-08-28T12:10:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1467,7 +1467,7 @@
       "id": "apt",
       "adapter_key": "apt",
       "display_name": "apt",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/27",
       "supported_scopes": [
         "system"
@@ -2628,6 +2628,69 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "03eb6d77aace307f3ee4a87e",
+      "provider_id": "tuna",
+      "upstream_id": "debian-security--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "debian-security"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/debian-security/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "03f22ceeeeadc71e1370ff6b",
       "provider_id": "ustc",
       "upstream_id": "ros2--static-files",
@@ -2765,6 +2828,68 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "0498b5f5b1700b64255e63ae",
+      "provider_id": "aliyun",
+      "upstream_id": "ubuntu--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ubuntu"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -3140,7 +3265,7 @@
       "upstream_id": "ubuntu-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
+      "delivery_mode": "mirror",
       "raw_names": [
         "ubuntu-ports"
       ],
@@ -3171,7 +3296,26 @@
         ],
         "repository_versions": []
       },
-      "probes": [],
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
@@ -3514,47 +3658,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "0aabb6abd56309be152d3f5b",
-      "provider_id": "ustc",
-      "upstream_id": "ubuntu--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ubuntu"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/ubuntu/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "ubuntu",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/ubuntu.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "0b4119dfeadd72ae10495f67",
       "provider_id": "nju",
       "upstream_id": "npm--language-registry",
@@ -3709,47 +3812,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "0d0414e1adb2497a4649e4cc",
-      "provider_id": "nju",
-      "upstream_id": "debian-security--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "debian-security"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/debian-security/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "debian",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "0deae484993ce21304949e71",
       "provider_id": "nju",
       "upstream_id": "openwrt--repository-metadata",
@@ -3787,47 +3849,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "0eafa35e1499a71815ec16ca",
-      "provider_id": "aliyun",
-      "upstream_id": "debian--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "debian"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/debian/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "debian",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -4612,47 +4633,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "1a5c86563778dbbab4aeaa59",
-      "provider_id": "ustc",
-      "upstream_id": "debian-security--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "debian-security"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/debian-security/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "debian",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/debian-security.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "1ada09f9865bb160ffd88685",
       "provider_id": "huaweicloud",
       "upstream_id": "npm--language-registry",
@@ -5368,6 +5348,69 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "22f42899856846c9a222eb34",
+      "provider_id": "aliyun",
+      "upstream_id": "debian-security--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "debian-security"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/debian-security/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -6460,6 +6503,69 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "3502f9486eda94106fbba6e2",
+      "provider_id": "sjtug",
+      "upstream_id": "debian--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "debian"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/debian/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "353afb9184cb8b8f6975796f",
       "provider_id": "nju",
       "upstream_id": "maven--language-registry",
@@ -6822,47 +6928,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "3c8c5a42958814ab277d6c24",
-      "provider_id": "sjtug",
-      "upstream_id": "debian-security--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "debian-security"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/debian-security/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "debian",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "3cb5d3a21fe9db351a515996",
       "provider_id": "ustc",
       "upstream_id": "kubernetes--repository-metadata",
@@ -7146,6 +7211,69 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "3f04ee4b958eeec3a253386c",
+      "provider_id": "ustc",
+      "upstream_id": "debian--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "debian"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/debian/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/debian.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "3f7314cb8654110104b492c2",
       "provider_id": "huaweicloud",
       "upstream_id": "flutter--release-artifacts",
@@ -7330,7 +7458,7 @@
       "upstream_id": "ubuntu-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
+      "delivery_mode": "mirror",
       "raw_names": [
         "ubuntu-ports"
       ],
@@ -7361,7 +7489,26 @@
         ],
         "repository_versions": []
       },
-      "probes": [],
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/ubuntu-ports.html"
       ],
@@ -7785,47 +7932,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "4969e5b0d75d8c78469e8de2",
-      "provider_id": "nju",
-      "upstream_id": "ubuntu--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ubuntu"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/ubuntu/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "ubuntu",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "4af62ff64cd302e9ae5fef93",
       "provider_id": "nju",
       "upstream_id": "archlinuxarm--repository-metadata",
@@ -8197,59 +8303,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "51132885fd7bda06f491702f",
-      "provider_id": "nju",
-      "upstream_id": "debian--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "debian"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/debian/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "debian",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/dists/stable/InRelease",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream",
-          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "5165e491e869741a3404f870",
       "provider_id": "nju",
       "upstream_id": "rustup--release-artifacts",
@@ -8391,6 +8444,69 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "523688d4e0940c0f86b8cead",
+      "provider_id": "huaweicloud",
+      "upstream_id": "debian--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "debian"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/debian/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -8796,59 +8912,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "5a62b356c3942dd8715ae799",
-      "provider_id": "tuna",
-      "upstream_id": "debian--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "debian"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/debian/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "debian",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/dists/stable/InRelease",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream",
-          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
-        }
-      ],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "5a7978ef3d87ff994f122874",
       "provider_id": "huaweicloud",
       "upstream_id": "npm--language-registry",
@@ -9031,34 +9094,37 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "5dce17052e4e85af5dfcce84",
-      "provider_id": "aliyun",
-      "upstream_id": "ubuntu--repository-metadata",
+      "id": "5d5acd3f804ebbfd3eedefb6",
+      "provider_id": "tuna",
+      "upstream_id": "debian--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
+      "delivery_mode": "mirror",
       "raw_names": [
-        "ubuntu"
+        "debian"
       ],
       "endpoints": [
         {
           "role": "metadata",
           "protocol": "https",
-          "url": "https://mirrors.aliyun.com/ubuntu/"
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/debian/"
         }
       ],
       "compatibility": {
         "operating_systems": [
           "linux"
         ],
-        "architectures": [],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
         "environments": [
           "container",
           "host"
         ],
         "distributions": [
           {
-            "id": "ubuntu",
+            "id": "debian",
             "versions": [],
             "codenames": []
           }
@@ -9069,17 +9135,24 @@
         {
           "endpoint_role": "metadata",
           "method": "get",
-          "path": "/dists/noble/InRelease",
+          "path": "/dists/{suite}/InRelease",
           "expected_status": [
-            200,
-            206
+            200
           ],
-          "expected_content_type": "application/octet-stream",
           "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
         }
       ],
       "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -9089,7 +9162,7 @@
       "upstream_id": "ubuntu-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
+      "delivery_mode": "mirror",
       "raw_names": [
         "ubuntu-ports"
       ],
@@ -9120,7 +9193,26 @@
         ],
         "repository_versions": []
       },
-      "probes": [],
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
@@ -9202,59 +9294,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "6003182d774f95801e28d42f",
-      "provider_id": "sjtug",
-      "upstream_id": "debian--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "debian"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/debian/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "debian",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/dists/stable/InRelease",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream",
-          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
-        }
-      ],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "61a83362ad99b20b3f02c541",
       "provider_id": "tuna",
       "upstream_id": "gentoo-portage--git-mirror",
@@ -9325,6 +9364,68 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "628d50235187965619bd33a3",
+      "provider_id": "tuna",
+      "upstream_id": "ubuntu--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ubuntu"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -9470,6 +9571,68 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "63a0f2ec788a86b175721e72",
+      "provider_id": "nju",
+      "upstream_id": "ubuntu--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ubuntu"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -10367,7 +10530,7 @@
       "upstream_id": "ubuntu-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
+      "delivery_mode": "mirror",
       "raw_names": [
         "ubuntu-ports"
       ],
@@ -10398,7 +10561,26 @@
         ],
         "repository_versions": []
       },
-      "probes": [],
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
@@ -10870,59 +11052,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "7873f7954d29ba678f170a35",
-      "provider_id": "ustc",
-      "upstream_id": "debian--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "debian"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/debian/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "debian",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/dists/stable/InRelease",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream",
-          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/debian.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "789e5a509d91c5fae0a1d35a",
       "provider_id": "nju",
       "upstream_id": "scoop-java--git-mirror",
@@ -11069,6 +11198,69 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "79cbe238fd219155e11b8012",
+      "provider_id": "sjtug",
+      "upstream_id": "debian-security--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "debian-security"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/debian-security/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -11326,7 +11518,7 @@
       "upstream_id": "ubuntu--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
+      "delivery_mode": "mirror",
       "raw_names": [
         "ubuntu"
       ],
@@ -11361,59 +11553,22 @@
         {
           "endpoint_role": "metadata",
           "method": "get",
-          "path": "/dists/noble/InRelease",
+          "path": "/dists/{suite}/InRelease",
           "expected_status": [
-            200,
-            206
+            200
           ],
-          "expected_content_type": "application/octet-stream",
           "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "7cf670705a903394f5380d1a",
-      "provider_id": "huaweicloud",
-      "upstream_id": "debian--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "debian"
-      ],
-      "endpoints": [
+        },
         {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/debian/"
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
         }
       ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "arm64",
-          "x86_64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "debian",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
       ],
@@ -12311,47 +12466,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "890ed1aae0c8113f326ed1b6",
-      "provider_id": "sjtug",
-      "upstream_id": "ubuntu--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ubuntu"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/ubuntu/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "ubuntu",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "893c216e801ad7f26b86bcf1",
       "provider_id": "nju",
       "upstream_id": "gcr--container-registry",
@@ -12711,6 +12825,69 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "8dde56b8bcf7f490ac29b6f2",
+      "provider_id": "nju",
+      "upstream_id": "debian--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "debian"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/debian/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -14138,6 +14315,69 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "a487c56e90416ddccb046001",
+      "provider_id": "huaweicloud",
+      "upstream_id": "debian-security--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "debian-security"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/debian-security/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "a495bf765173e8ced1642b39",
       "provider_id": "aliyun",
       "upstream_id": "pypi--language-registry",
@@ -14813,7 +15053,7 @@
       "upstream_id": "ubuntu-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
+      "delivery_mode": "mirror",
       "raw_names": [
         "ubuntu-ports"
       ],
@@ -14844,7 +15084,26 @@
         ],
         "repository_versions": []
       },
-      "probes": [],
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
@@ -15074,47 +15333,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "af160f25acff8a6c363007ca",
-      "provider_id": "tuna",
-      "upstream_id": "ubuntu--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ubuntu"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/ubuntu/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "ubuntu",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "b00de23b863d3ce2b7818b21",
       "provider_id": "aliyun",
       "upstream_id": "maven--language-registry",
@@ -15157,7 +15375,7 @@
       "upstream_id": "ubuntu-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
+      "delivery_mode": "mirror",
       "raw_names": [
         "ubuntu-ports"
       ],
@@ -15188,7 +15406,26 @@
         ],
         "repository_versions": []
       },
-      "probes": [],
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
       ],
@@ -16094,47 +16331,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "ba5a46b2acd5a079dd94877e",
-      "provider_id": "aliyun",
-      "upstream_id": "debian-security--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "debian-security"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/debian-security/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "debian",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "ba71bc868b03a7980226c4b9",
       "provider_id": "nju",
       "upstream_id": "nix-channels--binary-cache",
@@ -16166,6 +16362,68 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "ba89605a6dfa4873249cb1fd",
+      "provider_id": "ustc",
+      "upstream_id": "ubuntu--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ubuntu"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/ubuntu.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -16488,49 +16746,6 @@
           "host"
         ],
         "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "c1fbdccf11798e4ce63d8be6",
-      "provider_id": "huaweicloud",
-      "upstream_id": "debian-security--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "debian-security"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/debian-security/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "debian",
-            "versions": [],
-            "codenames": []
-          }
-        ],
         "repository_versions": []
       },
       "probes": [],
@@ -17265,6 +17480,69 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "cb78eacdc7d4845ebf1bf696",
+      "provider_id": "ustc",
+      "upstream_id": "debian-security--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "debian-security"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/debian-security/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/debian-security.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "cb85d09eb950e25f2fe5e665",
       "provider_id": "aliyun",
       "upstream_id": "ceph--static-files",
@@ -17402,6 +17680,68 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "cd6ca6b78804f029aafac62d",
+      "provider_id": "sjtug",
+      "upstream_id": "ubuntu--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ubuntu"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
@@ -17585,47 +17925,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "cf6ae1b0c350fb894be6d106",
-      "provider_id": "tuna",
-      "upstream_id": "debian-security--repository-metadata",
-      "tool_id": "apt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "debian-security"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/debian-security/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "debian",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -19293,6 +19592,69 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "e912fc94cfb1e21db3614c1b",
+      "provider_id": "nju",
+      "upstream_id": "debian-security--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "debian-security"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/debian-security/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "e95cc6a83305703c325b2ff3",
       "provider_id": "nju",
       "upstream_id": "flutter--release-artifacts",
@@ -19742,6 +20104,69 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "eebd426fd1c859da9a9630f8",
+      "provider_id": "aliyun",
+      "upstream_id": "debian--repository-metadata",
+      "tool_id": "apt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "debian"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/debian/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "-----BEGIN PGP SIGNED MESSAGE-----"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/{suite}/{component}/binary-{architecture}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture:"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

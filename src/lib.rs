@@ -5,6 +5,7 @@
 //! it cannot provide commands or executable extensions.
 
 pub mod adapter;
+pub mod adapters;
 pub mod catalog;
 pub mod catalog_update;
 pub mod context;

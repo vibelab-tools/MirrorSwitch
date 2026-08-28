@@ -21,6 +21,39 @@ pub struct CurrentConfiguration {
     pub scope: ConfigurationScope,
     pub sources: Vec<ConfiguredSource>,
     pub files: Vec<PathBuf>,
+    pub documents: Vec<ConfigurationDocument>,
+}
+
+#[derive(Clone, Eq, PartialEq)]
+pub struct ConfigurationDocument {
+    pub path: PathBuf,
+    pub format: String,
+    pub contents: Vec<u8>,
+}
+
+impl fmt::Debug for ConfigurationDocument {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ConfigurationDocument")
+            .field("path", &self.path)
+            .field("format", &self.format)
+            .field(
+                "contents",
+                &format_args!("<redacted:{} bytes>", self.contents.len()),
+            )
+            .finish()
+    }
+}
+
+impl Serialize for ConfigurationDocument {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut state = serializer.serialize_struct("ConfigurationDocument", 4)?;
+        state.serialize_field("path", &self.path)?;
+        state.serialize_field("format", &self.format)?;
+        state.serialize_field("bytes", &self.contents.len())?;
+        state.serialize_field("sha256", &content_digest(&self.contents))?;
+        state.end()
+    }
 }
 
 #[derive(Clone, Eq, PartialEq)]
@@ -28,6 +61,7 @@ pub struct ConfiguredSource {
     pub upstream_id: Option<String>,
     pub url: String,
     pub enabled: bool,
+    pub metadata: std::collections::BTreeMap<String, Vec<String>>,
 }
 
 impl fmt::Debug for ConfiguredSource {
@@ -37,16 +71,18 @@ impl fmt::Debug for ConfiguredSource {
             .field("upstream_id", &self.upstream_id)
             .field("url", &redact_url(&self.url))
             .field("enabled", &self.enabled)
+            .field("metadata", &self.metadata)
             .finish()
     }
 }
 
 impl Serialize for ConfiguredSource {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut state = serializer.serialize_struct("ConfiguredSource", 3)?;
+        let mut state = serializer.serialize_struct("ConfiguredSource", 4)?;
         state.serialize_field("upstream_id", &self.upstream_id)?;
         state.serialize_field("url", &redact_url(&self.url))?;
         state.serialize_field("enabled", &self.enabled)?;
+        state.serialize_field("metadata", &self.metadata)?;
         state.end()
     }
 }

@@ -26,6 +26,8 @@ pub struct SelectionRequest {
     pub tool_version: Option<String>,
     pub required_upstreams: Vec<String>,
     pub repository_versions: BTreeMap<String, String>,
+    /// Per-upstream substitutions for declarative probe path placeholders.
+    pub probe_contexts: BTreeMap<String, Vec<BTreeMap<String, String>>>,
     pub required_compatibility_evidence: Vec<CompatibilityDimension>,
     pub require_distribution: bool,
     pub allowed_protocols: Vec<Protocol>,
@@ -338,23 +340,33 @@ impl<'a, P: CandidateProber> MirrorSelector<'a, P> {
         }
         let allowed_protocols: HashSet<_> = request.allowed_protocols.iter().copied().collect();
         let mut total_latency = 0_u64;
-        for probe in &candidate.probes {
-            let endpoint = candidate
-                .endpoints
-                .iter()
-                .filter(|endpoint| {
-                    endpoint.role == probe.endpoint_role
-                        && allowed_protocols.contains(&endpoint.protocol)
-                })
-                .min_by(|left, right| left.url.cmp(&right.url))
-                .ok_or_else(|| format!("no compatible {:?} endpoint", probe.endpoint_role))?;
-            let url = probe_url(endpoint, probe)?;
-            let observation = self
-                .prober
-                .probe(probe.method, &url, self.limits)
-                .map_err(|error| error.to_string())?;
-            validate_observation(probe, &observation)?;
-            total_latency = total_latency.saturating_add(observation.latency_ms);
+        let empty_context = BTreeMap::new();
+        let contexts = request
+            .probe_contexts
+            .get(&candidate.upstream_id)
+            .filter(|contexts| !contexts.is_empty())
+            .map(Vec::as_slice)
+            .unwrap_or_else(|| std::slice::from_ref(&empty_context));
+        for context in contexts {
+            for probe in &candidate.probes {
+                let endpoint = candidate
+                    .endpoints
+                    .iter()
+                    .filter(|endpoint| {
+                        endpoint.role == probe.endpoint_role
+                            && allowed_protocols.contains(&endpoint.protocol)
+                    })
+                    .min_by(|left, right| left.url.cmp(&right.url))
+                    .ok_or_else(|| format!("no compatible {:?} endpoint", probe.endpoint_role))?;
+                let path = expand_probe_path(&probe.path, context)?;
+                let url = probe_url(endpoint, &path)?;
+                let observation = self
+                    .prober
+                    .probe(probe.method, &url, self.limits)
+                    .map_err(|error| error.to_string())?;
+                validate_observation(probe, &observation)?;
+                total_latency = total_latency.saturating_add(observation.latency_ms);
+            }
         }
         Ok(total_latency)
     }
@@ -522,7 +534,47 @@ fn compatible_endpoints(candidate: &MirrorCandidate, request: &SelectionRequest)
         .collect()
 }
 
-fn probe_url(endpoint: &Endpoint, probe: &ProbeSpec) -> Result<String, String> {
+fn expand_probe_path(template: &str, values: &BTreeMap<String, String>) -> Result<String, String> {
+    let mut expanded = String::with_capacity(template.len());
+    let mut remainder = template;
+    while let Some(open) = remainder.find('{') {
+        let (prefix, after_open) = remainder.split_at(open);
+        expanded.push_str(prefix);
+        let after_open = &after_open[1..];
+        let close = after_open
+            .find('}')
+            .ok_or_else(|| "probe path has an unterminated placeholder".to_owned())?;
+        let (key, after_key) = after_open.split_at(close);
+        if key.is_empty()
+            || !key
+                .bytes()
+                .all(|byte| byte.is_ascii_lowercase() || byte == b'_')
+        {
+            return Err(format!("probe path has invalid placeholder {{{key}}}"));
+        }
+        let value = values
+            .get(key)
+            .ok_or_else(|| format!("probe path requires {{{key}}}"))?;
+        if value.is_empty()
+            || !value.bytes().all(|byte| {
+                byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'+' | b'-')
+            })
+        {
+            return Err(format!(
+                "probe value for {{{key}}} is not a safe path segment"
+            ));
+        }
+        expanded.push_str(value);
+        remainder = &after_key[1..];
+    }
+    if remainder.contains('}') {
+        return Err("probe path has an unmatched closing brace".into());
+    }
+    expanded.push_str(remainder);
+    Ok(expanded)
+}
+
+fn probe_url(endpoint: &Endpoint, probe_path: &str) -> Result<String, String> {
     let mut url = reqwest::Url::parse(&endpoint.url)
         .map_err(|error| format!("invalid endpoint URL: {error}"))?;
     if !matches!(url.scheme(), "http" | "https") {
@@ -531,7 +583,7 @@ fn probe_url(endpoint: &Endpoint, probe: &ProbeSpec) -> Result<String, String> {
     let path = format!(
         "{}/{}",
         url.path().trim_end_matches('/'),
-        probe.path.trim_start_matches('/')
+        probe_path.trim_start_matches('/')
     );
     url.set_path(&path);
     url.set_query(None);
