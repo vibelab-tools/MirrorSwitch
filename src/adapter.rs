@@ -29,6 +29,7 @@ pub trait Adapter: Send + Sync {
     fn key(&self) -> &'static str;
     fn tool_id(&self) -> &'static str;
     fn supported_scopes(&self) -> &'static [ConfigurationScope];
+    fn default_scope(&self) -> ConfigurationScope;
     fn composition_policy(&self) -> CompositionPolicy;
 
     fn detect(
@@ -80,6 +81,8 @@ pub enum AdapterError {
     Unsupported(String),
     #[error("the current configuration is invalid: {0}")]
     InvalidConfiguration(String),
+    #[error("permission denied while reading configuration: {0}")]
+    PermissionDenied(String),
     #[error("the planned state no longer matches the target: {0}")]
     Conflict(String),
     #[error("runtime operation failed: {0}")]

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use mirrorswitch::{
     catalog::ConfigurationScope,
-    plan::{ChangePlan, PlannedFileChange, ServiceImpact},
+    plan::{ChangePlan, ConfiguredSource, PlannedFileChange, ServiceImpact},
 };
 
 #[test]
@@ -28,4 +28,19 @@ fn debug_plan_redacts_rendered_configuration() {
     assert!(!output.contains("secret"));
     assert!(!output.contains("user:"));
     assert!(!output.contains("old:"));
+}
+
+#[test]
+fn current_source_debug_and_json_redact_credentials_and_query_values() {
+    let source = ConfiguredSource {
+        upstream_id: Some("private".into()),
+        url: "https://user:secret@example.invalid/index?token=secret#secret".into(),
+        enabled: true,
+    };
+
+    let output = format!("{source:?} {}", serde_json::to_string(&source).unwrap());
+
+    assert!(output.contains("<redacted>@example.invalid/index?<redacted>#<redacted>"));
+    assert!(!output.contains("user:"));
+    assert!(!output.contains("secret"));
 }

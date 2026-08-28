@@ -1,17 +1,21 @@
 use std::{fmt, path::PathBuf};
 
+use serde::{Serialize, Serializer, ser::SerializeStruct};
+
 use crate::catalog::{ConfigurationScope, Endpoint};
 use crate::transaction::content_digest;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct DetectedTool {
     pub tool_id: String,
-    pub executable: PathBuf,
+    /// `None` is allowed when an adapter finds a valid configuration but the
+    /// client is not currently callable on PATH.
+    pub executable: Option<PathBuf>,
     pub version: Option<String>,
     pub evidence: Vec<String>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct CurrentConfiguration {
     pub tool_id: String,
     pub scope: ConfigurationScope,
@@ -19,11 +23,56 @@ pub struct CurrentConfiguration {
     pub files: Vec<PathBuf>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct ConfiguredSource {
     pub upstream_id: Option<String>,
     pub url: String,
     pub enabled: bool,
+}
+
+impl fmt::Debug for ConfiguredSource {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ConfiguredSource")
+            .field("upstream_id", &self.upstream_id)
+            .field("url", &redact_url(&self.url))
+            .field("enabled", &self.enabled)
+            .finish()
+    }
+}
+
+impl Serialize for ConfiguredSource {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut state = serializer.serialize_struct("ConfiguredSource", 3)?;
+        state.serialize_field("upstream_id", &self.upstream_id)?;
+        state.serialize_field("url", &redact_url(&self.url))?;
+        state.serialize_field("enabled", &self.enabled)?;
+        state.end()
+    }
+}
+
+fn redact_url(value: &str) -> String {
+    let mut redacted = value.to_owned();
+    if let Some(scheme) = redacted.find("://") {
+        let authority_start = scheme + 3;
+        let authority_end = redacted[authority_start..]
+            .find(['/', '?', '#'])
+            .map_or(redacted.len(), |offset| authority_start + offset);
+        if let Some(at) = redacted[authority_start..authority_end].rfind('@') {
+            redacted.replace_range(authority_start..authority_start + at, "<redacted>");
+        }
+    }
+    if let Some(query) = redacted.find('?') {
+        let fragment = redacted[query..].find('#').map(|offset| query + offset);
+        match fragment {
+            Some(fragment) => redacted.replace_range(query..fragment, "?<redacted>"),
+            None => redacted.replace_range(query.., "?<redacted>"),
+        }
+    }
+    if let Some(fragment) = redacted.find('#') {
+        redacted.replace_range(fragment.., "#<redacted>");
+    }
+    redacted
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

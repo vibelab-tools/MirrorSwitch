@@ -7,6 +7,7 @@
 pub mod adapter;
 pub mod catalog;
 pub mod context;
+pub mod detection;
 pub mod plan;
 pub mod platform;
 pub mod transaction;

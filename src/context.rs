@@ -30,7 +30,8 @@ pub enum ExecutionEnvironment {
 pub struct Distribution {
     /// Stable machine identifier such as `debian`, `ubuntu`, or `alpine`.
     pub id: String,
-    pub version_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version_codename: Option<String>,
     #[serde(default)]
