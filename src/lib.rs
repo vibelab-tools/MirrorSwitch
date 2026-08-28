@@ -11,6 +11,7 @@ pub mod context;
 pub mod detection;
 pub mod plan;
 pub mod platform;
+pub mod selection;
 pub mod transaction;
 
 pub use adapter::{Adapter, AdapterError, Runtime};

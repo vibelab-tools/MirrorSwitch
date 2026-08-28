@@ -28,6 +28,7 @@ real-boundary checks have passed.
 - [Linux support matrix](docs/support-matrix.md)
 - [Six-provider inventory](docs/provider-inventory.md)
 - [Runtime catalog and safe updates](docs/catalog-updates.md)
+- [Per-repository mirror selection](docs/mirror-selection.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

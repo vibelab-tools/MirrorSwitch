@@ -8,14 +8,15 @@ Regenerate the catalog deterministically after reviewing an inventory change:
 
 ```bash
 python3 -B scripts/build_catalog.py \
-  --content-revision 202608280001 \
-  --generated-at 2026-08-28T00:00:00Z
+  --content-revision 202608280002 \
+  --generated-at 2026-08-28T11:30:00Z
 cargo run --bin catalogctl -- validate catalog/mirrors.json
 ```
 
-The schema records its schema version, content version and monotonic content revision. It covers
+Schema version 2 records its content version and monotonic content revision. It covers
 providers, upstream repository families, tools, operating systems, distributions, versions,
-architectures, host/container compatibility, endpoints, probes and implementation Issue links.
+architectures, host/container compatibility, mirror/proxy delivery mode, endpoints, role-bound
+probes and implementation Issue links.
 
 ## Update behavior
 

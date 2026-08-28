@@ -5,6 +5,8 @@ use thiserror::Error;
 
 use crate::context::{Architecture, ExecutionEnvironment, OperatingSystem};
 
+pub const CATALOG_SCHEMA_VERSION: u32 = 2;
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MirrorCatalog {
@@ -59,6 +61,7 @@ pub struct MirrorCandidate {
     pub upstream_id: String,
     pub tool_id: String,
     pub catalog_state: CatalogEntryState,
+    pub delivery_mode: DeliveryMode,
     pub raw_names: Vec<String>,
     pub endpoints: Vec<Endpoint>,
     pub compatibility: Compatibility,
@@ -82,7 +85,8 @@ pub enum ToolCatalogState {
 }
 
 /// Runtime evaluation is deliberately separate from catalog inventory state.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "status", rename_all = "kebab-case")]
 pub enum CandidateEvaluation {
     AdapterUnavailable,
     Incompatible { reasons: Vec<String> },
@@ -127,6 +131,7 @@ pub struct DistributionConstraint {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProbeSpec {
+    pub endpoint_role: EndpointRole,
     pub method: HttpMethod,
     pub path: String,
     pub expected_status: Vec<u16>,
@@ -158,7 +163,7 @@ pub enum ContentKind {
     StaticFiles,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum EndpointRole {
     Metadata,
@@ -171,7 +176,7 @@ pub enum EndpointRole {
     Raw,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Protocol {
     Https,
@@ -179,6 +184,14 @@ pub enum Protocol {
     Git,
     Rsync,
     Oci,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum DeliveryMode {
+    Mirror,
+    Proxy,
+    Unknown,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -205,7 +218,7 @@ impl MirrorCatalog {
         &self,
         adapter_allowlist: &HashSet<String>,
     ) -> Result<(), CatalogValidationError> {
-        if self.schema_version != 1 {
+        if self.schema_version != CATALOG_SCHEMA_VERSION {
             return Err(CatalogValidationError::UnsupportedSchema(
                 self.schema_version,
             ));
@@ -301,7 +314,22 @@ impl MirrorCatalog {
                 }
             }
             for probe in &candidate.probes {
-                if !probe.path.starts_with('/') || probe.path.contains("://") {
+                if probe.path == "/"
+                    || !probe.path.starts_with('/')
+                    || probe.path.contains("://")
+                    || probe.path.split('/').any(|segment| segment == "..")
+                    || probe.expected_status.is_empty()
+                    || probe
+                        .expected_status
+                        .iter()
+                        .any(|status| !(100..=599).contains(status))
+                    || probe.contains.as_ref().is_some_and(String::is_empty)
+                    || (probe.method == HttpMethod::Head && probe.contains.is_some())
+                    || !candidate.endpoints.iter().any(|endpoint| {
+                        endpoint.role == probe.endpoint_role
+                            && matches!(endpoint.protocol, Protocol::Http | Protocol::Https)
+                    })
+                {
                     return Err(CatalogValidationError::InvalidProbe {
                         candidate_id: candidate.id.clone(),
                         path: probe.path.clone(),

@@ -18,7 +18,7 @@ use tempfile::tempdir;
 
 fn catalog(revision: u64) -> Value {
     json!({
-        "schema_version": 1,
+        "schema_version": 2,
         "content_version": format!("2026.08.28.{revision}"),
         "content_revision": revision,
         "generated_at": "2026-08-28T00:00:00Z",
@@ -49,6 +49,7 @@ fn catalog(revision: u64) -> Value {
             "upstream_id": "pypi--language-registry",
             "tool_id": "pip",
             "catalog_state": "cataloged",
+            "delivery_mode": "mirror",
             "raw_names": ["pypi"],
             "endpoints": [{
                 "role": "index",
@@ -214,7 +215,7 @@ fn timeout_and_oversized_responses_keep_the_baseline() {
 fn truncated_invalid_schema_and_unknown_adapter_responses_are_rejected() {
     let directory = tempdir().unwrap();
     let mut unsupported_schema = catalog(2);
-    unsupported_schema["schema_version"] = json!(2);
+    unsupported_schema["schema_version"] = json!(999);
     let mut unknown_adapter = catalog(2);
     unknown_adapter["tools"][0]["state"] = json!("supported");
     unknown_adapter["tools"][0]["adapter_key"] = json!("remote-plugin");

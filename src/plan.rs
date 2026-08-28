@@ -75,12 +75,16 @@ fn redact_url(value: &str) -> String {
     redacted
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct MirrorSelection {
+    pub candidate_id: String,
     pub tool_id: String,
     pub upstream_id: String,
     pub provider_id: String,
     pub endpoints: Vec<Endpoint>,
+    pub latency_ms: u64,
+    pub selected_at_unix_ms: u64,
+    pub user_override: bool,
 }
 
 #[derive(Clone, Eq, PartialEq)]

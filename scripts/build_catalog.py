@@ -68,6 +68,8 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
+CATALOG_FORMAT_REVISION = "2"
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -130,8 +132,10 @@ def candidate_probe(entry: dict[str, Any]) -> list[dict[str, Any]]:
     if not bases:
         return []
     path = "/" + probe_url.removeprefix(bases[0]).lstrip("/")
+    role = ROLE_BY_CONTENT[entry["content_type"]]
     return [
         {
+            "endpoint_role": role,
             "method": "get",
             "path": path,
             "expected_status": [200, 206],
@@ -216,6 +220,9 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         for endpoint in entry["public_endpoints"]
                     )
                     else "cataloged",
+                    "delivery_mode": "proxy"
+                    if entry["content_type"] in {"release-proxy", "raw-proxy"}
+                    else "unknown",
                     "raw_names": set(),
                     "endpoints": endpoints,
                     "compatibility": compatibility,
@@ -245,10 +252,13 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
         candidates.append(candidate)
 
     inventory_bytes = json.dumps(inventory, sort_keys=True, separators=(",", ":")).encode()
+    content_digest = hashlib.sha256(
+        inventory_bytes + b"\0runtime-catalog-format-" + CATALOG_FORMAT_REVISION.encode()
+    ).hexdigest()[:12]
     observed_day = inventory["observed_at"].split("T", 1)[0].replace("-", ".")
     return {
-        "schema_version": 1,
-        "content_version": f"{observed_day}+{hashlib.sha256(inventory_bytes).hexdigest()[:12]}",
+        "schema_version": 2,
+        "content_version": f"{observed_day}+{content_digest}",
         "content_revision": revision,
         "generated_at": generated_at,
         "providers": sorted(providers, key=lambda item: item["id"]),

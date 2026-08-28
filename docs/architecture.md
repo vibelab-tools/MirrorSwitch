@@ -22,6 +22,8 @@ request
 - `catalog`: declarative providers, normalized upstream repositories, tools,
   endpoints, compatibility constraints, and HTTP probes.
 - `adapter`: object-safe operations implemented by a tool integration.
+- `selection`: per-tool compatibility filtering, repository-content probes,
+  deterministic latency ranking, overrides, and composition-policy enforcement.
 - `plan`: detected state, effective configuration, per-tool selection, file
   changes, transaction receipts, and verification/restore results.
 - `platform`: compile-time OS boundary; Linux runtime detection is implemented

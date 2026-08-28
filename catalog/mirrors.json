@@ -1,8 +1,8 @@
 {
-  "schema_version": 1,
-  "content_version": "2026.08.28+4af6cb185deb",
-  "content_revision": 202608280001,
-  "generated_at": "2026-08-28T00:00:00Z",
+  "schema_version": 2,
+  "content_version": "2026.08.28+1a27251793a6",
+  "content_revision": 202608280002,
+  "generated_at": "2026-08-28T11:30:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -2371,6 +2371,7 @@
       "upstream_id": "scoop-main--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-main.git"
       ],
@@ -2404,6 +2405,7 @@
       "upstream_id": "archlinux--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinux"
       ],
@@ -2444,6 +2446,7 @@
       "upstream_id": "centos-vault--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-vault"
       ],
@@ -2484,6 +2487,7 @@
       "upstream_id": "debian-archive--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-archive"
       ],
@@ -2524,6 +2528,7 @@
       "upstream_id": "homebrew-bottles--binary-cache",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-bottles"
       ],
@@ -2557,6 +2562,7 @@
       "upstream_id": "msys2--static-files",
       "tool_id": "msys2",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "msys2"
       ],
@@ -2590,6 +2596,7 @@
       "upstream_id": "flutter-sdk--git-mirror",
       "tool_id": "flutter",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "flutter-sdk.git"
       ],
@@ -2626,6 +2633,7 @@
       "upstream_id": "ros2--static-files",
       "tool_id": "ros2",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ros2"
       ],
@@ -2655,6 +2663,7 @@
       "upstream_id": "rubygems--language-registry",
       "tool_id": "bundler",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rubygems"
       ],
@@ -2691,6 +2700,7 @@
       "upstream_id": "crates.io-index--git-mirror",
       "tool_id": "cargo",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "crates.io-index.git"
       ],
@@ -2727,6 +2737,7 @@
       "upstream_id": "guix--git-mirror",
       "tool_id": "guix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "guix.git"
       ],
@@ -2763,6 +2774,7 @@
       "upstream_id": "hackage--language-registry",
       "tool_id": "cabal",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "hackage"
       ],
@@ -2799,6 +2811,7 @@
       "upstream_id": "centos--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos"
       ],
@@ -2839,6 +2852,7 @@
       "upstream_id": "rubygems--language-registry",
       "tool_id": "bundler",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rubygems"
       ],
@@ -2875,6 +2889,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "uv",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -2911,6 +2926,7 @@
       "upstream_id": "zabbix--static-files",
       "tool_id": "zabbix",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "zabbix"
       ],
@@ -2940,6 +2956,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "uv",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi/web/simple"
       ],
@@ -2976,6 +2993,7 @@
       "upstream_id": "winget-source--static-files",
       "tool_id": "winget",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "winget-source"
       ],
@@ -3009,6 +3027,7 @@
       "upstream_id": "quay--container-registry",
       "tool_id": "podman-registry",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "quay"
       ],
@@ -3043,6 +3062,7 @@
       "upstream_id": "centos-vault--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-vault"
       ],
@@ -3083,6 +3103,7 @@
       "upstream_id": "cpan--language-registry",
       "tool_id": "cpan",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CPAN"
       ],
@@ -3119,6 +3140,7 @@
       "upstream_id": "ubuntu-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ubuntu-ports"
       ],
@@ -3161,6 +3183,7 @@
       "upstream_id": "homebrew-install--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "git/homebrew-install.git"
       ],
@@ -3194,6 +3217,7 @@
       "upstream_id": "centos-altarch--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-altarch"
       ],
@@ -3234,6 +3258,7 @@
       "upstream_id": "debian-elts--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-elts"
       ],
@@ -3274,6 +3299,7 @@
       "upstream_id": "grafana--static-files",
       "tool_id": "grafana",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "grafana"
       ],
@@ -3303,6 +3329,7 @@
       "upstream_id": "scoop-nerd-fonts--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-nerd-fonts.git"
       ],
@@ -3336,6 +3363,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pip",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -3372,6 +3400,7 @@
       "upstream_id": "npm--language-registry",
       "tool_id": "yarn",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "npm"
       ],
@@ -3408,6 +3437,7 @@
       "upstream_id": "gentoo-portage--repository-metadata",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo-portage"
       ],
@@ -3448,6 +3478,7 @@
       "upstream_id": "opensuse-update--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse-update"
       ],
@@ -3488,6 +3519,7 @@
       "upstream_id": "ubuntu--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ubuntu"
       ],
@@ -3528,6 +3560,7 @@
       "upstream_id": "npm--language-registry",
       "tool_id": "npm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "npm"
       ],
@@ -3564,6 +3597,7 @@
       "upstream_id": "alpine--repository-metadata",
       "tool_id": "apk",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "alpine"
       ],
@@ -3604,6 +3638,7 @@
       "upstream_id": "fedora--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora"
       ],
@@ -3644,6 +3679,7 @@
       "upstream_id": "nix4loong--binary-cache",
       "tool_id": "nix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix4loong"
       ],
@@ -3678,6 +3714,7 @@
       "upstream_id": "debian-security--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-security"
       ],
@@ -3718,6 +3755,7 @@
       "upstream_id": "openwrt--repository-metadata",
       "tool_id": "opkg",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "openwrt"
       ],
@@ -3758,6 +3796,7 @@
       "upstream_id": "debian--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian"
       ],
@@ -3798,6 +3837,7 @@
       "upstream_id": "openeuler--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "openeuler "
       ],
@@ -3838,6 +3878,7 @@
       "upstream_id": "hackage--language-registry",
       "tool_id": "cabal",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "hackage"
       ],
@@ -3874,6 +3915,7 @@
       "upstream_id": "void--repository-metadata",
       "tool_id": "xbps",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "voidlinux"
       ],
@@ -3914,6 +3956,7 @@
       "upstream_id": "nix4loong--binary-cache",
       "tool_id": "nix-macos",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix4loong"
       ],
@@ -3948,6 +3991,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pip",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -3984,6 +4028,7 @@
       "upstream_id": "centos-vault--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-vault"
       ],
@@ -4024,6 +4069,7 @@
       "upstream_id": "msys2--static-files",
       "tool_id": "msys2",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "msys2"
       ],
@@ -4057,6 +4103,7 @@
       "upstream_id": "opensuse--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse"
       ],
@@ -4099,6 +4146,7 @@
       "upstream_id": "crates.io-index--language-registry",
       "tool_id": "cargo",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "crates.io-index"
       ],
@@ -4135,6 +4183,7 @@
       "upstream_id": "rust--language-registry",
       "tool_id": "cargo",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rust"
       ],
@@ -4171,6 +4220,7 @@
       "upstream_id": "scoop-nonportable--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-nonportable.git"
       ],
@@ -4204,6 +4254,7 @@
       "upstream_id": "nixpkgs--git-mirror",
       "tool_id": "nix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nixpkgs.git"
       ],
@@ -4240,6 +4291,7 @@
       "upstream_id": "gradle--static-files",
       "tool_id": "gradle",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gradle"
       ],
@@ -4269,6 +4321,7 @@
       "upstream_id": "homebrew--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "brew.git",
         "homebrew.git"
@@ -4303,6 +4356,7 @@
       "upstream_id": "homebrew--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "brew.git"
       ],
@@ -4336,6 +4390,7 @@
       "upstream_id": "centos-stream--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-stream"
       ],
@@ -4376,6 +4431,7 @@
       "upstream_id": "debian-cd--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-cd"
       ],
@@ -4416,6 +4472,7 @@
       "upstream_id": "gentoo--git-mirror",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo.git"
       ],
@@ -4452,6 +4509,7 @@
       "upstream_id": "centos-cloud--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-cloud"
       ],
@@ -4492,6 +4550,7 @@
       "upstream_id": "julia--language-registry",
       "tool_id": "julia",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "julia"
       ],
@@ -4528,6 +4587,7 @@
       "upstream_id": "zabbix--static-files",
       "tool_id": "zabbix",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "zabbix"
       ],
@@ -4557,6 +4617,7 @@
       "upstream_id": "debian-security--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-security"
       ],
@@ -4597,6 +4658,7 @@
       "upstream_id": "npm--language-registry",
       "tool_id": "yarn",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "npm"
       ],
@@ -4633,6 +4695,7 @@
       "upstream_id": "manjaro--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "manjaro"
       ],
@@ -4673,6 +4736,7 @@
       "upstream_id": "debian-cd--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-cd"
       ],
@@ -4713,6 +4777,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pip",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -4749,6 +4814,7 @@
       "upstream_id": "debian-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-ports"
       ],
@@ -4789,6 +4855,7 @@
       "upstream_id": "alpine--repository-metadata",
       "tool_id": "apk",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "alpine"
       ],
@@ -4829,6 +4896,7 @@
       "upstream_id": "mongodb--static-files",
       "tool_id": "mongodb",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mongodb"
       ],
@@ -4858,6 +4926,7 @@
       "upstream_id": "maven--language-registry",
       "tool_id": "sbt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "maven"
       ],
@@ -4894,6 +4963,7 @@
       "upstream_id": "dart-pub--language-registry",
       "tool_id": "dart-pub",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "dart-pub"
       ],
@@ -4930,6 +5000,7 @@
       "upstream_id": "nix--binary-cache",
       "tool_id": "nix-macos",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix"
       ],
@@ -4964,6 +5035,7 @@
       "upstream_id": "rocky--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rockylinux"
       ],
@@ -5004,6 +5076,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "uv",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi-packages"
       ],
@@ -5040,6 +5113,7 @@
       "upstream_id": "jenkins--static-files",
       "tool_id": "jenkins",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "jenkins"
       ],
@@ -5069,6 +5143,7 @@
       "upstream_id": "archlinux--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinux"
       ],
@@ -5109,6 +5184,7 @@
       "upstream_id": "nix-channels--binary-cache",
       "tool_id": "nix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix-channels"
       ],
@@ -5143,6 +5219,7 @@
       "upstream_id": "nix-channels--binary-cache",
       "tool_id": "nix-macos",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix-channels"
       ],
@@ -5177,6 +5254,7 @@
       "upstream_id": "kunpeng-maven--language-registry",
       "tool_id": "gradle",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "kunpeng_maven"
       ],
@@ -5215,6 +5293,7 @@
       "upstream_id": "gentoo-portage-prefix--repository-metadata",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo-portage-prefix"
       ],
@@ -5255,6 +5334,7 @@
       "upstream_id": "debian-cd--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-cd"
       ],
@@ -5297,6 +5377,7 @@
       "upstream_id": "alpine--repository-metadata",
       "tool_id": "apk",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "alpine"
       ],
@@ -5340,6 +5421,7 @@
       "upstream_id": "gradle--static-files",
       "tool_id": "gradle",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gradle"
       ],
@@ -5369,6 +5451,7 @@
       "upstream_id": "ctan--language-registry",
       "tool_id": "tlmgr",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CTAN"
       ],
@@ -5405,6 +5488,7 @@
       "upstream_id": "archlinuxcn--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinuxcn"
       ],
@@ -5445,6 +5529,7 @@
       "upstream_id": "mongodb--static-files",
       "tool_id": "mongodb",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mongodb"
       ],
@@ -5474,6 +5559,7 @@
       "upstream_id": "conan--language-registry",
       "tool_id": "conan",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "conan"
       ],
@@ -5510,6 +5596,7 @@
       "upstream_id": "docker-ce--repository-metadata",
       "tool_id": "docker-ce",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "docker-ce"
       ],
@@ -5544,6 +5631,7 @@
       "upstream_id": "rocky--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rocky"
       ],
@@ -5584,6 +5672,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pdm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "jetson-pypi"
       ],
@@ -5620,6 +5709,7 @@
       "upstream_id": "gentoo-zh--repository-metadata",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo-zh"
       ],
@@ -5660,6 +5750,7 @@
       "upstream_id": "nix--binary-cache",
       "tool_id": "nix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix"
       ],
@@ -5694,6 +5785,7 @@
       "upstream_id": "rustup--release-artifacts",
       "tool_id": "rustup",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rustup"
       ],
@@ -5730,6 +5822,7 @@
       "upstream_id": "rocky--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rocky"
       ],
@@ -5770,6 +5863,7 @@
       "upstream_id": "cygwin--static-files",
       "tool_id": "cygwin",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "cygwin"
       ],
@@ -5805,6 +5899,7 @@
       "upstream_id": "debian-elts--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-elts"
       ],
@@ -5845,6 +5940,7 @@
       "upstream_id": "opensuse--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse"
       ],
@@ -5885,6 +5981,7 @@
       "upstream_id": "epel--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora/epel"
       ],
@@ -5925,6 +6022,7 @@
       "upstream_id": "huaweicloudsdk-maven--language-registry",
       "tool_id": "gradle",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "huaweicloudsdk_maven"
       ],
@@ -5961,6 +6059,7 @@
       "upstream_id": "scoop-java--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-java.git"
       ],
@@ -5994,6 +6093,7 @@
       "upstream_id": "jenkins-updates--static-files",
       "tool_id": "jenkins",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "jenkins-updates"
       ],
@@ -6023,6 +6123,7 @@
       "upstream_id": "docker-ce--repository-metadata",
       "tool_id": "docker-ce",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "docker-ce"
       ],
@@ -6057,6 +6158,7 @@
       "upstream_id": "openwrt--repository-metadata",
       "tool_id": "opkg",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "openwrt"
       ],
@@ -6097,6 +6199,7 @@
       "upstream_id": "guix--git-mirror",
       "tool_id": "guix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "git/guix.git"
       ],
@@ -6133,6 +6236,7 @@
       "upstream_id": "epel--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "epel"
       ],
@@ -6173,6 +6277,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pdm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi/web/simple"
       ],
@@ -6209,6 +6314,7 @@
       "upstream_id": "homebrew--static-files",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew"
       ],
@@ -6242,6 +6348,7 @@
       "upstream_id": "debian-archive--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-archive"
       ],
@@ -6284,6 +6391,7 @@
       "upstream_id": "crates.io-index--language-registry",
       "tool_id": "cargo",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "crates.io-index"
       ],
@@ -6320,6 +6428,7 @@
       "upstream_id": "dart-pub--language-registry",
       "tool_id": "dart-pub",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "dart-pub"
       ],
@@ -6356,6 +6465,7 @@
       "upstream_id": "maven--language-registry",
       "tool_id": "maven",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "maven"
       ],
@@ -6392,6 +6502,7 @@
       "upstream_id": "hackage--language-registry",
       "tool_id": "cabal",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "hackage"
       ],
@@ -6428,6 +6539,7 @@
       "upstream_id": "scoop--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop.git"
       ],
@@ -6461,6 +6573,7 @@
       "upstream_id": "mariadb--static-files",
       "tool_id": "mariadb",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mariadb"
       ],
@@ -6490,6 +6603,7 @@
       "upstream_id": "gentoo--git-mirror",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo.git"
       ],
@@ -6526,6 +6640,7 @@
       "upstream_id": "fedora-alt--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora-alt"
       ],
@@ -6566,6 +6681,7 @@
       "upstream_id": "homebrew-core--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-core.git"
       ],
@@ -6599,6 +6715,7 @@
       "upstream_id": "nodejs--release-artifacts",
       "tool_id": "nvm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "node"
       ],
@@ -6635,6 +6752,7 @@
       "upstream_id": "opensuse-tumbleweed--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse-tumbleweed"
       ],
@@ -6675,6 +6793,7 @@
       "upstream_id": "homebrew-bio--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-bio.git"
       ],
@@ -6708,6 +6827,7 @@
       "upstream_id": "debian-security--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-security"
       ],
@@ -6748,6 +6868,7 @@
       "upstream_id": "kubernetes--repository-metadata",
       "tool_id": "kubernetes-packages",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "kubernetes"
       ],
@@ -6782,6 +6903,7 @@
       "upstream_id": "maven--language-registry",
       "tool_id": "maven",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "maven"
       ],
@@ -6818,6 +6940,7 @@
       "upstream_id": "ros--static-files",
       "tool_id": "ros",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ros"
       ],
@@ -6849,6 +6972,7 @@
       "upstream_id": "ros2--static-files",
       "tool_id": "ros2",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ros2"
       ],
@@ -6878,6 +7002,7 @@
       "upstream_id": "gentoo--repository-metadata",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo"
       ],
@@ -6918,6 +7043,7 @@
       "upstream_id": "fedora--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora"
       ],
@@ -6958,6 +7084,7 @@
       "upstream_id": "guix--git-mirror",
       "tool_id": "guix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "guix.git"
       ],
@@ -6994,6 +7121,7 @@
       "upstream_id": "postgresql--static-files",
       "tool_id": "postgresql",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "postgresql"
       ],
@@ -7023,6 +7151,7 @@
       "upstream_id": "flutter--release-artifacts",
       "tool_id": "flutter",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "flutter"
       ],
@@ -7059,6 +7188,7 @@
       "upstream_id": "nodejs--release-artifacts",
       "tool_id": "nvm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nodejs"
       ],
@@ -7095,6 +7225,7 @@
       "upstream_id": "macports--static-files",
       "tool_id": "macports",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "macports"
       ],
@@ -7128,6 +7259,7 @@
       "upstream_id": "openeuler-archive--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "openeuler-archive"
       ],
@@ -7168,6 +7300,7 @@
       "upstream_id": "elasticstack--static-files",
       "tool_id": "elasticstack",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "elasticstack"
       ],
@@ -7197,6 +7330,7 @@
       "upstream_id": "ubuntu-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ubuntu-ports"
       ],
@@ -7239,6 +7373,7 @@
       "upstream_id": "fedora--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora"
       ],
@@ -7281,6 +7416,7 @@
       "upstream_id": "ros2--static-files",
       "tool_id": "ros2",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ros2"
       ],
@@ -7312,6 +7448,7 @@
       "upstream_id": "opensuse-tumbleweed--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse-tumbleweed"
       ],
@@ -7352,6 +7489,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pip",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -7388,6 +7526,7 @@
       "upstream_id": "debian-nonfree--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-nonfree"
       ],
@@ -7428,6 +7567,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "poetry",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -7464,6 +7604,7 @@
       "upstream_id": "clojars--language-registry",
       "tool_id": "leiningen",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "clojars"
       ],
@@ -7500,6 +7641,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pdm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -7536,6 +7678,7 @@
       "upstream_id": "rubygems--language-registry",
       "tool_id": "rubygems",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rubygems"
       ],
@@ -7572,6 +7715,7 @@
       "upstream_id": "void--repository-metadata",
       "tool_id": "xbps",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "voidlinux"
       ],
@@ -7612,6 +7756,7 @@
       "upstream_id": "scoop-main--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-main.git"
       ],
@@ -7645,6 +7790,7 @@
       "upstream_id": "ubuntu--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ubuntu"
       ],
@@ -7685,6 +7831,7 @@
       "upstream_id": "archlinuxarm--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinuxarm"
       ],
@@ -7727,6 +7874,7 @@
       "upstream_id": "centos-debuginfo--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-debuginfo"
       ],
@@ -7767,6 +7915,7 @@
       "upstream_id": "epel--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "epel"
       ],
@@ -7807,6 +7956,7 @@
       "upstream_id": "centos-vault--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-vault"
       ],
@@ -7847,6 +7997,7 @@
       "upstream_id": "openeuler--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "openeuler"
       ],
@@ -7890,6 +8041,7 @@
       "upstream_id": "influxdata--static-files",
       "tool_id": "influxdb",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "influxdata"
       ],
@@ -7919,6 +8071,7 @@
       "upstream_id": "mysql--static-files",
       "tool_id": "mysql",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mysql"
       ],
@@ -7948,6 +8101,7 @@
       "upstream_id": "cocoapods--git-mirror",
       "tool_id": "cocoapods",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CocoaPods"
       ],
@@ -7981,6 +8135,7 @@
       "upstream_id": "ros--static-files",
       "tool_id": "ros",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ros"
       ],
@@ -8010,6 +8165,7 @@
       "upstream_id": "nodejs--release-artifacts",
       "tool_id": "nvm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nodejs-release"
       ],
@@ -8046,6 +8202,7 @@
       "upstream_id": "debian--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian"
       ],
@@ -8076,6 +8233,7 @@
       },
       "probes": [
         {
+          "endpoint_role": "metadata",
           "method": "get",
           "path": "/dists/stable/InRelease",
           "expected_status": [
@@ -8097,6 +8255,7 @@
       "upstream_id": "rustup--release-artifacts",
       "tool_id": "rustup",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rustup"
       ],
@@ -8133,6 +8292,7 @@
       "upstream_id": "archlinuxcn--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinuxcn"
       ],
@@ -8173,6 +8333,7 @@
       "upstream_id": "npm--language-registry",
       "tool_id": "npm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "NPM"
       ],
@@ -8209,6 +8370,7 @@
       "upstream_id": "ceph--static-files",
       "tool_id": "ceph",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ceph"
       ],
@@ -8238,6 +8400,7 @@
       "upstream_id": "mariadb--static-files",
       "tool_id": "mariadb",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mariadb"
       ],
@@ -8267,6 +8430,7 @@
       "upstream_id": "macports--static-files",
       "tool_id": "macports",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "macports"
       ],
@@ -8300,6 +8464,7 @@
       "upstream_id": "openeuler--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "openeuler"
       ],
@@ -8340,6 +8505,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "poetry",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi/web/simple"
       ],
@@ -8376,6 +8542,7 @@
       "upstream_id": "scoop-nonportable--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-nonportable.git"
       ],
@@ -8409,6 +8576,7 @@
       "upstream_id": "gentoo--repository-metadata",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo"
       ],
@@ -8449,6 +8617,7 @@
       "upstream_id": "nodejs--release-artifacts",
       "tool_id": "fnm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nodejs-release"
       ],
@@ -8485,6 +8654,7 @@
       "upstream_id": "stackage--language-registry",
       "tool_id": "stack",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "stackage"
       ],
@@ -8521,6 +8691,7 @@
       "upstream_id": "julia--language-registry",
       "tool_id": "julia",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "julia"
       ],
@@ -8557,6 +8728,7 @@
       "upstream_id": "gitlab-runner--static-files",
       "tool_id": "gitlab-runner",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gitlab-runner"
       ],
@@ -8586,6 +8758,7 @@
       "upstream_id": "centos-vault--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-vault"
       ],
@@ -8628,6 +8801,7 @@
       "upstream_id": "debian--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian"
       ],
@@ -8658,6 +8832,7 @@
       },
       "probes": [
         {
+          "endpoint_role": "metadata",
           "method": "get",
           "path": "/dists/stable/InRelease",
           "expected_status": [
@@ -8679,6 +8854,7 @@
       "upstream_id": "npm--language-registry",
       "tool_id": "pnpm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "npm"
       ],
@@ -8715,6 +8891,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "uv",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "jetson-pypi"
       ],
@@ -8751,6 +8928,7 @@
       "upstream_id": "anaconda--language-registry",
       "tool_id": "conda",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "anaconda"
       ],
@@ -8787,6 +8965,7 @@
       "upstream_id": "scoop-nirsoft--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-nirsoft.git"
       ],
@@ -8820,6 +8999,7 @@
       "upstream_id": "kunpeng-yum--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "kunpeng_yum"
       ],
@@ -8856,6 +9036,7 @@
       "upstream_id": "ubuntu--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ubuntu"
       ],
@@ -8886,6 +9067,7 @@
       },
       "probes": [
         {
+          "endpoint_role": "metadata",
           "method": "get",
           "path": "/dists/noble/InRelease",
           "expected_status": [
@@ -8907,6 +9089,7 @@
       "upstream_id": "ubuntu-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ubuntu-ports"
       ],
@@ -8949,6 +9132,7 @@
       "upstream_id": "scoop--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop.git"
       ],
@@ -8982,6 +9166,7 @@
       "upstream_id": "centos-vault--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-vault"
       ],
@@ -9022,6 +9207,7 @@
       "upstream_id": "debian--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian"
       ],
@@ -9052,6 +9238,7 @@
       },
       "probes": [
         {
+          "endpoint_role": "metadata",
           "method": "get",
           "path": "/dists/stable/InRelease",
           "expected_status": [
@@ -9073,6 +9260,7 @@
       "upstream_id": "gentoo-portage--git-mirror",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo-portage.git"
       ],
@@ -9109,6 +9297,7 @@
       "upstream_id": "nixpkgs--git-mirror",
       "tool_id": "nix-macos",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nixpkgs.git"
       ],
@@ -9145,6 +9334,7 @@
       "upstream_id": "rubygems--language-registry",
       "tool_id": "bundler",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rubygems"
       ],
@@ -9181,6 +9371,7 @@
       "upstream_id": "debian-backports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-backports"
       ],
@@ -9221,6 +9412,7 @@
       "upstream_id": "postgresql--static-files",
       "tool_id": "postgresql",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "postgresql"
       ],
@@ -9250,6 +9442,7 @@
       "upstream_id": "flutter-sdk--git-mirror",
       "tool_id": "flutter",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "git/flutter-sdk.git"
       ],
@@ -9286,6 +9479,7 @@
       "upstream_id": "docker-ce--repository-metadata",
       "tool_id": "docker-ce",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "docker-ce"
       ],
@@ -9320,6 +9514,7 @@
       "upstream_id": "opensuse--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse"
       ],
@@ -9360,6 +9555,7 @@
       "upstream_id": "homebrew--static-files",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew"
       ],
@@ -9393,6 +9589,7 @@
       "upstream_id": "archlinuxarm--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinuxarm"
       ],
@@ -9435,6 +9632,7 @@
       "upstream_id": "rubygems--language-registry",
       "tool_id": "rubygems",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rubygems"
       ],
@@ -9471,6 +9669,7 @@
       "upstream_id": "centos--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos"
       ],
@@ -9513,6 +9712,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pip",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "jetson-pypi"
       ],
@@ -9549,6 +9749,7 @@
       "upstream_id": "cpan--language-registry",
       "tool_id": "cpan",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CPAN"
       ],
@@ -9585,6 +9786,7 @@
       "upstream_id": "archlinux--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinux"
       ],
@@ -9625,6 +9827,7 @@
       "upstream_id": "nixpkgs--git-mirror",
       "tool_id": "nix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nixpkgs.git"
       ],
@@ -9661,6 +9864,7 @@
       "upstream_id": "huaweicloudsdk-maven--language-registry",
       "tool_id": "sbt",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "huaweicloudsdk_maven"
       ],
@@ -9697,6 +9901,7 @@
       "upstream_id": "ghcup--release-artifacts",
       "tool_id": "ghcup",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ghcup"
       ],
@@ -9733,6 +9938,7 @@
       "upstream_id": "archlinuxcn--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinuxcn"
       ],
@@ -9773,6 +9979,7 @@
       "upstream_id": "elpa--language-registry",
       "tool_id": "elpa",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "elpa"
       ],
@@ -9809,6 +10016,7 @@
       "upstream_id": "void--repository-metadata",
       "tool_id": "xbps",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "voidlinux"
       ],
@@ -9849,6 +10057,7 @@
       "upstream_id": "nix-channels--binary-cache",
       "tool_id": "nix-macos",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix-channels"
       ],
@@ -9883,6 +10092,7 @@
       "upstream_id": "centos--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos"
       ],
@@ -9923,6 +10133,7 @@
       "upstream_id": "opam-cache--language-registry",
       "tool_id": "opam",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opam-cache"
       ],
@@ -9959,6 +10170,7 @@
       "upstream_id": "debian-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-ports"
       ],
@@ -9999,6 +10211,7 @@
       "upstream_id": "fedora--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora"
       ],
@@ -10039,6 +10252,7 @@
       "upstream_id": "archlinuxarm--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinuxarm"
       ],
@@ -10081,6 +10295,7 @@
       "upstream_id": "bioconductor--language-registry",
       "tool_id": "bioconductor",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "bioconductor"
       ],
@@ -10117,6 +10332,7 @@
       "upstream_id": "nix-channels--binary-cache",
       "tool_id": "nix-macos",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix-channels"
       ],
@@ -10151,6 +10367,7 @@
       "upstream_id": "ubuntu-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ubuntu-ports"
       ],
@@ -10193,6 +10410,7 @@
       "upstream_id": "homebrew-bottles--binary-cache",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-bottles"
       ],
@@ -10226,6 +10444,7 @@
       "upstream_id": "flathub--static-files",
       "tool_id": "flatpak",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "flathub"
       ],
@@ -10255,6 +10474,7 @@
       "upstream_id": "cpan--language-registry",
       "tool_id": "cpan",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CPAN"
       ],
@@ -10291,6 +10511,7 @@
       "upstream_id": "centos-stream--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-stream"
       ],
@@ -10331,6 +10552,7 @@
       "upstream_id": "msys2--static-files",
       "tool_id": "msys2",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "msys2"
       ],
@@ -10366,6 +10588,7 @@
       "upstream_id": "manjaro--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "manjaro"
       ],
@@ -10406,6 +10629,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pdm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -10442,6 +10666,7 @@
       "upstream_id": "jenkins--static-files",
       "tool_id": "jenkins",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "jenkins"
       ],
@@ -10471,6 +10696,7 @@
       "upstream_id": "nodejs--release-artifacts",
       "tool_id": "fnm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "node"
       ],
@@ -10507,6 +10733,7 @@
       "upstream_id": "opensuse--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse"
       ],
@@ -10547,6 +10774,7 @@
       "upstream_id": "gitlab-runner--static-files",
       "tool_id": "gitlab-runner",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gitlab-runner"
       ],
@@ -10576,6 +10804,7 @@
       "upstream_id": "gentoo--repository-metadata",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo"
       ],
@@ -10616,6 +10845,7 @@
       "upstream_id": "bazel-apt--static-files",
       "tool_id": "bazel",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "bazel-apt"
       ],
@@ -10645,6 +10875,7 @@
       "upstream_id": "debian--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian"
       ],
@@ -10675,6 +10906,7 @@
       },
       "probes": [
         {
+          "endpoint_role": "metadata",
           "method": "get",
           "path": "/dists/stable/InRelease",
           "expected_status": [
@@ -10696,6 +10928,7 @@
       "upstream_id": "scoop-java--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-java.git"
       ],
@@ -10729,6 +10962,7 @@
       "upstream_id": "cygwin--static-files",
       "tool_id": "cygwin",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "cygwin"
       ],
@@ -10762,6 +10996,7 @@
       "upstream_id": "opensuse--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse"
       ],
@@ -10802,6 +11037,7 @@
       "upstream_id": "epel--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "epel"
       ],
@@ -10842,6 +11078,7 @@
       "upstream_id": "homebrew-bundle--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "git/homebrew-bundle.git"
       ],
@@ -10875,6 +11112,7 @@
       "upstream_id": "nodejs--release-artifacts",
       "tool_id": "fnm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nodejs"
       ],
@@ -10911,6 +11149,7 @@
       "upstream_id": "guix--static-files",
       "tool_id": "guix",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "guix"
       ],
@@ -10940,6 +11179,7 @@
       "upstream_id": "docker-ce--repository-metadata",
       "tool_id": "docker-ce",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "docker-ce"
       ],
@@ -10974,6 +11214,7 @@
       "upstream_id": "scoop-extras--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-extras.git"
       ],
@@ -11007,6 +11248,7 @@
       "upstream_id": "archlinux--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinux"
       ],
@@ -11047,6 +11289,7 @@
       "upstream_id": "gentoo-portage--git-mirror",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo-portage.git"
       ],
@@ -11083,6 +11326,7 @@
       "upstream_id": "ubuntu--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ubuntu"
       ],
@@ -11115,6 +11359,7 @@
       },
       "probes": [
         {
+          "endpoint_role": "metadata",
           "method": "get",
           "path": "/dists/noble/InRelease",
           "expected_status": [
@@ -11136,6 +11381,7 @@
       "upstream_id": "debian--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian"
       ],
@@ -11179,6 +11425,7 @@
       "upstream_id": "epel--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "epel"
       ],
@@ -11222,6 +11469,7 @@
       "upstream_id": "npm--language-registry",
       "tool_id": "pnpm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "NPM"
       ],
@@ -11258,6 +11506,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "poetry",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -11294,6 +11543,7 @@
       "upstream_id": "ros2--static-files",
       "tool_id": "ros2",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ros2"
       ],
@@ -11323,6 +11573,7 @@
       "upstream_id": "crates.io-index--language-registry",
       "tool_id": "cargo",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "crates.io-index"
       ],
@@ -11359,6 +11610,7 @@
       "upstream_id": "centos-stream--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-stream"
       ],
@@ -11399,6 +11651,7 @@
       "upstream_id": "debian-cd--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-cd"
       ],
@@ -11439,6 +11692,7 @@
       "upstream_id": "scoop-versions--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-versions.git"
       ],
@@ -11472,6 +11726,7 @@
       "upstream_id": "gradle--static-files",
       "tool_id": "gradle",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gradle"
       ],
@@ -11501,6 +11756,7 @@
       "upstream_id": "docker-hub--container-registry",
       "tool_id": "docker-registry",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "dockerhub"
       ],
@@ -11535,6 +11791,7 @@
       "upstream_id": "nuget--language-registry",
       "tool_id": "nuget",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nuget"
       ],
@@ -11571,6 +11828,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pip",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi/web/simple"
       ],
@@ -11607,6 +11865,7 @@
       "upstream_id": "bazel-apt--static-files",
       "tool_id": "bazel",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "bazel-apt"
       ],
@@ -11636,6 +11895,7 @@
       "upstream_id": "gentoo--git-mirror",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo.git"
       ],
@@ -11672,6 +11932,7 @@
       "upstream_id": "go--static-files",
       "tool_id": "go",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "go"
       ],
@@ -11701,6 +11962,7 @@
       "upstream_id": "homebrew-autoupdate--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-autoupdate.git"
       ],
@@ -11734,6 +11996,7 @@
       "upstream_id": "almalinux--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "almalinux"
       ],
@@ -11774,6 +12037,7 @@
       "upstream_id": "homebrew-num--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-num.git"
       ],
@@ -11807,6 +12071,7 @@
       "upstream_id": "manjaro--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "manjaro"
       ],
@@ -11847,6 +12112,7 @@
       "upstream_id": "ceph--static-files",
       "tool_id": "ceph",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ceph"
       ],
@@ -11876,6 +12142,7 @@
       "upstream_id": "ros--static-files",
       "tool_id": "ros",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ros"
       ],
@@ -11905,6 +12172,7 @@
       "upstream_id": "centos-altarch--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-altarch"
       ],
@@ -11947,6 +12215,7 @@
       "upstream_id": "elpa--language-registry",
       "tool_id": "elpa",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "elpa"
       ],
@@ -11983,6 +12252,7 @@
       "upstream_id": "mariadb--static-files",
       "tool_id": "mariadb",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mariadb"
       ],
@@ -12012,6 +12282,7 @@
       "upstream_id": "homebrew-bottles--binary-cache",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-bottles"
       ],
@@ -12045,6 +12316,7 @@
       "upstream_id": "ubuntu--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ubuntu"
       ],
@@ -12085,6 +12357,7 @@
       "upstream_id": "gcr--container-registry",
       "tool_id": "podman-registry",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gcr"
       ],
@@ -12119,6 +12392,7 @@
       "upstream_id": "rubygems--language-registry",
       "tool_id": "bundler",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rubygems"
       ],
@@ -12155,6 +12429,7 @@
       "upstream_id": "homebrew-cask--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-cask.git"
       ],
@@ -12188,6 +12463,7 @@
       "upstream_id": "postgresql--static-files",
       "tool_id": "postgresql",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "postgresql"
       ],
@@ -12217,6 +12493,7 @@
       "upstream_id": "openwrt--repository-metadata",
       "tool_id": "opkg",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "openwrt"
       ],
@@ -12257,6 +12534,7 @@
       "upstream_id": "maven--language-registry",
       "tool_id": "gradle",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "maven"
       ],
@@ -12293,6 +12571,7 @@
       "upstream_id": "cran--language-registry",
       "tool_id": "cran",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CRAN"
       ],
@@ -12329,6 +12608,7 @@
       "upstream_id": "homebrew--static-files",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew"
       ],
@@ -12362,6 +12642,7 @@
       "upstream_id": "maven--language-registry",
       "tool_id": "gradle",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "maven"
       ],
@@ -12398,6 +12679,7 @@
       "upstream_id": "alpine--repository-metadata",
       "tool_id": "apk",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "alpine"
       ],
@@ -12438,6 +12720,7 @@
       "upstream_id": "opam-repository--git-mirror",
       "tool_id": "opam",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opam-repository.git"
       ],
@@ -12474,6 +12757,7 @@
       "upstream_id": "rocky--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rockylinux"
       ],
@@ -12517,6 +12801,7 @@
       "upstream_id": "archlinuxarm--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinuxarm"
       ],
@@ -12559,6 +12844,7 @@
       "upstream_id": "archlinux--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinux"
       ],
@@ -12599,6 +12885,7 @@
       "upstream_id": "nixpkgs--git-mirror",
       "tool_id": "nix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nixpkgs.git"
       ],
@@ -12635,6 +12922,7 @@
       "upstream_id": "winget-source--static-files",
       "tool_id": "winget",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "winget-source"
       ],
@@ -12668,6 +12956,7 @@
       "upstream_id": "archlinuxcn--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinux-cn"
       ],
@@ -12708,6 +12997,7 @@
       "upstream_id": "nodejs--release-artifacts",
       "tool_id": "nvm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nodejs-release"
       ],
@@ -12744,6 +13034,7 @@
       "upstream_id": "immortalwrt--repository-metadata",
       "tool_id": "opkg",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "immortalwrt"
       ],
@@ -12784,6 +13075,7 @@
       "upstream_id": "nodejs--release-artifacts",
       "tool_id": "nvm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nodejs-release"
       ],
@@ -12820,6 +13112,7 @@
       "upstream_id": "ctan--language-registry",
       "tool_id": "tlmgr",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CTAN"
       ],
@@ -12856,6 +13149,7 @@
       "upstream_id": "opensuse-ports--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse-ports"
       ],
@@ -12896,6 +13190,7 @@
       "upstream_id": "homebrew-autoupdate--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-autoupdate.git"
       ],
@@ -12929,6 +13224,7 @@
       "upstream_id": "fedora-archive--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora-archive"
       ],
@@ -12969,6 +13265,7 @@
       "upstream_id": "rocky-sig--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rocky-sig"
       ],
@@ -13009,6 +13306,7 @@
       "upstream_id": "almalinux-vault--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "almalinux-vault"
       ],
@@ -13049,6 +13347,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "uv",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -13085,6 +13384,7 @@
       "upstream_id": "gentoo--repository-metadata",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo"
       ],
@@ -13125,6 +13425,7 @@
       "upstream_id": "almalinux--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "almalinux"
       ],
@@ -13165,6 +13466,7 @@
       "upstream_id": "rocky--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rocky"
       ],
@@ -13205,6 +13507,7 @@
       "upstream_id": "fedora-altarch--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora-altarch"
       ],
@@ -13245,6 +13548,7 @@
       "upstream_id": "kubernetes--repository-metadata",
       "tool_id": "kubernetes-packages",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "kubernetes"
       ],
@@ -13279,6 +13583,7 @@
       "upstream_id": "anaconda--language-registry",
       "tool_id": "conda",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "anaconda"
       ],
@@ -13315,6 +13620,7 @@
       "upstream_id": "anaconda--language-registry",
       "tool_id": "conda",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "anaconda"
       ],
@@ -13351,6 +13657,7 @@
       "upstream_id": "homebrew--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew"
       ],
@@ -13384,6 +13691,7 @@
       "upstream_id": "zabbix--static-files",
       "tool_id": "zabbix",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "zabbix"
       ],
@@ -13413,6 +13721,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "poetry",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -13449,6 +13758,7 @@
       "upstream_id": "alpine--repository-metadata",
       "tool_id": "apk",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "alpine"
       ],
@@ -13489,6 +13799,7 @@
       "upstream_id": "fedora-riscv--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora-riscv"
       ],
@@ -13529,6 +13840,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pip",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -13565,6 +13877,7 @@
       "upstream_id": "ceph--static-files",
       "tool_id": "ceph",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ceph"
       ],
@@ -13594,6 +13907,7 @@
       "upstream_id": "maven--language-registry",
       "tool_id": "sbt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "maven"
       ],
@@ -13630,6 +13944,7 @@
       "upstream_id": "mysql--static-files",
       "tool_id": "mysql",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mysql"
       ],
@@ -13659,6 +13974,7 @@
       "upstream_id": "homebrew-base--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-base.git"
       ],
@@ -13692,6 +14008,7 @@
       "upstream_id": "cocoapods--static-files",
       "tool_id": "cocoapods",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CocoaPods"
       ],
@@ -13725,6 +14042,7 @@
       "upstream_id": "grafana--static-files",
       "tool_id": "grafana",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "grafana"
       ],
@@ -13754,6 +14072,7 @@
       "upstream_id": "cpan--language-registry",
       "tool_id": "cpan",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CPAN"
       ],
@@ -13790,6 +14109,7 @@
       "upstream_id": "scoop-versions--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-versions.git"
       ],
@@ -13823,6 +14143,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pdm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -13859,6 +14180,7 @@
       "upstream_id": "cran--language-registry",
       "tool_id": "cran",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CRAN"
       ],
@@ -13895,6 +14217,7 @@
       "upstream_id": "flutter--release-artifacts",
       "tool_id": "flutter",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "flutter"
       ],
@@ -13931,6 +14254,7 @@
       "upstream_id": "nodejs--release-artifacts",
       "tool_id": "fnm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nodejs-release"
       ],
@@ -13967,6 +14291,7 @@
       "upstream_id": "grafana--static-files",
       "tool_id": "grafana",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "grafana"
       ],
@@ -13996,6 +14321,7 @@
       "upstream_id": "ghcup--release-artifacts",
       "tool_id": "ghcup",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ghcup"
       ],
@@ -14032,6 +14358,7 @@
       "upstream_id": "rubygems--language-registry",
       "tool_id": "bundler",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rubygems"
       ],
@@ -14068,6 +14395,7 @@
       "upstream_id": "mariadb--static-files",
       "tool_id": "mariadb",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mariadb"
       ],
@@ -14097,6 +14425,7 @@
       "upstream_id": "centos-vault--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-vault"
       ],
@@ -14137,6 +14466,7 @@
       "upstream_id": "fedora--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora/linux"
       ],
@@ -14177,6 +14507,7 @@
       "upstream_id": "ros2-rhel--repository-metadata",
       "tool_id": "ros2",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ros2-rhel"
       ],
@@ -14211,6 +14542,7 @@
       "upstream_id": "opam-repository--git-mirror",
       "tool_id": "opam",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opam-repository.git"
       ],
@@ -14247,6 +14579,7 @@
       "upstream_id": "rubygems--language-registry",
       "tool_id": "rubygems",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rubygems"
       ],
@@ -14283,6 +14616,7 @@
       "upstream_id": "rustup--release-artifacts",
       "tool_id": "rustup",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rustup"
       ],
@@ -14319,6 +14653,7 @@
       "upstream_id": "opensuse-history--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse-history"
       ],
@@ -14359,6 +14694,7 @@
       "upstream_id": "opensuse--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse"
       ],
@@ -14399,6 +14735,7 @@
       "upstream_id": "debian-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-ports"
       ],
@@ -14439,6 +14776,7 @@
       "upstream_id": "rubygems--language-registry",
       "tool_id": "rubygems",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rubygems"
       ],
@@ -14475,6 +14813,7 @@
       "upstream_id": "ubuntu-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ubuntu-ports"
       ],
@@ -14517,6 +14856,7 @@
       "upstream_id": "cran--language-registry",
       "tool_id": "cran",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CRAN"
       ],
@@ -14553,6 +14893,7 @@
       "upstream_id": "flutter-sdk--git-mirror",
       "tool_id": "flutter",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "flutter-sdk.git"
       ],
@@ -14589,6 +14930,7 @@
       "upstream_id": "huaweicloudsdk-maven--language-registry",
       "tool_id": "maven",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "huaweicloudsdk_maven"
       ],
@@ -14625,6 +14967,7 @@
       "upstream_id": "npm--language-registry",
       "tool_id": "pnpm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "npm"
       ],
@@ -14661,6 +15004,7 @@
       "upstream_id": "fedora-iot--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora-iot"
       ],
@@ -14701,6 +15045,7 @@
       "upstream_id": "macports--static-files",
       "tool_id": "macports",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "macports"
       ],
@@ -14734,6 +15079,7 @@
       "upstream_id": "ubuntu--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ubuntu"
       ],
@@ -14774,6 +15120,7 @@
       "upstream_id": "maven--language-registry",
       "tool_id": "maven",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "maven"
       ],
@@ -14810,6 +15157,7 @@
       "upstream_id": "ubuntu-ports--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ubuntu-ports"
       ],
@@ -14852,6 +15200,7 @@
       "upstream_id": "mongodb--static-files",
       "tool_id": "mongodb",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mongodb"
       ],
@@ -14881,6 +15230,7 @@
       "upstream_id": "maven--language-registry",
       "tool_id": "sbt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "maven"
       ],
@@ -14917,6 +15267,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pdm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -14953,6 +15304,7 @@
       "upstream_id": "homebrew-base--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-base.git"
       ],
@@ -14986,6 +15338,7 @@
       "upstream_id": "nix--binary-cache",
       "tool_id": "nix-macos",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix"
       ],
@@ -15020,6 +15373,7 @@
       "upstream_id": "influxdata--static-files",
       "tool_id": "influxdb",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "influxdata"
       ],
@@ -15049,6 +15403,7 @@
       "upstream_id": "maven--language-registry",
       "tool_id": "gradle",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "maven"
       ],
@@ -15085,6 +15440,7 @@
       "upstream_id": "fedora-secondary--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora-secondary"
       ],
@@ -15125,6 +15481,7 @@
       "upstream_id": "opensuse--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "suse"
       ],
@@ -15165,6 +15522,7 @@
       "upstream_id": "flutter-sdk--git-mirror",
       "tool_id": "flutter",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "flutter-sdk.git"
       ],
@@ -15201,6 +15559,7 @@
       "upstream_id": "gentoo-zh--git-mirror",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo-zh.git"
       ],
@@ -15237,6 +15596,7 @@
       "upstream_id": "centos-altarch--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-altarch"
       ],
@@ -15277,6 +15637,7 @@
       "upstream_id": "centos-vault--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-vault"
       ],
@@ -15317,6 +15678,7 @@
       "upstream_id": "centos-altarch--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-altarch"
       ],
@@ -15357,6 +15719,7 @@
       "upstream_id": "ctan--language-registry",
       "tool_id": "tlmgr",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CTAN"
       ],
@@ -15393,6 +15756,7 @@
       "upstream_id": "goproxy--static-files",
       "tool_id": "go",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "goproxy"
       ],
@@ -15422,6 +15786,7 @@
       "upstream_id": "fedora-ostree--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora-ostree"
       ],
@@ -15462,6 +15827,7 @@
       "upstream_id": "centos-altarch--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-altarch"
       ],
@@ -15502,6 +15868,7 @@
       "upstream_id": "clojars--language-registry",
       "tool_id": "leiningen",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "clojars"
       ],
@@ -15538,6 +15905,7 @@
       "upstream_id": "centos--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos"
       ],
@@ -15578,6 +15946,7 @@
       "upstream_id": "fedora--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora"
       ],
@@ -15618,6 +15987,7 @@
       "upstream_id": "archlinuxcn--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinuxcn"
       ],
@@ -15658,6 +16028,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pip",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi-packages"
       ],
@@ -15694,6 +16065,7 @@
       "upstream_id": "scoop-extras--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-extras.git"
       ],
@@ -15727,6 +16099,7 @@
       "upstream_id": "debian-security--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-security"
       ],
@@ -15767,6 +16140,7 @@
       "upstream_id": "nix-channels--binary-cache",
       "tool_id": "nix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix-channels"
       ],
@@ -15801,6 +16175,7 @@
       "upstream_id": "mysql--static-files",
       "tool_id": "mysql",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mysql"
       ],
@@ -15830,6 +16205,7 @@
       "upstream_id": "centos-stream--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-stream"
       ],
@@ -15870,6 +16246,7 @@
       "upstream_id": "nixpkgs--git-mirror",
       "tool_id": "nix-macos",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nixpkgs.git"
       ],
@@ -15906,6 +16283,7 @@
       "upstream_id": "rust-static--release-artifacts",
       "tool_id": "rustup",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rust-static"
       ],
@@ -15942,6 +16320,7 @@
       "upstream_id": "nixpkgs--git-mirror",
       "tool_id": "nix-macos",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nixpkgs.git"
       ],
@@ -15978,6 +16357,7 @@
       "upstream_id": "homebrew-install--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-install.git"
       ],
@@ -16011,6 +16391,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "poetry",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi-packages"
       ],
@@ -16047,6 +16428,7 @@
       "upstream_id": "ghcup--release-artifacts",
       "tool_id": "ghcup",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ghcup"
       ],
@@ -16083,6 +16465,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "poetry",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -16119,6 +16502,7 @@
       "upstream_id": "debian-security--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-security"
       ],
@@ -16161,6 +16545,7 @@
       "upstream_id": "rubygems--language-registry",
       "tool_id": "rubygems",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rubygems"
       ],
@@ -16197,6 +16582,7 @@
       "upstream_id": "npm--language-registry",
       "tool_id": "yarn",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "NPM"
       ],
@@ -16233,6 +16619,7 @@
       "upstream_id": "nix--binary-cache",
       "tool_id": "nix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix"
       ],
@@ -16267,6 +16654,7 @@
       "upstream_id": "almalinux-elevate--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "almalinux-elevate"
       ],
@@ -16307,6 +16695,7 @@
       "upstream_id": "dart-pub--language-registry",
       "tool_id": "dart-pub",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "dart-pub"
       ],
@@ -16343,6 +16732,7 @@
       "upstream_id": "rustup--release-artifacts",
       "tool_id": "rustup",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rustup"
       ],
@@ -16379,6 +16769,7 @@
       "upstream_id": "npm--language-registry",
       "tool_id": "npm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "npm"
       ],
@@ -16415,6 +16806,7 @@
       "upstream_id": "gentoo-portage--repository-metadata",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo-portage"
       ],
@@ -16455,6 +16847,7 @@
       "upstream_id": "almalinux-kitten--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "almalinux-kitten"
       ],
@@ -16495,6 +16888,7 @@
       "upstream_id": "archlinuxarm--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinuxarm"
       ],
@@ -16537,6 +16931,7 @@
       "upstream_id": "sbt--static-files",
       "tool_id": "sbt",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "sbt"
       ],
@@ -16566,6 +16961,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "poetry",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -16602,6 +16998,7 @@
       "upstream_id": "cygwin--static-files",
       "tool_id": "cygwin",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "cygwin"
       ],
@@ -16635,6 +17032,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pdm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi-packages"
       ],
@@ -16671,6 +17069,7 @@
       "upstream_id": "manjaro-cd--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "manjaro-cd"
       ],
@@ -16711,6 +17110,7 @@
       "upstream_id": "clojars--language-registry",
       "tool_id": "leiningen",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "clojars"
       ],
@@ -16747,6 +17147,7 @@
       "upstream_id": "centos-cloud--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-cloud"
       ],
@@ -16787,6 +17188,7 @@
       "upstream_id": "opensuse-history--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse-history"
       ],
@@ -16827,6 +17229,7 @@
       "upstream_id": "centos-stream--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-stream"
       ],
@@ -16867,6 +17270,7 @@
       "upstream_id": "ceph--static-files",
       "tool_id": "ceph",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ceph"
       ],
@@ -16896,6 +17300,7 @@
       "upstream_id": "centos--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos"
       ],
@@ -16936,6 +17341,7 @@
       "upstream_id": "python-releases--release-artifacts",
       "tool_id": "pyenv",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "python-release"
       ],
@@ -16972,6 +17378,7 @@
       "upstream_id": "docker-ce--repository-metadata",
       "tool_id": "docker-ce",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "docker-ce"
       ],
@@ -17006,6 +17413,7 @@
       "upstream_id": "homebrew-services--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "git/homebrew-services.git"
       ],
@@ -17039,6 +17447,7 @@
       "upstream_id": "epel--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "epel"
       ],
@@ -17079,6 +17488,7 @@
       "upstream_id": "mysql-repo--repository-metadata",
       "tool_id": "mysql",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mysql-repo"
       ],
@@ -17113,6 +17523,7 @@
       "upstream_id": "nodejs--release-artifacts",
       "tool_id": "fnm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nodejs-release"
       ],
@@ -17149,6 +17560,7 @@
       "upstream_id": "msys2--static-files",
       "tool_id": "msys2",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "msys2"
       ],
@@ -17182,6 +17594,7 @@
       "upstream_id": "debian-security--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-security"
       ],
@@ -17222,6 +17635,7 @@
       "upstream_id": "immortalwrt--repository-metadata",
       "tool_id": "opkg",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "immortalwrt"
       ],
@@ -17262,6 +17676,7 @@
       "upstream_id": "nix-channels--binary-cache",
       "tool_id": "nix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix-channels"
       ],
@@ -17296,6 +17711,7 @@
       "upstream_id": "centos-vault--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-vault"
       ],
@@ -17338,6 +17754,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "uv",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -17374,6 +17791,7 @@
       "upstream_id": "anaconda--language-registry",
       "tool_id": "conda",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "anaconda"
       ],
@@ -17410,6 +17828,7 @@
       "upstream_id": "alpine--repository-metadata",
       "tool_id": "apk",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "alpine"
       ],
@@ -17450,6 +17869,7 @@
       "upstream_id": "cran--language-registry",
       "tool_id": "cran",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CRAN"
       ],
@@ -17486,6 +17906,7 @@
       "upstream_id": "dart-pub--language-registry",
       "tool_id": "dart-pub",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "dart-pub"
       ],
@@ -17522,6 +17943,7 @@
       "upstream_id": "docker-ce--repository-metadata",
       "tool_id": "docker-ce",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "docker-ce"
       ],
@@ -17556,6 +17978,7 @@
       "upstream_id": "ros--static-files",
       "tool_id": "ros",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ros"
       ],
@@ -17585,6 +18008,7 @@
       "upstream_id": "elpa--language-registry",
       "tool_id": "elpa",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "elpa"
       ],
@@ -17621,6 +18045,7 @@
       "upstream_id": "nix-channels--binary-cache",
       "tool_id": "nix-macos",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix-channels/store"
       ],
@@ -17655,6 +18080,7 @@
       "upstream_id": "fedora--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora"
       ],
@@ -17695,6 +18121,7 @@
       "upstream_id": "manjaro--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "manjaro"
       ],
@@ -17735,6 +18162,7 @@
       "upstream_id": "debian-archive--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-archive"
       ],
@@ -17775,6 +18203,7 @@
       "upstream_id": "centos-vault--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-vault"
       ],
@@ -17815,6 +18244,7 @@
       "upstream_id": "influxdata--static-files",
       "tool_id": "influxdb",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "influxdata"
       ],
@@ -17844,6 +18274,7 @@
       "upstream_id": "homebrew-num--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-num.git"
       ],
@@ -17877,6 +18308,7 @@
       "upstream_id": "centos-altarch--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-altarch"
       ],
@@ -17919,6 +18351,7 @@
       "upstream_id": "openwrt--repository-metadata",
       "tool_id": "opkg",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "openwrt"
       ],
@@ -17959,6 +18392,7 @@
       "upstream_id": "elasticstack--static-files",
       "tool_id": "elasticstack",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "elasticstack"
       ],
@@ -17988,6 +18422,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "uv",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -18024,6 +18459,7 @@
       "upstream_id": "flathub--static-files",
       "tool_id": "flatpak",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "flathub"
       ],
@@ -18053,6 +18489,7 @@
       "upstream_id": "guix-bordeaux--static-files",
       "tool_id": "guix",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "guix-bordeaux"
       ],
@@ -18082,6 +18519,7 @@
       "upstream_id": "centos-stream--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-stream"
       ],
@@ -18122,6 +18560,7 @@
       "upstream_id": "bioconductor--language-registry",
       "tool_id": "bioconductor",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "bioconductor"
       ],
@@ -18158,6 +18597,7 @@
       "upstream_id": "gentoo-portage--git-mirror",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo-portage.git"
       ],
@@ -18194,6 +18634,7 @@
       "upstream_id": "scoop-nirsoft--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-nirsoft.git"
       ],
@@ -18227,6 +18668,7 @@
       "upstream_id": "ceph--static-files",
       "tool_id": "ceph",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ceph"
       ],
@@ -18258,6 +18700,7 @@
       "upstream_id": "debian-multimedia--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-multimedia"
       ],
@@ -18298,6 +18741,7 @@
       "upstream_id": "grafana--static-files",
       "tool_id": "grafana",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "grafana"
       ],
@@ -18327,6 +18771,7 @@
       "upstream_id": "gentoo-zh--git-mirror",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo-zh.git"
       ],
@@ -18363,6 +18808,7 @@
       "upstream_id": "manjaro--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "manjaro"
       ],
@@ -18403,6 +18849,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "uv",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -18439,6 +18886,7 @@
       "upstream_id": "bazel--static-files",
       "tool_id": "bazel",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "bazel"
       ],
@@ -18468,6 +18916,7 @@
       "upstream_id": "kunpeng-maven--language-registry",
       "tool_id": "maven",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "kunpeng_maven"
       ],
@@ -18506,6 +18955,7 @@
       "upstream_id": "cocoapods--static-files",
       "tool_id": "cocoapods",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CocoaPods"
       ],
@@ -18539,6 +18989,7 @@
       "upstream_id": "ros--static-files",
       "tool_id": "ros",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ros"
       ],
@@ -18568,6 +19019,7 @@
       "upstream_id": "crates.io-index--language-registry",
       "tool_id": "cargo",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "crates.io-index"
       ],
@@ -18604,6 +19056,7 @@
       "upstream_id": "mysql--static-files",
       "tool_id": "mysql",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mysql"
       ],
@@ -18633,6 +19086,7 @@
       "upstream_id": "nginx--static-files",
       "tool_id": "nginx",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nginx"
       ],
@@ -18662,6 +19116,7 @@
       "upstream_id": "kubernetes--repository-metadata",
       "tool_id": "kubernetes-packages",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "kubernetes"
       ],
@@ -18696,6 +19151,7 @@
       "upstream_id": "stackage--language-registry",
       "tool_id": "stack",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "stackage"
       ],
@@ -18732,6 +19188,7 @@
       "upstream_id": "msys2--static-files",
       "tool_id": "msys2",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "msys2"
       ],
@@ -18765,6 +19222,7 @@
       "upstream_id": "nix-channels--binary-cache",
       "tool_id": "nix",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nix-channels/store"
       ],
@@ -18799,6 +19257,7 @@
       "upstream_id": "fedora-secondary--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "fedora-secondary"
       ],
@@ -18839,6 +19298,7 @@
       "upstream_id": "flutter--release-artifacts",
       "tool_id": "flutter",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "flutter"
       ],
@@ -18875,6 +19335,7 @@
       "upstream_id": "elasticstack--static-files",
       "tool_id": "elasticstack",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "elasticstack"
       ],
@@ -18904,6 +19365,7 @@
       "upstream_id": "opensuse-update--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse-update"
       ],
@@ -18944,6 +19406,7 @@
       "upstream_id": "ctan--language-registry",
       "tool_id": "tlmgr",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "CTAN"
       ],
@@ -18980,6 +19443,7 @@
       "upstream_id": "rocky-vault--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rocky-vault"
       ],
@@ -19020,6 +19484,7 @@
       "upstream_id": "kubernetes--repository-metadata",
       "tool_id": "kubernetes-packages",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "kubernetes"
       ],
@@ -19054,6 +19519,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "poetry",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "jetson-pypi"
       ],
@@ -19090,6 +19556,7 @@
       "upstream_id": "flutter-infra--release-artifacts",
       "tool_id": "flutter",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "flutter_infra"
       ],
@@ -19126,6 +19593,7 @@
       "upstream_id": "kubernetes--repository-metadata",
       "tool_id": "kubernetes-packages",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "kubernetes"
       ],
@@ -19160,6 +19628,7 @@
       "upstream_id": "archlinuxcn--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinuxcn"
       ],
@@ -19200,6 +19669,7 @@
       "upstream_id": "archlinux--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "archlinux"
       ],
@@ -19240,6 +19710,7 @@
       "upstream_id": "gentoo-portage-prefix--repository-metadata",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo-portage-prefix"
       ],
@@ -19280,6 +19751,7 @@
       "upstream_id": "cocoapods--static-files",
       "tool_id": "cocoapods",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "cocoapods"
       ],
@@ -19313,6 +19785,7 @@
       "upstream_id": "almalinux--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "almalinux"
       ],
@@ -19355,6 +19828,7 @@
       "upstream_id": "ros2--static-files",
       "tool_id": "ros2",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ros2"
       ],
@@ -19384,6 +19858,7 @@
       "upstream_id": "gentoo-portage--repository-metadata",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo-portage"
       ],
@@ -19424,6 +19899,7 @@
       "upstream_id": "pypi--language-registry",
       "tool_id": "pdm",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "pypi"
       ],
@@ -19460,6 +19936,7 @@
       "upstream_id": "bioconductor--language-registry",
       "tool_id": "bioconductor",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "bioconductor"
       ],
@@ -19496,6 +19973,7 @@
       "upstream_id": "centos-riscv--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-riscv"
       ],
@@ -19536,6 +20014,7 @@
       "upstream_id": "nginx--static-files",
       "tool_id": "nginx",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nginx"
       ],
@@ -19565,6 +20044,7 @@
       "upstream_id": "ros--static-files",
       "tool_id": "ros",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ros"
       ],
@@ -19594,6 +20074,7 @@
       "upstream_id": "ghcr--container-registry",
       "tool_id": "podman-registry",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "ghcr"
       ],
@@ -19628,6 +20109,7 @@
       "upstream_id": "kunpeng-maven--language-registry",
       "tool_id": "sbt",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "kunpeng_maven"
       ],
@@ -19666,6 +20148,7 @@
       "upstream_id": "gentoo-portage--repository-metadata",
       "tool_id": "portage",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gentoo-portage"
       ],
@@ -19706,6 +20189,7 @@
       "upstream_id": "cygwin--static-files",
       "tool_id": "cygwin",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "cygwin"
       ],
@@ -19739,6 +20223,7 @@
       "upstream_id": "openwrt--repository-metadata",
       "tool_id": "opkg",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "openwrt"
       ],
@@ -19779,6 +20264,7 @@
       "upstream_id": "mongodb--static-files",
       "tool_id": "mongodb",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mongodb"
       ],
@@ -19808,6 +20294,7 @@
       "upstream_id": "debian-cd--repository-metadata",
       "tool_id": "apt",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "debian-cd"
       ],
@@ -19848,6 +20335,7 @@
       "upstream_id": "homebrew-bottles--binary-cache",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-bottles"
       ],
@@ -19881,6 +20369,7 @@
       "upstream_id": "centos-stream--repository-metadata",
       "tool_id": "yum",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-stream"
       ],
@@ -19921,6 +20410,7 @@
       "upstream_id": "nuget--language-registry",
       "tool_id": "nuget-windows",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "nuget"
       ],
@@ -19957,6 +20447,7 @@
       "upstream_id": "opensuse-ports--repository-metadata",
       "tool_id": "zypper",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "opensuse-ports"
       ],
@@ -19997,6 +20488,7 @@
       "upstream_id": "centos-riscv--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-riscv"
       ],
@@ -20037,6 +20529,7 @@
       "upstream_id": "stackage--language-registry",
       "tool_id": "stack",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "stackage"
       ],
@@ -20073,6 +20566,7 @@
       "upstream_id": "centos-stream--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-stream"
       ],
@@ -20113,6 +20607,7 @@
       "upstream_id": "homebrew-bio--git-mirror",
       "tool_id": "homebrew",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "homebrew-bio.git"
       ],
@@ -20146,6 +20641,7 @@
       "upstream_id": "gradle/distributions--release-artifacts",
       "tool_id": "gradle",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "gradle/distributions"
       ],
@@ -20182,6 +20678,7 @@
       "upstream_id": "rust-static--release-artifacts",
       "tool_id": "rustup",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "rust-static"
       ],
@@ -20218,6 +20715,7 @@
       "upstream_id": "jenkins--static-files",
       "tool_id": "jenkins",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "jenkins"
       ],
@@ -20247,6 +20745,7 @@
       "upstream_id": "openeuler--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "openeuler"
       ],
@@ -20287,6 +20786,7 @@
       "upstream_id": "helm--static-files",
       "tool_id": "helm",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "helm"
       ],
@@ -20316,6 +20816,7 @@
       "upstream_id": "scoop-nerd-fonts--git-mirror",
       "tool_id": "scoop",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "scoop-nerd-fonts.git"
       ],
@@ -20349,6 +20850,7 @@
       "upstream_id": "centos-debuginfo--repository-metadata",
       "tool_id": "dnf",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "centos-debuginfo"
       ],
@@ -20389,6 +20891,7 @@
       "upstream_id": "mariadb--static-files",
       "tool_id": "mariadb",
       "catalog_state": "partial",
+      "delivery_mode": "unknown",
       "raw_names": [
         "mariadb"
       ],
@@ -20418,6 +20921,7 @@
       "upstream_id": "manjaro--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
       "raw_names": [
         "manjaro"
       ],

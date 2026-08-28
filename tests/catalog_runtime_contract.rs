@@ -29,3 +29,17 @@ fn supported_tool_must_match_a_compiled_adapter_identity() {
     let error = catalog.validate(&allowlist).unwrap_err();
     assert!(error.to_string().contains("cannot activate adapter"));
 }
+
+#[test]
+fn repository_probe_cannot_target_a_root_or_escape_its_endpoint() {
+    let mut catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
+    let candidate = catalog
+        .candidates
+        .iter_mut()
+        .find(|candidate| !candidate.probes.is_empty())
+        .unwrap();
+    candidate.probes[0].path = "/../".into();
+
+    let error = catalog.validate(&HashSet::new()).unwrap_err();
+    assert!(error.to_string().contains("invalid declarative probe path"));
+}

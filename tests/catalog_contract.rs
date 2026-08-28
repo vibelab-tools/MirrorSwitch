@@ -5,7 +5,7 @@ use mirrorswitch::{
 
 const MINIMAL_CATALOG: &str = r#"
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "content_version": "2026.08.28.1",
   "content_revision": 202608280001,
   "generated_at": "2026-08-28T00:00:00Z",
@@ -43,6 +43,7 @@ const MINIMAL_CATALOG: &str = r#"
       "upstream_id": "pypi",
       "tool_id": "pip",
       "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
       "raw_names": ["pypi"],
       "endpoints": [
         {
@@ -60,6 +61,7 @@ const MINIMAL_CATALOG: &str = r#"
       },
       "probes": [
         {
+          "endpoint_role": "index",
           "method": "get",
           "path": "/pip/",
           "expected_status": [200],
