@@ -68,7 +68,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "7"
+CATALOG_FORMAT_REVISION = "8"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -120,6 +120,11 @@ ZYPPER_RUNTIME_DISTRIBUTIONS = {
     "opensuse-tumbleweed--repository-metadata": ["opensuse-tumbleweed"],
     "opensuse-ports--repository-metadata": ["opensuse-tumbleweed"],
     "packman--repository-metadata": ["opensuse-leap", "opensuse-tumbleweed"],
+}
+
+PORTAGE_RUNTIME_UPSTREAMS = {
+    "gentoo--repository-metadata",
+    "gentoo-portage--repository-metadata",
 }
 
 
@@ -274,6 +279,49 @@ def runtime_properties(
                 "contains": "<repomd",
             }
         ]
+    elif tool_id == "portage" and upstream_key in PORTAGE_RUNTIME_UPSTREAMS:
+        has_rsync_endpoint = any(
+            endpoint["protocol"] == "rsync"
+            for endpoint in entry["public_endpoints"]
+        )
+        if upstream_key == "gentoo--repository-metadata" or has_rsync_endpoint:
+            compatibility["architectures"] = ["x86_64", "arm64"]
+            compatibility["distributions"] = [
+                {"id": "gentoo", "versions": [], "codenames": []}
+            ]
+            delivery_mode = "mirror"
+            if upstream_key == "gentoo--repository-metadata":
+                probes = [
+                    {
+                        "endpoint_role": "metadata",
+                        "method": "head",
+                        "path": "/distfiles/",
+                        "expected_status": [200],
+                    },
+                    {
+                        "endpoint_role": "metadata",
+                        "method": "get",
+                        "path": "/releases/{gentoo_arch}/autobuilds/latest-stage3-{stage3_arch}-openrc.txt",
+                        "expected_status": [200],
+                        "contains": "stage3-",
+                    },
+                ]
+            else:
+                probes = [
+                    {
+                        "endpoint_role": "metadata",
+                        "method": "get",
+                        "path": "/profiles/repo_name",
+                        "expected_status": [200],
+                        "contains": "gentoo",
+                    },
+                    {
+                        "endpoint_role": "metadata",
+                        "method": "head",
+                        "path": "/profiles/arch/{gentoo_arch}/",
+                        "expected_status": [200],
+                    },
+                ]
     return compatibility, delivery_mode, probes
 
 
@@ -316,7 +364,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                 "adapter_key": tool_id,
                 "display_name": tool_id,
                 "state": "supported"
-                if tool_id in {"apt", "dnf", "yum", "pacman", "zypper"}
+                if tool_id in {"apt", "dnf", "yum", "pacman", "portage", "zypper"}
                 else target["state"],
                 "implementation_issue": target["issue"],
                 "supported_scopes": tool_scopes(tool_id),

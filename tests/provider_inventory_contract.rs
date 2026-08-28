@@ -60,7 +60,11 @@ fn inventory_covers_six_official_sources_with_strict_record_fields() {
         assert!(!endpoints.is_empty());
         for endpoint in endpoints {
             let url = endpoint["url"].as_str().unwrap();
-            assert!(url.starts_with("https://") || url.starts_with("http://"));
+            assert!(
+                url.starts_with("https://")
+                    || url.starts_with("http://")
+                    || url.starts_with("rsync://")
+            );
             assert_eq!(endpoint["protocol"], url.split(':').next().unwrap());
             assert!(!endpoint["derivation"].as_str().unwrap().is_empty());
         }

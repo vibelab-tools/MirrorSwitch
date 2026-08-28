@@ -34,6 +34,7 @@ real-boundary checks have passed.
 - [YUM adapter](docs/adapters/yum.md)
 - [Pacman adapter](docs/adapters/pacman.md)
 - [Zypper adapter](docs/adapters/zypper.md)
+- [Portage adapter](docs/adapters/portage.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

@@ -20209,6 +20209,11 @@
           "url": "https://mirrors.nju.edu.cn/gentoo-portage/",
           "protocol": "https",
           "derivation": "tunasync-name-path-convention"
+        },
+        {
+          "url": "rsync://mirrors.nju.edu.cn/gentoo-portage/",
+          "protocol": "rsync",
+          "derivation": "live-rsync-module-validation"
         }
       ],
       "content_type": "repository-metadata",
@@ -41942,6 +41947,11 @@
           "url": "https://mirrors.tuna.tsinghua.edu.cn/gentoo-portage/",
           "protocol": "https",
           "derivation": "enabled-name-path-convention"
+        },
+        {
+          "url": "rsync://mirrors.tuna.tsinghua.edu.cn/gentoo-portage/",
+          "protocol": "rsync",
+          "derivation": "provider-help-published"
         }
       ],
       "content_type": "repository-metadata",
@@ -46074,6 +46084,11 @@
           "url": "https://mirrors.ustc.edu.cn/gentoo-portage/",
           "protocol": "https",
           "derivation": "help-name-path-convention"
+        },
+        {
+          "url": "rsync://rsync.mirrors.ustc.edu.cn/gentoo-portage/",
+          "protocol": "rsync",
+          "derivation": "provider-help-published"
         }
       ],
       "content_type": "repository-metadata",

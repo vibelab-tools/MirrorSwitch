@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+31349d6638a7",
-  "content_revision": 202608280007,
-  "generated_at": "2026-08-28T17:15:00Z",
+  "content_version": "2026.08.28+bc0f0759446b",
+  "content_revision": 202608280008,
+  "generated_at": "2026-08-28T18:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -2170,7 +2170,7 @@
       "id": "portage",
       "adapter_key": "portage",
       "display_name": "portage",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/32",
       "supported_scopes": [
         "system"
@@ -3582,47 +3582,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "0a61d40e24c779c6d453951f",
-      "provider_id": "tuna",
-      "upstream_id": "gentoo-portage--repository-metadata",
-      "tool_id": "portage",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "gentoo-portage"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/gentoo-portage/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "gentoo",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "0b4119dfeadd72ae10495f67",
       "provider_id": "nju",
       "upstream_id": "npm--language-registry",
@@ -3827,6 +3786,68 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "0e02bc5333d7fac53989a057",
+      "provider_id": "ustc",
+      "upstream_id": "gentoo--repository-metadata",
+      "tool_id": "portage",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gentoo"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/gentoo/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "gentoo",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/distfiles/",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/releases/{gentoo_arch}/autobuilds/latest-stage3-{stage3_arch}-openrc.txt",
+          "expected_status": [
+            200
+          ],
+          "contains": "stage3-"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/gentoo.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -7199,47 +7220,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "3d603d9f21039fb7d6c50832",
-      "provider_id": "tuna",
-      "upstream_id": "gentoo--repository-metadata",
-      "tool_id": "portage",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "gentoo"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/gentoo/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "gentoo",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "3d6f5cdbe3b83ee9ef5cb5a9",
       "provider_id": "aliyun",
       "upstream_id": "centos-vault--repository-metadata",
@@ -9013,47 +8993,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "55f3af0f45b6c97df1772de2",
-      "provider_id": "ustc",
-      "upstream_id": "gentoo--repository-metadata",
-      "tool_id": "portage",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "gentoo"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/gentoo/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "gentoo",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/gentoo.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "57a2c6628b5e2316086d9218",
       "provider_id": "tuna",
       "upstream_id": "nodejs--release-artifacts",
@@ -10459,6 +10398,73 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "6d53cba8e3dc2412f45323f1",
+      "provider_id": "ustc",
+      "upstream_id": "gentoo-portage--repository-metadata",
+      "tool_id": "portage",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gentoo-portage"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/gentoo-portage/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "rsync",
+          "url": "rsync://rsync.mirrors.ustc.edu.cn/gentoo-portage/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "gentoo",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/profiles/repo_name",
+          "expected_status": [
+            200
+          ],
+          "contains": "gentoo"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/profiles/arch/{gentoo_arch}/",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/gentoo-portage.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "6dd2337a138cdc90244678d7",
       "provider_id": "nju",
       "upstream_id": "elpa--language-registry",
@@ -11128,47 +11134,6 @@
         "architectures": [],
         "environments": [],
         "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "77bab446a48df3a164821cfe",
-      "provider_id": "nju",
-      "upstream_id": "gentoo--repository-metadata",
-      "tool_id": "portage",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "gentoo"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/gentoo/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "gentoo",
-            "versions": [],
-            "codenames": []
-          }
-        ],
         "repository_versions": []
       },
       "probes": [],
@@ -12215,6 +12180,73 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "813f8757f6e91d33c5c9a6a9",
+      "provider_id": "tuna",
+      "upstream_id": "gentoo-portage--repository-metadata",
+      "tool_id": "portage",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gentoo-portage"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/gentoo-portage/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "rsync",
+          "url": "rsync://mirrors.tuna.tsinghua.edu.cn/gentoo-portage/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "gentoo",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/profiles/repo_name",
+          "expected_status": [
+            200
+          ],
+          "contains": "gentoo"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/profiles/arch/{gentoo_arch}/",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -13415,6 +13447,68 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "913b8915806ed0d4cbdebed0",
+      "provider_id": "tuna",
+      "upstream_id": "gentoo--repository-metadata",
+      "tool_id": "portage",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gentoo"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/gentoo/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "gentoo",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/distfiles/",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/releases/{gentoo_arch}/autobuilds/latest-stage3-{stage3_arch}-openrc.txt",
+          "expected_status": [
+            200
+          ],
+          "contains": "stage3-"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "9197430262e55858b049da09",
       "provider_id": "tuna",
       "upstream_id": "nixpkgs--git-mirror",
@@ -13929,47 +14023,6 @@
           "host"
         ],
         "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "98e0b566abdcb9a2e5dcf3af",
-      "provider_id": "aliyun",
-      "upstream_id": "gentoo--repository-metadata",
-      "tool_id": "portage",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "gentoo"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/gentoo/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "gentoo",
-            "versions": [],
-            "codenames": []
-          }
-        ],
         "repository_versions": []
       },
       "probes": [],
@@ -17316,6 +17369,68 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "c0377a6b1e0fe4335183f083",
+      "provider_id": "aliyun",
+      "upstream_id": "gentoo--repository-metadata",
+      "tool_id": "portage",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gentoo"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/gentoo/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "gentoo",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/distfiles/",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/releases/{gentoo_arch}/autobuilds/latest-stage3-{stage3_arch}-openrc.txt",
+          "expected_status": [
+            200
+          ],
+          "contains": "stage3-"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "c09195fc12dde750331acde1",
       "provider_id": "huaweicloud",
       "upstream_id": "pypi--language-registry",
@@ -17739,6 +17854,73 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "c6e97c5322188f66da8e65f0",
+      "provider_id": "nju",
+      "upstream_id": "gentoo-portage--repository-metadata",
+      "tool_id": "portage",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gentoo-portage"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/gentoo-portage/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "rsync",
+          "url": "rsync://mirrors.nju.edu.cn/gentoo-portage/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "gentoo",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/profiles/repo_name",
+          "expected_status": [
+            200
+          ],
+          "contains": "gentoo"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/profiles/arch/{gentoo_arch}/",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -20585,6 +20767,68 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "e5d5d1191f43cc7bd37881c9",
+      "provider_id": "nju",
+      "upstream_id": "gentoo--repository-metadata",
+      "tool_id": "portage",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gentoo"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/gentoo/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "gentoo",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/distfiles/",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/releases/{gentoo_arch}/autobuilds/latest-stage3-{stage3_arch}-openrc.txt",
+          "expected_status": [
+            200
+          ],
+          "contains": "stage3-"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "e5fae6e735819cf6b9b2cba1",
       "provider_id": "nju",
       "upstream_id": "nginx--static-files",
@@ -21428,47 +21672,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "f0a71e727aab506d55057f3c",
-      "provider_id": "nju",
-      "upstream_id": "gentoo-portage--repository-metadata",
-      "tool_id": "portage",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "gentoo-portage"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/gentoo-portage/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "gentoo",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "f0efb573990541eff8ac88d5",
       "provider_id": "huaweicloud",
       "upstream_id": "pypi--language-registry",
@@ -21714,47 +21917,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "f49237f5414d3d7a495479c1",
-      "provider_id": "ustc",
-      "upstream_id": "gentoo-portage--repository-metadata",
-      "tool_id": "portage",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "gentoo-portage"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/gentoo-portage/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "gentoo",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/gentoo-portage.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
