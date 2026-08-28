@@ -68,7 +68,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "5"
+CATALOG_FORMAT_REVISION = "6"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -87,6 +87,20 @@ DNF_RUNTIME_UPSTREAMS = {
 YUM_RUNTIME_UPSTREAMS = {
     "centos-vault--repository-metadata": ["x86_64"],
     "centos-altarch--repository-metadata": ["arm64"],
+}
+
+PACMAN_RUNTIME_UPSTREAMS = {
+    "archlinux--repository-metadata": ["x86_64"],
+    "archlinuxarm--repository-metadata": ["arm64"],
+    "archlinuxcn--repository-metadata": ["x86_64", "arm64"],
+    "blackarch--repository-metadata": ["x86_64"],
+}
+
+PACMAN_RUNTIME_DISTRIBUTIONS = {
+    "archlinux--repository-metadata": ["arch"],
+    "archlinuxarm--repository-metadata": ["archarm"],
+    "archlinuxcn--repository-metadata": ["arch", "archarm"],
+    "blackarch--repository-metadata": ["arch"],
 }
 
 
@@ -210,6 +224,21 @@ def runtime_properties(
                 "contains": "<repomd",
             }
         ]
+    elif tool_id == "pacman" and upstream_key in PACMAN_RUNTIME_UPSTREAMS:
+        compatibility["architectures"] = PACMAN_RUNTIME_UPSTREAMS[upstream_key]
+        compatibility["distributions"] = [
+            {"id": distribution, "versions": [], "codenames": []}
+            for distribution in PACMAN_RUNTIME_DISTRIBUTIONS[upstream_key]
+        ]
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/{repository_path}",
+                "expected_status": [200],
+            }
+        ]
     return compatibility, delivery_mode, probes
 
 
@@ -252,7 +281,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                 "adapter_key": tool_id,
                 "display_name": tool_id,
                 "state": "supported"
-                if tool_id in {"apt", "dnf", "yum"}
+                if tool_id in {"apt", "dnf", "yum", "pacman"}
                 else target["state"],
                 "implementation_issue": target["issue"],
                 "supported_scopes": tool_scopes(tool_id),

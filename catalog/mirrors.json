@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+e4ee20310656",
-  "content_revision": 202608280005,
-  "generated_at": "2026-08-28T14:30:00Z",
+  "content_version": "2026.08.28+b42ca21b17d5",
+  "content_revision": 202608280006,
+  "generated_at": "2026-08-28T16:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -143,6 +143,15 @@
       "content_kind": "language-registry",
       "aliases": [
         "bioconductor"
+      ]
+    },
+    {
+      "id": "blackarch--repository-metadata",
+      "family": "blackarch",
+      "display_name": "blackarch",
+      "content_kind": "repository-metadata",
+      "aliases": [
+        "blackarch"
       ]
     },
     {
@@ -2078,7 +2087,7 @@
       "id": "pacman",
       "adapter_key": "pacman",
       "display_name": "pacman",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/30",
       "supported_scopes": [
         "system"
@@ -2396,47 +2405,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "006700e044d9814a88278b95",
-      "provider_id": "sjtug",
-      "upstream_id": "archlinux--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/archlinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinux",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -2881,6 +2849,64 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "047f602b7718bf57b93004c4",
+      "provider_id": "aliyun",
+      "upstream_id": "archlinuxcn--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinuxcn"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/archlinuxcn/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          },
+          {
+            "id": "archarm",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -4196,6 +4222,58 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "146e86f3c101a4ebae7efed3",
+      "provider_id": "sjtug",
+      "upstream_id": "archlinuxarm--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinuxarm"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/archlinuxarm/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "archarm",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "146fc77ecb67c5b85cb8ea95",
       "provider_id": "huaweicloud",
       "upstream_id": "rust--language-registry",
@@ -5044,6 +5122,58 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "201b10a31868367144d38711",
+      "provider_id": "nju",
+      "upstream_id": "blackarch--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "blackarch"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/blackarch/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "205993b81dab2a7f6f02fbae",
       "provider_id": "aliyun",
       "upstream_id": "jenkins--static-files",
@@ -5065,47 +5195,6 @@
         "architectures": [],
         "environments": [],
         "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "21202aab60f00dde0bbfa13b",
-      "provider_id": "aliyun",
-      "upstream_id": "archlinux--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/archlinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinux",
-            "versions": [],
-            "codenames": []
-          }
-        ],
         "repository_versions": []
       },
       "probes": [],
@@ -5536,47 +5625,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "25276c88ffb7ca6b0040f922",
-      "provider_id": "tuna",
-      "upstream_id": "archlinuxcn--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinuxcn"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/archlinuxcn/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinuxcn",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "2583962d887952374ebb53f4",
       "provider_id": "tuna",
       "upstream_id": "mongodb--static-files",
@@ -5906,6 +5954,58 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "2a2694d0c1a11b3af725f13b",
+      "provider_id": "tuna",
+      "upstream_id": "archlinuxarm--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinuxarm"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/archlinuxarm/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "archarm",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "2ab067db73b678f7c1e32e39",
       "provider_id": "sjtug",
       "upstream_id": "opensuse--repository-metadata",
@@ -5982,6 +6082,58 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "2c34557d351fa945aa944cdd",
+      "provider_id": "sjtug",
+      "upstream_id": "archlinux--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/archlinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
@@ -6276,6 +6428,58 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "3109ac7199b867c997c52866",
+      "provider_id": "ustc",
+      "upstream_id": "archlinuxarm--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinuxarm"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/archlinuxarm/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "archarm",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/archlinuxarm.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -7455,6 +7659,64 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "424b534e27e411e96f2e224f",
+      "provider_id": "tuna",
+      "upstream_id": "archlinuxcn--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinuxcn"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/archlinuxcn/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          },
+          {
+            "id": "archarm",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "4400b8ca795f0746365815f8",
       "provider_id": "huaweicloud",
       "upstream_id": "ros2--static-files",
@@ -7879,49 +8141,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "4af62ff64cd302e9ae5fef93",
-      "provider_id": "nju",
-      "upstream_id": "archlinuxarm--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinuxarm"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/archlinuxarm/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinuxarm",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -8358,47 +8577,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "51e58d9531a2333c42b81c28",
-      "provider_id": "nju",
-      "upstream_id": "archlinuxcn--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinuxcn"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/archlinuxcn/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinuxcn",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "51fed95b90e95a9675020b31",
       "provider_id": "aliyun",
       "upstream_id": "npm--language-registry",
@@ -8525,6 +8703,64 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "528c537b339a4330aca4962c",
+      "provider_id": "sjtug",
+      "upstream_id": "archlinuxcn--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinux-cn"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/archlinux-cn/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          },
+          {
+            "id": "archarm",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -9927,49 +10163,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "67583cf523fed43731786caf",
-      "provider_id": "aliyun",
-      "upstream_id": "archlinuxarm--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinuxarm"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/archlinuxarm/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinuxarm",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "679eb037efc800ce9727b9d5",
       "provider_id": "ustc",
       "upstream_id": "rubygems--language-registry",
@@ -10124,47 +10317,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "6a6511235a3629b27ebf9e5b",
-      "provider_id": "nju",
-      "upstream_id": "archlinux--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/archlinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinux",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "6b1948fb360721f9d20f67ef",
       "provider_id": "nju",
       "upstream_id": "nixpkgs--git-mirror",
@@ -10272,47 +10424,6 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "6c97628b68cf24bcf59f7883",
-      "provider_id": "huaweicloud",
-      "upstream_id": "archlinuxcn--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinuxcn"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/archlinuxcn/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinuxcn",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -10545,49 +10656,6 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "717624518feb7e3284da40b7",
-      "provider_id": "ustc",
-      "upstream_id": "archlinuxarm--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinuxarm"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/archlinuxarm/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinuxarm",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/archlinuxarm.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -11529,47 +11597,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "7a982e9616deea200827a409",
-      "provider_id": "ustc",
-      "upstream_id": "archlinux--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/archlinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinux",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/archlinux.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -13067,6 +13094,110 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "8f218d323ea38c4f868b7fa0",
+      "provider_id": "aliyun",
+      "upstream_id": "archlinux--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/archlinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "8f63adddf51c6b0af8b95344",
+      "provider_id": "huaweicloud",
+      "upstream_id": "archlinux--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/archlinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "90dc4eb1c2f88692f83715b9",
       "provider_id": "nju",
       "upstream_id": "opam-repository--git-mirror",
@@ -13100,90 +13231,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "9156d454773da793697405bc",
-      "provider_id": "sjtug",
-      "upstream_id": "archlinuxarm--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinuxarm"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/archlinuxarm/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinuxarm",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "919609c57ce17d45b4dca7c3",
-      "provider_id": "tuna",
-      "upstream_id": "archlinux--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/archlinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinux",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -13259,47 +13306,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "92154ca4ec9786eaf7b73f16",
-      "provider_id": "sjtug",
-      "upstream_id": "archlinuxcn--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinux-cn"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/archlinux-cn/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinuxcn",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "9226d43d51ef0139fe9351d1",
       "provider_id": "nju",
       "upstream_id": "nodejs--release-artifacts",
@@ -13333,6 +13339,58 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "93c63f6b31549507e416e432",
+      "provider_id": "aliyun",
+      "upstream_id": "archlinuxarm--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinuxarm"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/archlinuxarm/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "archarm",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -14049,6 +14107,58 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "9d748f533e9217a637d03331",
+      "provider_id": "sjtug",
+      "upstream_id": "blackarch--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "blackarch"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/blackarch/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "9db9b93f5b142f228bcc463f",
       "provider_id": "nju",
       "upstream_id": "pypi--language-registry",
@@ -14658,6 +14768,58 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "a4c952ae48679e69a1a761a5",
+      "provider_id": "aliyun",
+      "upstream_id": "blackarch--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "blackarch"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/blackarch/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -15312,6 +15474,58 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "acdedb9bd5252fa5d955d179",
+      "provider_id": "ustc",
+      "upstream_id": "blackarch--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "blackarch"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/blackarch/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/blackarch.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "adaa755c6dcf5b7a3df7d897",
       "provider_id": "huaweicloud",
       "upstream_id": "huaweicloudsdk-maven--language-registry",
@@ -15457,6 +15671,58 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "b0027aa2808c8bf4d475a197",
+      "provider_id": "tuna",
+      "upstream_id": "blackarch--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "blackarch"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/blackarch/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -16265,43 +16531,54 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "b77066c983e11bf713cfba78",
-      "provider_id": "ustc",
-      "upstream_id": "archlinuxcn--repository-metadata",
+      "id": "b752745995c796474ea070dd",
+      "provider_id": "tuna",
+      "upstream_id": "archlinux--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
+      "delivery_mode": "mirror",
       "raw_names": [
-        "archlinuxcn"
+        "archlinux"
       ],
       "endpoints": [
         {
           "role": "metadata",
           "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/archlinuxcn/"
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/archlinux/"
         }
       ],
       "compatibility": {
         "operating_systems": [
           "linux"
         ],
-        "architectures": [],
+        "architectures": [
+          "x86_64"
+        ],
         "environments": [
           "container",
           "host"
         ],
         "distributions": [
           {
-            "id": "archlinuxcn",
+            "id": "arch",
             "versions": [],
             "codenames": []
           }
         ],
         "repository_versions": []
       },
-      "probes": [],
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
       "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/archlinuxcn.html"
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -16578,6 +16855,58 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "bd62d0d1b2252e145a22d718",
+      "provider_id": "nju",
+      "upstream_id": "archlinux--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinux"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/archlinux/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17252,20 +17581,20 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "c802c3f9570ec408a9cd29cd",
-      "provider_id": "tuna",
-      "upstream_id": "archlinuxarm--repository-metadata",
+      "id": "c847b1e027965b836cbf686d",
+      "provider_id": "ustc",
+      "upstream_id": "archlinux--repository-metadata",
       "tool_id": "pacman",
       "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
+      "delivery_mode": "mirror",
       "raw_names": [
-        "archlinuxarm"
+        "archlinux"
       ],
       "endpoints": [
         {
           "role": "metadata",
           "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/archlinuxarm/"
+          "url": "https://mirrors.ustc.edu.cn/archlinux/"
         }
       ],
       "compatibility": {
@@ -17273,7 +17602,7 @@
           "linux"
         ],
         "architectures": [
-          "arm64"
+          "x86_64"
         ],
         "environments": [
           "container",
@@ -17281,16 +17610,25 @@
         ],
         "distributions": [
           {
-            "id": "archlinuxarm",
+            "id": "arch",
             "versions": [],
             "codenames": []
           }
         ],
         "repository_versions": []
       },
-      "probes": [],
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
       "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+        "https://mirrors.ustc.edu.cn/help/archlinux.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17507,6 +17845,58 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "c9d2bad16d4fde3ecc6ec8c1",
+      "provider_id": "nju",
+      "upstream_id": "archlinuxarm--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinuxarm"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/archlinuxarm/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "archarm",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -18456,6 +18846,64 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "d3f4e96df109a9a154292d80",
+      "provider_id": "huaweicloud",
+      "upstream_id": "archlinuxcn--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "partial",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinuxcn"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/archlinuxcn/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          },
+          {
+            "id": "archarm",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -20312,6 +20760,64 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "ed9ca5963ec17097d736fc86",
+      "provider_id": "ustc",
+      "upstream_id": "archlinuxcn--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinuxcn"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/archlinuxcn/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          },
+          {
+            "id": "archarm",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/archlinuxcn.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "ee34fdd624753bf5d98a40c9",
       "provider_id": "nju",
       "upstream_id": "kubernetes--repository-metadata",
@@ -20343,88 +20849,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "ee5b0d6182e847ebbe2c7ddb",
-      "provider_id": "aliyun",
-      "upstream_id": "archlinuxcn--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinuxcn"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/archlinuxcn/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinuxcn",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "ee6a5bea57607859345c73bb",
-      "provider_id": "huaweicloud",
-      "upstream_id": "archlinux--repository-metadata",
-      "tool_id": "pacman",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "archlinux"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/archlinux/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [
-          {
-            "id": "archlinux",
-            "versions": [],
-            "codenames": []
-          }
-        ],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -21710,6 +22134,64 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "ffdfdabebab48057fbec33d9",
+      "provider_id": "nju",
+      "upstream_id": "archlinuxcn--repository-metadata",
+      "tool_id": "pacman",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "archlinuxcn"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/archlinuxcn/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "arch",
+            "versions": [],
+            "codenames": []
+          },
+          {
+            "id": "archarm",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     }

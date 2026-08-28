@@ -931,17 +931,29 @@
           "derivation": "provider-path-convention"
         }
       ],
-      "content_type": "static-files",
+      "content_type": "repository-metadata",
       "compatibility": {
-        "operating_systems": [],
-        "distributions": [],
+        "operating_systems": [
+          "linux"
+        ],
+        "distributions": [
+          "arch"
+        ],
         "versions": [],
-        "architectures": [],
-        "evidence": "Only dimensions explicit in the listing or name are recorded; empty means unspecified by provider."
+        "architectures": [
+          "x86_64"
+        ],
+        "evidence": "BlackArch publishes a distinct Pacman repository for Arch Linux x86_64; runtime database checks remain mandatory."
       },
       "inventory_state": "cataloged",
-      "adapter_state": "not-supported",
-      "adapter_targets": [],
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "pacman",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/30"
+        }
+      ],
       "validation": {
         "status": "pending-adapter",
         "reason": "A tool-specific metadata/artifact probe is required before this entry can become supported."
@@ -16183,17 +16195,29 @@
           "derivation": "tunasync-name-path-convention"
         }
       ],
-      "content_type": "static-files",
+      "content_type": "repository-metadata",
       "compatibility": {
-        "operating_systems": [],
-        "distributions": [],
+        "operating_systems": [
+          "linux"
+        ],
+        "distributions": [
+          "arch"
+        ],
         "versions": [],
-        "architectures": [],
-        "evidence": "Only dimensions explicit in the listing or name are recorded; empty means unspecified by provider."
+        "architectures": [
+          "x86_64"
+        ],
+        "evidence": "BlackArch publishes a distinct Pacman repository for Arch Linux x86_64; runtime database checks remain mandatory."
       },
       "inventory_state": "cataloged",
-      "adapter_state": "not-supported",
-      "adapter_targets": [],
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "pacman",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/30"
+        }
+      ],
       "validation": {
         "status": "pending-adapter",
         "reason": "A tool-specific metadata/artifact probe is required before this entry can become supported."
@@ -35580,17 +35604,29 @@
           "derivation": "worker-name-path-convention"
         }
       ],
-      "content_type": "static-files",
+      "content_type": "repository-metadata",
       "compatibility": {
-        "operating_systems": [],
-        "distributions": [],
+        "operating_systems": [
+          "linux"
+        ],
+        "distributions": [
+          "arch"
+        ],
         "versions": [],
-        "architectures": [],
-        "evidence": "Only dimensions explicit in the listing or name are recorded; empty means unspecified by provider."
+        "architectures": [
+          "x86_64"
+        ],
+        "evidence": "BlackArch publishes a distinct Pacman repository for Arch Linux x86_64; runtime database checks remain mandatory."
       },
       "inventory_state": "cataloged",
-      "adapter_state": "not-supported",
-      "adapter_targets": [],
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "pacman",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/30"
+        }
+      ],
       "validation": {
         "status": "pending-adapter",
         "reason": "A tool-specific metadata/artifact probe is required before this entry can become supported."
@@ -40522,17 +40558,29 @@
           "derivation": "enabled-name-path-convention"
         }
       ],
-      "content_type": "static-files",
+      "content_type": "repository-metadata",
       "compatibility": {
-        "operating_systems": [],
-        "distributions": [],
+        "operating_systems": [
+          "linux"
+        ],
+        "distributions": [
+          "arch"
+        ],
         "versions": [],
-        "architectures": [],
-        "evidence": "Only dimensions explicit in the listing or name are recorded; empty means unspecified by provider."
+        "architectures": [
+          "x86_64"
+        ],
+        "evidence": "BlackArch publishes a distinct Pacman repository for Arch Linux x86_64; runtime database checks remain mandatory."
       },
       "inventory_state": "cataloged",
-      "adapter_state": "not-supported",
-      "adapter_targets": [],
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "pacman",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/30"
+        }
+      ],
       "validation": {
         "status": "pending-adapter",
         "reason": "A tool-specific metadata/artifact probe is required before this entry can become supported."
@@ -44985,17 +45033,29 @@
           "derivation": "help-name-path-convention"
         }
       ],
-      "content_type": "static-files",
+      "content_type": "repository-metadata",
       "compatibility": {
-        "operating_systems": [],
-        "distributions": [],
+        "operating_systems": [
+          "linux"
+        ],
+        "distributions": [
+          "arch"
+        ],
         "versions": [],
-        "architectures": [],
-        "evidence": "Only dimensions explicit in the listing or name are recorded; empty means unspecified by provider."
+        "architectures": [
+          "x86_64"
+        ],
+        "evidence": "BlackArch publishes a distinct Pacman repository for Arch Linux x86_64; runtime database checks remain mandatory."
       },
       "inventory_state": "cataloged",
-      "adapter_state": "not-supported",
-      "adapter_targets": [],
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "pacman",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/30"
+        }
+      ],
       "validation": {
         "status": "pending-adapter",
         "reason": "A tool-specific metadata/artifact probe is required before this entry can become supported."
