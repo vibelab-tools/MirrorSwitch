@@ -26,6 +26,7 @@ real-boundary checks have passed.
 
 - [Product boundary](docs/product-boundary.md)
 - [Linux support matrix](docs/support-matrix.md)
+- [Six-provider inventory](docs/provider-inventory.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License
