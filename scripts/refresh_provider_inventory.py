@@ -187,7 +187,7 @@ ISSUE_TARGETS: list[tuple[set[str], list[tuple[str, int]]]] = [
     ({"npm"}, [("npm", 40), ("yarn", 41), ("pnpm", 44)]),
     ({"anaconda"}, [("conda", 42)]),
     ({"gradle"}, [("gradle", 47)]),
-    ({"maven"}, [("maven", 48), ("gradle", 47), ("sbt", 61)]),
+    ({"maven"}, [("maven", 48), ("gradle", 47), ("sbt", 61), ("leiningen", 62)]),
     ({"nodejs"}, [("nvm", 49), ("fnm", 50)]),
     ({"iojs"}, [("nvm", 49)]),
     ({"go", "goproxy"}, [("go", 51)]),
@@ -471,7 +471,7 @@ def adapter_targets(normalized: str, content_type: str) -> list[dict[str, Any]]:
         if "pypi" in normalized:
             add(("pip", 39), ("pdm", 43), ("poetry", 45), ("uv", 46))
         if "maven" in normalized:
-            add(("maven", 48), ("gradle", 47), ("sbt", 61))
+            add(("maven", 48), ("gradle", 47), ("sbt", 61), ("leiningen", 62))
         if normalized.startswith("opam"):
             add(("opam", 71))
     if content_type == "release-artifacts":

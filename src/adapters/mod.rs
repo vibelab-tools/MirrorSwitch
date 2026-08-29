@@ -12,6 +12,7 @@ mod ghcup;
 mod go;
 mod gradle;
 mod guix;
+mod leiningen;
 mod maven;
 mod nix;
 mod npm;
@@ -52,6 +53,7 @@ pub use ghcup::GhcupAdapter;
 pub use go::GoAdapter;
 pub use gradle::GradleAdapter;
 pub use guix::GuixAdapter;
+pub use leiningen::LeiningenAdapter;
 pub use maven::MavenAdapter;
 pub use nix::NixAdapter;
 pub use npm::NpmAdapter;
@@ -88,6 +90,7 @@ static GO: GoAdapter = GoAdapter;
 static GRADLE: GradleAdapter = GradleAdapter;
 static GHCUP: GhcupAdapter = GhcupAdapter;
 static GUIX: GuixAdapter = GuixAdapter;
+static LEININGEN: LeiningenAdapter = LeiningenAdapter;
 static MAVEN: MavenAdapter = MavenAdapter;
 static NIX: NixAdapter = NixAdapter;
 static NVM: NvmAdapter = NvmAdapter;
@@ -114,7 +117,8 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
         &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK, &OPKG,
         &PIP, &PDM, &POETRY, &UV, &NPM, &YARN, &PNPM, &CONDA, &GRADLE, &MAVEN, &NVM, &FNM, &GO,
-        &RUBYGEMS, &BUNDLER, &CARGO, &RUSTUP, &COMPOSER, &NUGET, &CABAL, &SBT, &STACK, &GHCUP,
+        &RUBYGEMS, &BUNDLER, &CARGO, &RUSTUP, &COMPOSER, &NUGET, &CABAL, &SBT, &LEININGEN, &STACK,
+        &GHCUP,
     ]
 }
 

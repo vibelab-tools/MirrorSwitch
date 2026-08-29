@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+0fc947203371",
-  "content_revision": 202608290037,
-  "generated_at": "2026-08-29T15:47:58Z",
+  "content_version": "2026.08.28+fa639b766aa3",
+  "content_revision": 202608300038,
+  "generated_at": "2026-08-29T16:48:45Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1891,12 +1891,10 @@
       "id": "leiningen",
       "adapter_key": "leiningen",
       "display_name": "leiningen",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/62",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "user"
       ],
       "composition": "single"
     },
@@ -9535,43 +9533,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "46edb48c77bdc89179a37c68",
-      "provider_id": "nju",
-      "upstream_id": "clojars--language-registry",
-      "tool_id": "leiningen",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "clojars"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/clojars/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "47b29a7cfa7a718066ad8d7b",
       "provider_id": "huaweicloud",
       "upstream_id": "fedora--repository-metadata",
@@ -10286,6 +10247,96 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "4e4d587d3c5d479ff56286c5",
+      "provider_id": "nju",
+      "upstream_id": "maven--language-registry",
+      "tool_id": "leiningen",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "maven"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.nju.edu.cn/maven/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.nju.edu.cn/maven/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.nju.edu.cn/maven/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "leiningen-2.x"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -15441,6 +15492,96 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "8764d1cef2310c18b3f51a29",
+      "provider_id": "nju",
+      "upstream_id": "clojars--language-registry",
+      "tool_id": "leiningen",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "clojars"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/clojars/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/clojars/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/clojars/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "leiningen-2.x"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/lein-pprint/lein-pprint/maven-metadata.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>lein-pprint</artifactId>"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/lein-pprint/lein-pprint/1.3.2/lein-pprint-1.3.2.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>lein-pprint</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/lein-pprint/lein-pprint/1.3.2/lein-pprint-1.3.2.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/lein-pprint/lein-pprint/1.3.2/lein-pprint-1.3.2.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "bf88d437e144ea38dfd550d9d50ea1385c8b1bc1"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "87ee60553c7c3e456ba24d5b",
       "provider_id": "aliyun",
       "upstream_id": "pypi--language-registry",
@@ -16344,6 +16485,96 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/winget-source.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "92b7a98bf7713693f4b405e1",
+      "provider_id": "tuna",
+      "upstream_id": "clojars--language-registry",
+      "tool_id": "leiningen",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "clojars"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/clojars/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/clojars/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/clojars/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "leiningen-2.x"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/lein-pprint/lein-pprint/maven-metadata.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>lein-pprint</artifactId>"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/lein-pprint/lein-pprint/1.3.2/lein-pprint-1.3.2.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>lein-pprint</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/lein-pprint/lein-pprint/1.3.2/lein-pprint-1.3.2.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/lein-pprint/lein-pprint/1.3.2/lein-pprint-1.3.2.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "bf88d437e144ea38dfd550d9d50ea1385c8b1bc1"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17940,6 +18171,96 @@
       ],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "a6e28ec8a87018bff869bc64",
+      "provider_id": "aliyun",
+      "upstream_id": "maven--language-registry",
+      "tool_id": "leiningen",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "maven"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://maven.aliyun.com/repository/public/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://maven.aliyun.com/repository/public/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://maven.aliyun.com/repository/public/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "leiningen-2.x"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -19784,43 +20105,6 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "b655e390fda641a7993d028c",
-      "provider_id": "huaweicloud",
-      "upstream_id": "clojars--language-registry",
-      "tool_id": "leiningen",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "clojars"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/artifactory/maven-clojars-remote/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -21920,43 +22204,6 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "c977088cdc8c144de99a67d5",
-      "provider_id": "tuna",
-      "upstream_id": "clojars--language-registry",
-      "tool_id": "leiningen",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "clojars"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/clojars/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -26206,6 +26453,186 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "fb68a39772e692497d4a682d",
+      "provider_id": "huaweicloud",
+      "upstream_id": "maven--language-registry",
+      "tool_id": "leiningen",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "maven"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "leiningen-2.x"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "fbc321e8e6bbdee3939c72a3",
+      "provider_id": "huaweicloud",
+      "upstream_id": "clojars--language-registry",
+      "tool_id": "leiningen",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "clojars"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/artifactory/maven-clojars-remote/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/artifactory/maven-clojars-remote/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/artifactory/maven-clojars-remote/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "leiningen-2.x"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/lein-pprint/lein-pprint/maven-metadata.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>lein-pprint</artifactId>"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/lein-pprint/lein-pprint/1.3.2/lein-pprint-1.3.2.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>lein-pprint</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/lein-pprint/lein-pprint/1.3.2/lein-pprint-1.3.2.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/lein-pprint/lein-pprint/1.3.2/lein-pprint-1.3.2.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "bf88d437e144ea38dfd550d9d50ea1385c8b1bc1"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

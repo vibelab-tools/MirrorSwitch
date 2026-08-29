@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "37"
+CATALOG_FORMAT_REVISION = "38"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -309,6 +309,11 @@ SBT_IVY_UPSTREAM = "sbt-plugins--language-registry"
 SBT_ACTIONABLE_PROVIDERS = {"huaweicloud"}
 SBT_MAVEN_ENDPOINT = "https://repo.huaweicloud.com/repository/maven/"
 SBT_IVY_ENDPOINT = "https://repo.huaweicloud.com/repository/ivy/"
+LEININGEN_CLOJARS_ENDPOINTS = {
+    "huaweicloud": "https://repo.huaweicloud.com/artifactory/maven-clojars-remote/",
+    "nju": "https://mirrors.nju.edu.cn/clojars/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/clojars/",
+}
 
 
 def utc_now() -> str:
@@ -322,7 +327,7 @@ def upstream_id(family: str, content_type: str) -> str:
 def runtime_upstream_identity(
     entry: dict[str, Any], tool_id: str
 ) -> tuple[str, str]:
-    if tool_id == "sbt" and entry["raw_name"] == "maven":
+    if tool_id in {"sbt", "leiningen"} and entry["raw_name"] == "maven":
         return "maven", "language-registry"
     if tool_id == "sbt" and entry["raw_name"] in {"sbt", "ivy"}:
         return "sbt-plugins", "language-registry"
@@ -369,7 +374,7 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["user", "project"]
     if tool_id == "gradle":
         return ["user", "project"]
-    if tool_id in {"maven", "sbt"}:
+    if tool_id in {"maven", "sbt", "leiningen"}:
         return ["user"]
     if tool_id == "yarn":
         return ["user", "project"]
@@ -421,6 +426,18 @@ def candidate_endpoints(
             {"role": "metadata", "protocol": "https", "url": endpoint},
             {"role": "artifacts", "protocol": "https", "url": endpoint},
         ]
+    if tool_id == "leiningen" and entry["raw_name"] in {"maven", "clojars"}:
+        endpoint = (
+            MAVEN_REGISTRY_ENDPOINTS.get(entry["provider_id"])
+            if entry["raw_name"] == "maven"
+            else LEININGEN_CLOJARS_ENDPOINTS.get(entry["provider_id"])
+        )
+        if endpoint:
+            return [
+                {"role": "index", "protocol": "https", "url": endpoint},
+                {"role": "metadata", "protocol": "https", "url": endpoint},
+                {"role": "artifacts", "protocol": "https", "url": endpoint},
+            ]
     if (
         tool_id == "ghcup"
         and upstream_key == GHCUP_RUNTIME_UPSTREAM
@@ -767,6 +784,82 @@ def runtime_properties(
                     "path": prefix + "jars/sbt-native-packager.jar.sha1",
                     "expected_status": [200, 206],
                     "contains": "ee875aa975277e173b15588242b4eb773f9d430c",
+                },
+            ]
+    elif (
+        tool_id == "leiningen"
+        and entry["raw_name"] in {"maven", "clojars"}
+        and (
+            entry["provider_id"] in MAVEN_REGISTRY_ENDPOINTS
+            if entry["raw_name"] == "maven"
+            else entry["provider_id"] in LEININGEN_CLOJARS_ENDPOINTS
+        )
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ["leiningen-2.x"]
+        delivery_mode = "proxy"
+        if upstream_key == GRADLE_MAVEN_UPSTREAM:
+            probes = [
+                {
+                    "endpoint_role": "metadata",
+                    "method": "get",
+                    "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+                    "expected_status": [200, 206],
+                    "contains": "<artifactId>commons-lang3</artifactId>",
+                },
+                {
+                    "endpoint_role": "index",
+                    "method": "get",
+                    "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
+                    "expected_status": [200, 206],
+                    "contains": "<artifactId>commons-lang3</artifactId>",
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "head",
+                    "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+                    "expected_status": [200, 206],
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
+                    "expected_status": [200, 206],
+                    "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae",
+                },
+            ]
+        else:
+            prefix = "/lein-pprint/lein-pprint/1.3.2/lein-pprint-1.3.2"
+            probes = [
+                {
+                    "endpoint_role": "index",
+                    "method": "get",
+                    "path": "/lein-pprint/lein-pprint/maven-metadata.xml",
+                    "expected_status": [200, 206],
+                    "contains": "<artifactId>lein-pprint</artifactId>",
+                },
+                {
+                    "endpoint_role": "metadata",
+                    "method": "get",
+                    "path": prefix + ".pom",
+                    "expected_status": [200, 206],
+                    "contains": "<artifactId>lein-pprint</artifactId>",
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "head",
+                    "path": prefix + ".jar",
+                    "expected_status": [200, 206],
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": prefix + ".jar.sha1",
+                    "expected_status": [200, 206],
+                    "contains": "bf88d437e144ea38dfd550d9d50ea1385c8b1bc1",
                 },
             ]
     elif (
@@ -1827,6 +1920,17 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                     }
                 )
             entry["adapter_targets"] = targets
+        if source["raw_name"] == "maven" and source["provider_id"] in MAVEN_REGISTRY_ENDPOINTS:
+            entry = {**source, "adapter_state": "planned"}
+            if not any(target["tool_id"] == "leiningen" for target in targets):
+                targets.append(
+                    {
+                        "tool_id": "leiningen",
+                        "state": "planned",
+                        "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/62",
+                    }
+                )
+            entry["adapter_targets"] = targets
         if entry["adapter_state"] == "planned":
             planned_entries.append(entry)
     active_providers = {entry["provider_id"] for entry in planned_entries}
@@ -1885,6 +1989,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "stack",
                         "gradle",
                         "guix",
+                        "leiningen",
                         "maven",
                         "nix",
                         "npm",

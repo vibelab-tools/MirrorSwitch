@@ -12,7 +12,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
     assert_eq!(catalog.providers.len(), 6);
     assert_eq!(catalog.tools.len(), 76);
-    assert_eq!(catalog.candidates.len(), 513);
+    assert_eq!(catalog.candidates.len(), 516);
     assert_eq!(
         catalog
             .tools
@@ -21,10 +21,42 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             .map(|tool| tool.id.as_str())
             .collect::<Vec<_>>(),
         [
-            "apk", "apt", "bundler", "cabal", "cargo", "composer", "conda", "dnf", "flatpak",
-            "fnm", "ghcup", "go", "gradle", "guix", "maven", "nix", "npm", "nuget", "nvm", "opkg",
-            "pacman", "pdm", "pip", "pnpm", "poetry", "portage", "rubygems", "rustup", "sbt",
-            "stack", "uv", "xbps", "yarn", "yum", "zypper"
+            "apk",
+            "apt",
+            "bundler",
+            "cabal",
+            "cargo",
+            "composer",
+            "conda",
+            "dnf",
+            "flatpak",
+            "fnm",
+            "ghcup",
+            "go",
+            "gradle",
+            "guix",
+            "leiningen",
+            "maven",
+            "nix",
+            "npm",
+            "nuget",
+            "nvm",
+            "opkg",
+            "pacman",
+            "pdm",
+            "pip",
+            "pnpm",
+            "poetry",
+            "portage",
+            "rubygems",
+            "rustup",
+            "sbt",
+            "stack",
+            "uv",
+            "xbps",
+            "yarn",
+            "yum",
+            "zypper"
         ]
     );
 }
