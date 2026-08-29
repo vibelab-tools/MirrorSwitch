@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+619a2925626c",
-  "content_revision": 202608290028,
-  "generated_at": "2026-08-29T07:00:00Z",
+  "content_version": "2026.08.28+34b14103c60f",
+  "content_revision": 202608290029,
+  "generated_at": "2026-08-29T08:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1541,12 +1541,10 @@
       "id": "cargo",
       "adapter_key": "cargo",
       "display_name": "cargo",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/53",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "user"
       ],
       "composition": "single"
     },
@@ -3998,43 +3996,6 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "141e83076de6eb1f868a9f67",
-      "provider_id": "aliyun",
-      "upstream_id": "crates.io-index--language-registry",
-      "tool_id": "cargo",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "crates.io-index"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/crates.io-index/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -13357,43 +13318,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "7f7c9e4595bef45ced4b65d8",
-      "provider_id": "nju",
-      "upstream_id": "crates.io-index--language-registry",
-      "tool_id": "cargo",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "crates.io-index"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/crates.io-index/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "7f8cd6ef6ff5577f7513c471",
       "provider_id": "nju",
       "upstream_id": "centos-stream--repository-metadata",
@@ -16027,6 +15951,81 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "a28a105114ee2c65783f71a2",
+      "provider_id": "ustc",
+      "upstream_id": "crates.io-index--language-registry",
+      "tool_id": "cargo",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "crates.io-index"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/crates.io-index/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/crates.io/api/v1/crates/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/config.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"dl\""
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/it/oa/itoa",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/itoa/1.0.18/download",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/crates.io-index.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "a2f51f8d77335899e6f46495",
       "provider_id": "nju",
       "upstream_id": "cocoapods--static-files",
@@ -17458,6 +17457,81 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/blackarch.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "ad298cd20a593a1f47bc8cb8",
+      "provider_id": "nju",
+      "upstream_id": "crates.io-index--language-registry",
+      "tool_id": "cargo",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "crates.io-index"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/crates.io-index/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirror.nju.edu.cn/crates.io/crates/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/config.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"dl\""
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/it/oa/itoa",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/itoa/itoa-1.0.18.crate",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -22046,6 +22120,81 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "de268efd610dbbc87b652d81",
+      "provider_id": "aliyun",
+      "upstream_id": "crates.io-index--language-registry",
+      "tool_id": "cargo",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "crates.io-index"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/crates.io-index/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/crates/api/v1/crates/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/config.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"dl\""
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/it/oa/itoa",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/itoa/1.0.18/download",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "de9d3ca5d097922b202901bc",
       "provider_id": "tuna",
       "upstream_id": "bioconductor--language-registry",
@@ -22638,43 +22787,6 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "e58fca92590272b70dc2419e",
-      "provider_id": "ustc",
-      "upstream_id": "crates.io-index--language-registry",
-      "tool_id": "cargo",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "crates.io-index"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/crates.io-index/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/crates.io-index.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

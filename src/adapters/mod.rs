@@ -1,5 +1,6 @@
 mod apk;
 mod apt;
+mod cargo;
 mod conda;
 mod dnf;
 mod flatpak;
@@ -31,6 +32,7 @@ use crate::Adapter;
 
 pub use apk::ApkAdapter;
 pub use apt::AptAdapter;
+pub use cargo::CargoAdapter;
 pub use conda::CondaAdapter;
 pub use dnf::DnfAdapter;
 pub use flatpak::FlatpakAdapter;
@@ -58,6 +60,7 @@ pub use zypper::ZypperAdapter;
 
 static APK: ApkAdapter = ApkAdapter;
 static APT: AptAdapter = AptAdapter;
+static CARGO: CargoAdapter = CargoAdapter;
 static CONDA: CondaAdapter = CondaAdapter;
 static DNF: DnfAdapter = DnfAdapter;
 static FLATPAK: FlatpakAdapter = FlatpakAdapter;
@@ -87,7 +90,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
         &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK, &OPKG,
         &PIP, &PDM, &POETRY, &UV, &NPM, &YARN, &PNPM, &CONDA, &GRADLE, &MAVEN, &NVM, &FNM, &GO,
-        &RUBYGEMS,
+        &RUBYGEMS, &CARGO,
     ]
 }
 

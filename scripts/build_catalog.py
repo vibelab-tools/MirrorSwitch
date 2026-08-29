@@ -47,6 +47,7 @@ SYSTEM_TOOLS = {
 USER_ONLY_TOOLS = {
     "cocoapods",
     "conda",
+    "cargo",
     "fnm",
     "go",
     "homebrew",
@@ -70,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "28"
+CATALOG_FORMAT_REVISION = "29"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -194,6 +195,26 @@ RUBYGEMS_ENDPOINTS = {
 RUBYGEMS_GEM_SHA256 = (
     "ba310c3d4f1cad46bb1ab20336b06669b1ff8f7c568d9cb9342b32a718547472"
 )
+CARGO_SPARSE_UPSTREAM = "crates.io-index--language-registry"
+CARGO_SPARSE_ACTIONABLE_PROVIDERS = {"aliyun", "nju", "ustc"}
+CARGO_SPARSE_INDEX_ENDPOINTS = {
+    "aliyun": "https://mirrors.aliyun.com/crates.io-index/",
+    "nju": "https://mirrors.nju.edu.cn/crates.io-index/",
+    "ustc": "https://mirrors.ustc.edu.cn/crates.io-index/",
+}
+CARGO_CRATE_ENDPOINTS = {
+    "aliyun": "https://mirrors.aliyun.com/crates/api/v1/crates/",
+    "nju": "https://mirror.nju.edu.cn/crates.io/crates/",
+    "ustc": "https://mirrors.ustc.edu.cn/crates.io/api/v1/crates/",
+}
+CARGO_CRATE_PATHS = {
+    "aliyun": "/itoa/1.0.18/download",
+    "nju": "/itoa/itoa-1.0.18.crate",
+    "ustc": "/itoa/1.0.18/download",
+}
+CARGO_CRATE_SHA256 = (
+    "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+)
 
 
 def utc_now() -> str:
@@ -217,7 +238,7 @@ def runtime_upstream_identity(
 
 
 def tool_scopes(tool_id: str) -> list[str]:
-    if tool_id in NODE_DISTRIBUTION_TOOLS or tool_id in {"go", "rubygems"}:
+    if tool_id in NODE_DISTRIBUTION_TOOLS or tool_id in {"cargo", "go", "rubygems"}:
         return ["user"]
     if tool_id in {"flatpak", "nix"}:
         return ["system", "user"]
@@ -271,6 +292,24 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "cargo"
+        and upstream_key == CARGO_SPARSE_UPSTREAM
+        and entry["provider_id"] in CARGO_SPARSE_ACTIONABLE_PROVIDERS
+    ):
+        provider = entry["provider_id"]
+        return [
+            {
+                "role": "index",
+                "protocol": "https",
+                "url": CARGO_SPARSE_INDEX_ENDPOINTS[provider],
+            },
+            {
+                "role": "artifacts",
+                "protocol": "https",
+                "url": CARGO_CRATE_ENDPOINTS[provider],
+            },
+        ]
     if (
         tool_id == "rubygems"
         and upstream_key == RUBYGEMS_RUNTIME_UPSTREAM
@@ -706,6 +745,41 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "cargo"
+        and upstream_key == CARGO_SPARSE_UPSTREAM
+        and entry["provider_id"] in CARGO_SPARSE_ACTIONABLE_PROVIDERS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "mirror"
+        provider = entry["provider_id"]
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/config.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": '"dl"',
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/it/oa/itoa",
+                "expected_status": [200, 206],
+                "contains": CARGO_CRATE_SHA256,
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": CARGO_CRATE_PATHS[provider],
+                "expected_status": [200, 206],
+                "sha256": CARGO_CRATE_SHA256,
+            },
+        ]
+    elif (
         tool_id in NODE_DISTRIBUTION_TOOLS
         and upstream_key == NODE_DISTRIBUTION_UPSTREAM
     ) or (tool_id == "nvm" and upstream_key == IOJS_RELEASE_UPSTREAM):
@@ -958,6 +1032,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                     in {
                         "apk",
                         "apt",
+                        "cargo",
                         "conda",
                         "dnf",
                         "flatpak",
