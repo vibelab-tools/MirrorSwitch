@@ -1,5 +1,6 @@
 mod apk;
 mod apt;
+mod bioconductor;
 mod bundler;
 mod cabal;
 mod cargo;
@@ -42,6 +43,7 @@ use crate::Adapter;
 
 pub use apk::ApkAdapter;
 pub use apt::AptAdapter;
+pub use bioconductor::BioconductorAdapter;
 pub use bundler::BundlerAdapter;
 pub use cabal::CabalAdapter;
 pub use cargo::CargoAdapter;
@@ -80,6 +82,7 @@ pub use zypper::ZypperAdapter;
 
 static APK: ApkAdapter = ApkAdapter;
 static APT: AptAdapter = AptAdapter;
+static BIOCONDUCTOR: BioconductorAdapter = BioconductorAdapter;
 static BUNDLER: BundlerAdapter = BundlerAdapter;
 static CABAL: CabalAdapter = CabalAdapter;
 static CARGO: CargoAdapter = CargoAdapter;
@@ -118,10 +121,44 @@ static ZYPPER: ZypperAdapter = ZypperAdapter;
 
 pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
-        &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK, &OPKG,
-        &PIP, &PDM, &POETRY, &UV, &NPM, &YARN, &PNPM, &CONDA, &DART_PUB, &GRADLE, &MAVEN, &NVM,
-        &FNM, &GO, &RUBYGEMS, &BUNDLER, &CARGO, &RUSTUP, &COMPOSER, &NUGET, &CABAL, &SBT,
-        &LEININGEN, &STACK, &GHCUP,
+        &APT,
+        &DNF,
+        &YUM,
+        &PACMAN,
+        &ZYPPER,
+        &PORTAGE,
+        &APK,
+        &XBPS,
+        &NIX,
+        &GUIX,
+        &FLATPAK,
+        &OPKG,
+        &PIP,
+        &PDM,
+        &POETRY,
+        &UV,
+        &NPM,
+        &YARN,
+        &PNPM,
+        &CONDA,
+        &BIOCONDUCTOR,
+        &DART_PUB,
+        &GRADLE,
+        &MAVEN,
+        &NVM,
+        &FNM,
+        &GO,
+        &RUBYGEMS,
+        &BUNDLER,
+        &CARGO,
+        &RUSTUP,
+        &COMPOSER,
+        &NUGET,
+        &CABAL,
+        &SBT,
+        &LEININGEN,
+        &STACK,
+        &GHCUP,
     ]
 }
 

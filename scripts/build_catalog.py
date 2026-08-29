@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "39"
+CATALOG_FORMAT_REVISION = "40"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -326,6 +326,31 @@ DART_PUB_ARTIFACT_ENDPOINTS = {
 DART_PUB_RETRY_SHA256 = (
     "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
 )
+BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
+BIOCONDUCTOR_ENDPOINTS = {
+    "nju": "https://mirrors.nju.edu.cn/bioconductor/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/bioconductor/",
+}
+BIOCONDUCTOR_PACKAGES = [
+    (
+        "bioc",
+        "BiocVersion",
+        "3.23.1",
+        "7a9fdd2f50e69facc752a8d8aede12cdc872d1fb59fea2355f3b499ace6864f4",
+    ),
+    (
+        "data/annotation",
+        "AHCytoBands",
+        "0.99.1",
+        "7bb5a06b5a8c0c2024f317ed0c58b048550ba9ed6cc64266c4afc03a24ec7d6b",
+    ),
+    (
+        "data/experiment",
+        "adductData",
+        "1.28.0",
+        "d61d9759ccb6d48798484a178e8bbc3c02c4bcd70e0c9cfb11b0354566aa3654",
+    ),
+]
 
 
 def utc_now() -> str:
@@ -386,7 +411,7 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["user", "project"]
     if tool_id == "gradle":
         return ["user", "project"]
-    if tool_id in {"maven", "sbt", "leiningen", "dart-pub"}:
+    if tool_id in {"maven", "sbt", "leiningen", "dart-pub", "bioconductor"}:
         return ["user"]
     if tool_id == "yarn":
         return ["user", "project"]
@@ -422,6 +447,17 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "bioconductor"
+        and upstream_key == BIOCONDUCTOR_RUNTIME_UPSTREAM
+        and entry["raw_name"] == "bioconductor"
+        and entry["provider_id"] in BIOCONDUCTOR_ENDPOINTS
+    ):
+        endpoint = BIOCONDUCTOR_ENDPOINTS[entry["provider_id"]]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "artifacts"]
+        ]
     if (
         tool_id == "sbt"
         and upstream_key in {SBT_MAVEN_UPSTREAM, SBT_IVY_UPSTREAM}
@@ -739,6 +775,45 @@ def runtime_properties(
     )
     probes = candidate_probe(entry)
     if (
+        tool_id == "bioconductor"
+        and upstream_key == BIOCONDUCTOR_RUNTIME_UPSTREAM
+        and entry["raw_name"] == "bioconductor"
+        and entry["provider_id"] in BIOCONDUCTOR_ENDPOINTS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ["3.23"]
+        delivery_mode = "mirror"
+        probes = []
+        for index, (repository, package, version, sha256) in enumerate(
+            BIOCONDUCTOR_PACKAGES
+        ):
+            probes.append(
+                {
+                    "endpoint_role": "index" if index == 0 else "metadata",
+                    "method": "get",
+                    "path": f"/packages/3.23/{repository}/src/contrib/PACKAGES",
+                    "expected_status": [200],
+                    "expected_content_type": "application/octet-stream",
+                    "contains": f"Package: {package}",
+                }
+            )
+            probes.append(
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": (
+                        f"/packages/3.23/{repository}/src/contrib/"
+                        f"{package}_{version}.tar.gz"
+                    ),
+                    "expected_status": [200],
+                    "expected_content_type": "application/octet-stream",
+                    "sha256": sha256,
+                }
+            )
+    elif (
         tool_id == "sbt"
         and upstream_key in {SBT_MAVEN_UPSTREAM, SBT_IVY_UPSTREAM}
         and entry["provider_id"] in SBT_ACTIONABLE_PROVIDERS
@@ -2056,6 +2131,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                     in {
                         "apk",
                         "apt",
+                        "bioconductor",
                         "bundler",
                         "cabal",
                         "cargo",

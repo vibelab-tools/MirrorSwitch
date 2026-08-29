@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+4f82f162d492",
-  "content_revision": 202608300039,
-  "generated_at": "2026-08-29T17:08:54Z",
+  "content_version": "2026.08.28+6d5c4b2093eb",
+  "content_revision": 202608300040,
+  "generated_at": "2026-08-29T17:44:41Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1503,12 +1503,10 @@
       "id": "bioconductor",
       "adapter_key": "bioconductor",
       "display_name": "bioconductor",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/64",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "user"
       ],
       "composition": "single"
     },
@@ -13396,43 +13394,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "71e16ca5d41f5615fcfdff14",
-      "provider_id": "nju",
-      "upstream_id": "bioconductor--language-registry",
-      "tool_id": "bioconductor",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "bioconductor"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/bioconductor/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "720633f4c0f7737507a69cd4",
       "provider_id": "nju",
       "upstream_id": "nix-channels--binary-cache",
@@ -17903,6 +17864,117 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "a399da128e3e154531d9f874",
+      "provider_id": "nju",
+      "upstream_id": "bioconductor--language-registry",
+      "tool_id": "bioconductor",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "bioconductor"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/bioconductor/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/bioconductor/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/bioconductor/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "3.23"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/packages/3.23/bioc/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: BiocVersion"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/bioc/src/contrib/BiocVersion_3.23.1.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "7a9fdd2f50e69facc752a8d8aede12cdc872d1fb59fea2355f3b499ace6864f4"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/packages/3.23/data/annotation/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: AHCytoBands"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/data/annotation/src/contrib/AHCytoBands_0.99.1.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "7bb5a06b5a8c0c2024f317ed0c58b048550ba9ed6cc64266c4afc03a24ec7d6b"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/packages/3.23/data/experiment/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: adductData"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/data/experiment/src/contrib/adductData_1.28.0.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "d61d9759ccb6d48798484a178e8bbc3c02c4bcd70e0c9cfb11b0354566aa3654"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "a3df09b480320cca17c728c1",
       "provider_id": "aliyun",
       "upstream_id": "grafana--static-files",
@@ -21575,6 +21647,117 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "c3928d6f23dac03c6a641429",
+      "provider_id": "tuna",
+      "upstream_id": "bioconductor--language-registry",
+      "tool_id": "bioconductor",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "bioconductor"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/bioconductor/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/bioconductor/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/bioconductor/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "3.23"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/packages/3.23/bioc/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: BiocVersion"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/bioc/src/contrib/BiocVersion_3.23.1.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "7a9fdd2f50e69facc752a8d8aede12cdc872d1fb59fea2355f3b499ace6864f4"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/packages/3.23/data/annotation/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: AHCytoBands"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/data/annotation/src/contrib/AHCytoBands_0.99.1.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "7bb5a06b5a8c0c2024f317ed0c58b048550ba9ed6cc64266c4afc03a24ec7d6b"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/packages/3.23/data/experiment/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: adductData"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/data/experiment/src/contrib/adductData_1.28.0.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "d61d9759ccb6d48798484a178e8bbc3c02c4bcd70e0c9cfb11b0354566aa3654"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "c3eb72be92a4def19e0c52f0",
       "provider_id": "nju",
       "upstream_id": "opensuse-ports--repository-metadata",
@@ -24240,43 +24423,6 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "de9d3ca5d097922b202901bc",
-      "provider_id": "tuna",
-      "upstream_id": "bioconductor--language-registry",
-      "tool_id": "bioconductor",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "bioconductor"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/bioconductor/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
