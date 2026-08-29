@@ -31,6 +31,7 @@ mod rubygems;
 mod rustup;
 mod sbt;
 mod stack;
+mod tlmgr;
 mod uv;
 mod xbps;
 mod yarn;
@@ -74,6 +75,7 @@ pub use rubygems::RubyGemsAdapter;
 pub use rustup::RustupAdapter;
 pub use sbt::SbtAdapter;
 pub use stack::StackAdapter;
+pub use tlmgr::TlmgrAdapter;
 pub use uv::UvAdapter;
 pub use xbps::XbpsAdapter;
 pub use yarn::YarnAdapter;
@@ -113,6 +115,7 @@ static RUBYGEMS: RubyGemsAdapter = RubyGemsAdapter;
 static RUSTUP: RustupAdapter = RustupAdapter;
 static SBT: SbtAdapter = SbtAdapter;
 static STACK: StackAdapter = StackAdapter;
+static TLMGR: TlmgrAdapter = TlmgrAdapter;
 static UV: UvAdapter = UvAdapter;
 static XBPS: XbpsAdapter = XbpsAdapter;
 static YARN: YarnAdapter = YarnAdapter;
@@ -159,6 +162,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &LEININGEN,
         &STACK,
         &GHCUP,
+        &TLMGR,
     ]
 }
 

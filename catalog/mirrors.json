@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+6d5c4b2093eb",
-  "content_revision": 202608300040,
-  "generated_at": "2026-08-29T17:44:41Z",
+  "content_version": "2026.08.28+605187b6055e",
+  "content_revision": 202608300041,
+  "generated_at": "2026-08-29T18:23:31Z",
   "providers": [
     {
       "id": "aliyun",
@@ -2257,12 +2257,11 @@
       "id": "tlmgr",
       "adapter_key": "tlmgr",
       "display_name": "tlmgr",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/65",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "system",
+        "user"
       ],
       "composition": "single"
     },
@@ -4552,6 +4551,107 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "16ee20d25c874babd0cac367",
+      "provider_id": "nju",
+      "upstream_id": "ctan--language-registry",
+      "tool_id": "tlmgr",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CTAN"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/CTAN/systems/texlive/tlnet/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/CTAN/systems/texlive/tlnet/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/CTAN/systems/texlive/tlnet/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "2026"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/tlpkg/texlive.tlpdb.sha512",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "  texlive.tlpdb"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/archive/texlive.infra.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "c762f37bd7d99cba6d5b0799697768cd26028583d2f81ca2f630d8f403a5c491"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/texlive.infra.x86_64-linux.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "168ce3c58aa35cafaa38e1defb3c3e26553473b35951d64bf54b5b2f00fd086f"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/texlive.infra.x86_64-linuxmusl.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "bd32c86e19c774b7715824fceab5fe92ca33f6110e8d9d84fc62589249d581ba"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/texlive.infra.aarch64-linux.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "01ad1b1457f65d4717b969b7ca27e08a559831d2c0658581b9659cf93c3c10ff"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "17c4c5ae8f45c9e9e8b42d0a",
       "provider_id": "nju",
       "upstream_id": "homebrew--git-mirror",
@@ -6247,43 +6347,6 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "237160203faac07379cb7a65",
-      "provider_id": "nju",
-      "upstream_id": "ctan--language-registry",
-      "tool_id": "tlmgr",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "CTAN"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/CTAN/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -11066,6 +11129,107 @@
             200
           ],
           "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "545cbcd4b10b186fc7de2252",
+      "provider_id": "huaweicloud",
+      "upstream_id": "ctan--language-registry",
+      "tool_id": "tlmgr",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CTAN"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/CTAN/systems/texlive/tlnet/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/CTAN/systems/texlive/tlnet/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/CTAN/systems/texlive/tlnet/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "2026"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/tlpkg/texlive.tlpdb.sha512",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "  texlive.tlpdb"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/archive/texlive.infra.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "c762f37bd7d99cba6d5b0799697768cd26028583d2f81ca2f630d8f403a5c491"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/texlive.infra.x86_64-linux.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "168ce3c58aa35cafaa38e1defb3c3e26553473b35951d64bf54b5b2f00fd086f"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/texlive.infra.x86_64-linuxmusl.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "bd32c86e19c774b7715824fceab5fe92ca33f6110e8d9d84fc62589249d581ba"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/texlive.infra.aarch64-linux.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "01ad1b1457f65d4717b969b7ca27e08a559831d2c0658581b9659cf93c3c10ff"
         }
       ],
       "source_urls": [
@@ -16697,43 +16861,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "95ede299d87b35d2845eff24",
-      "provider_id": "tuna",
-      "upstream_id": "ctan--language-registry",
-      "tool_id": "tlmgr",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "CTAN"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/CTAN/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "96c5530b0cb81166ec2e9621",
       "provider_id": "nju",
       "upstream_id": "homebrew-autoupdate--git-mirror",
@@ -20203,43 +20330,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "b3f3e3fb5fe83302efe29bc8",
-      "provider_id": "huaweicloud",
-      "upstream_id": "ctan--language-registry",
-      "tool_id": "tlmgr",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "CTAN"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/CTAN/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "b48e7df8c965f1b98fb1034a",
       "provider_id": "sjtug",
       "upstream_id": "fedora-ostree--repository-metadata",
@@ -23594,6 +23684,107 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "d336886d626dfc6e9137c8e8",
+      "provider_id": "aliyun",
+      "upstream_id": "ctan--language-registry",
+      "tool_id": "tlmgr",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CTAN"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/CTAN/systems/texlive/tlnet/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/CTAN/systems/texlive/tlnet/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/CTAN/systems/texlive/tlnet/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "2026"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/tlpkg/texlive.tlpdb.sha512",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "text/plain",
+          "contains": "  texlive.tlpdb"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/archive/texlive.infra.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "c762f37bd7d99cba6d5b0799697768cd26028583d2f81ca2f630d8f403a5c491"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/texlive.infra.x86_64-linux.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "168ce3c58aa35cafaa38e1defb3c3e26553473b35951d64bf54b5b2f00fd086f"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/texlive.infra.x86_64-linuxmusl.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "bd32c86e19c774b7715824fceab5fe92ca33f6110e8d9d84fc62589249d581ba"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/texlive.infra.aarch64-linux.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "01ad1b1457f65d4717b969b7ca27e08a559831d2c0658581b9659cf93c3c10ff"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "d3866bde8bfe5c9e8d200872",
       "provider_id": "ustc",
       "upstream_id": "centos-stream--repository-metadata",
@@ -25531,43 +25722,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "ea5d07178db6aeba92666f51",
-      "provider_id": "aliyun",
-      "upstream_id": "ctan--language-registry",
-      "tool_id": "tlmgr",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "CTAN"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/CTAN/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "ea78c26a9064ca18cd8d21ea",
       "provider_id": "nju",
       "upstream_id": "rocky-vault--repository-metadata",
@@ -26913,6 +27067,107 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "fc39d5d038faf1cb7afee91f",
+      "provider_id": "tuna",
+      "upstream_id": "ctan--language-registry",
+      "tool_id": "tlmgr",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CTAN"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/CTAN/systems/texlive/tlnet/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/CTAN/systems/texlive/tlnet/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/CTAN/systems/texlive/tlnet/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "2026"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/tlpkg/texlive.tlpdb.sha512",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "  texlive.tlpdb"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/archive/texlive.infra.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "c762f37bd7d99cba6d5b0799697768cd26028583d2f81ca2f630d8f403a5c491"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/texlive.infra.x86_64-linux.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "168ce3c58aa35cafaa38e1defb3c3e26553473b35951d64bf54b5b2f00fd086f"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/texlive.infra.x86_64-linuxmusl.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "bd32c86e19c774b7715824fceab5fe92ca33f6110e8d9d84fc62589249d581ba"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/texlive.infra.aarch64-linux.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "01ad1b1457f65d4717b969b7ca27e08a559831d2c0658581b9659cf93c3c10ff"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

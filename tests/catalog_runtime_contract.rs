@@ -54,6 +54,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             "rustup",
             "sbt",
             "stack",
+            "tlmgr",
             "uv",
             "xbps",
             "yarn",
