@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+5d1ac1ececb7",
-  "content_revision": 202608290030,
-  "generated_at": "2026-08-29T08:30:00Z",
+  "content_version": "2026.08.28+3402bdb08853",
+  "content_revision": 202608290031,
+  "generated_at": "2026-08-29T09:45:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1188,6 +1188,15 @@
       ]
     },
     {
+      "id": "packagist--language-registry",
+      "family": "packagist",
+      "display_name": "packagist",
+      "content_kind": "language-registry",
+      "aliases": [
+        "php"
+      ]
+    },
+    {
       "id": "packman--repository-metadata",
       "family": "packman",
       "display_name": "packman",
@@ -1560,6 +1569,17 @@
       "supported_scopes": [
         "user",
         "environment"
+      ],
+      "composition": "single"
+    },
+    {
+      "id": "composer",
+      "adapter_key": "composer",
+      "display_name": "composer",
+      "state": "supported",
+      "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/55",
+      "supported_scopes": [
+        "user"
       ],
       "composition": "single"
     },
@@ -20662,6 +20682,122 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "cad4895079a2852cc15925bd",
+      "provider_id": "huaweicloud",
+      "upstream_id": "packagist--language-registry",
+      "tool_id": "composer",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "php"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/php/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/php/"
+        },
+        {
+          "role": "git",
+          "protocol": "https",
+          "url": "https://github.com/php-fig/log/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "v1",
+          "v2"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/packages.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "providers-lazy-url"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/p/psr/log.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "psr/log"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/p2/psr/log.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "https://repo.huaweicloud.com/repository/php/psr/log/3.0.2/psr-log-3.0.2.zip"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/p2/psr/log.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "https://github.com/php-fig/log.git"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/psr/log/3.0.2/psr-log-3.0.2.zip",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "1e8dcf2df933fc3440b29146c5ca4e93ece51c5c7a9ac9653d926ec971c90892"
+        },
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/archive/refs/tags/3.0.2.zip",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "c365225b9567800008110f8f7b2873bed86c5a0c40ce3ae399059ff3c22b778e"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

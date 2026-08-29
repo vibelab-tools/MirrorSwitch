@@ -98,6 +98,7 @@ LANGUAGE_REGISTRIES = {
     "anaconda",
     "bioconductor",
     "clojars",
+    "composer",
     "conan",
     "cpan",
     "cran",
@@ -122,6 +123,10 @@ LANGUAGE_REGISTRIES = {
 }
 
 ALIYUN_PUBLISHED_MIRRORS = {
+    "composer": {
+        "detail_url": "https://developer.aliyun.com/composer",
+        "endpoint": "https://mirrors.aliyun.com/composer/",
+    },
     "goproxy": {
         "detail_url": "https://developer.aliyun.com/mirror/goproxy",
         "endpoint": "https://mirrors.aliyun.com/goproxy/",
@@ -517,6 +522,11 @@ def make_record(
 ) -> dict[str, Any]:
     provider_metadata = provider_metadata or {}
     normalized = normalize_name(raw_name)
+    if raw_name.casefold() == "php" and any(
+        str(source.get("webUrl", "")).rstrip("/") == "https://packagist.org"
+        for source in provider_metadata.get("sources", [])
+    ):
+        normalized = "packagist"
     content_type = classify_content(normalized, raw_name, public_endpoints)
     targets = adapter_targets(normalized, content_type)
     identity = "\0".join([provider_id, raw_name, source_url])

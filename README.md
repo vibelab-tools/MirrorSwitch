@@ -57,6 +57,7 @@ real-boundary checks have passed.
 - [RubyGems adapter](docs/adapters/rubygems.md)
 - [Cargo adapter](docs/adapters/cargo.md)
 - [rustup adapter](docs/adapters/rustup.md)
+- [Composer adapter](docs/adapters/composer.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

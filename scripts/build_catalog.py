@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "30"
+CATALOG_FORMAT_REVISION = "31"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -229,6 +229,18 @@ RUSTUP_MANIFEST_SHA256 = {
     "huaweicloud": "4a49195d2e5b4e5efd922e8a670ec40376c14b772233a46273ac9b8d5e810127",
     "ustc": "3f7d139b73bbbd0004ef6e58b430831c68cdad2b1f64ee2eb35d54c09199489a",
 }
+COMPOSER_RUNTIME_UPSTREAM = "packagist--language-registry"
+COMPOSER_ACTIONABLE_PROVIDERS = {"huaweicloud"}
+COMPOSER_REGISTRY_ENDPOINTS = {
+    "huaweicloud": "https://repo.huaweicloud.com/repository/php/",
+}
+COMPOSER_SOURCE_ENDPOINT = "https://github.com/php-fig/log/"
+COMPOSER_DIST_SHA256 = (
+    "1e8dcf2df933fc3440b29146c5ca4e93ece51c5c7a9ac9653d926ec971c90892"
+)
+COMPOSER_SOURCE_SHA256 = (
+    "c365225b9567800008110f8f7b2873bed86c5a0c40ce3ae399059ff3c22b778e"
+)
 
 
 def utc_now() -> str:
@@ -242,6 +254,8 @@ def upstream_id(family: str, content_type: str) -> str:
 def runtime_upstream_identity(
     entry: dict[str, Any], tool_id: str
 ) -> tuple[str, str]:
+    if tool_id == "composer" and entry["raw_name"] in {"composer", "php"}:
+        return "packagist", "language-registry"
     if tool_id == "rustup" and entry["raw_name"] in {"rust-static", "rustup"}:
         return "rust-toolchain", "release-artifacts"
     if tool_id == "gradle" and entry["raw_name"] in {"gradle", "gradle/distributions"}:
@@ -256,6 +270,7 @@ def runtime_upstream_identity(
 def tool_scopes(tool_id: str) -> list[str]:
     if tool_id in NODE_DISTRIBUTION_TOOLS or tool_id in {
         "cargo",
+        "composer",
         "go",
         "rubygems",
         "rustup",
@@ -313,6 +328,21 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "composer"
+        and upstream_key == COMPOSER_RUNTIME_UPSTREAM
+        and entry["provider_id"] in COMPOSER_ACTIONABLE_PROVIDERS
+    ):
+        endpoint = COMPOSER_REGISTRY_ENDPOINTS[entry["provider_id"]]
+        return [
+            {"role": "index", "protocol": "https", "url": endpoint},
+            {"role": "artifacts", "protocol": "https", "url": endpoint},
+            {
+                "role": "git",
+                "protocol": "https",
+                "url": COMPOSER_SOURCE_ENDPOINT,
+            },
+        ]
     if (
         tool_id == "rustup"
         and upstream_key == RUSTUP_RUNTIME_UPSTREAM
@@ -751,6 +781,65 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "composer"
+        and upstream_key == COMPOSER_RUNTIME_UPSTREAM
+        and entry["provider_id"] in COMPOSER_ACTIONABLE_PROVIDERS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ["v1", "v2"]
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/packages.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": "providers-lazy-url",
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/p/psr/log.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": "psr/log",
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/p2/psr/log.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": "https://repo.huaweicloud.com/repository/php/psr/log/3.0.2/psr-log-3.0.2.zip",
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/p2/psr/log.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": "https://github.com/php-fig/log.git",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/psr/log/3.0.2/psr-log-3.0.2.zip",
+                "expected_status": [200, 206],
+                "sha256": COMPOSER_DIST_SHA256,
+            },
+            {
+                "endpoint_role": "git",
+                "method": "get",
+                "path": "/archive/refs/tags/3.0.2.zip",
+                "expected_status": [200, 206],
+                "sha256": COMPOSER_SOURCE_SHA256,
+            },
+        ]
+    elif (
         tool_id == "rubygems"
         and upstream_key == RUBYGEMS_RUNTIME_UPSTREAM
         and entry["provider_id"] in RUBYGEMS_ACTIONABLE_PROVIDERS
@@ -1093,9 +1182,27 @@ def runtime_properties(
 
 
 def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[str, Any]:
-    planned_entries = [
-        entry for entry in inventory["entries"] if entry["adapter_state"] == "planned"
-    ]
+    planned_entries = []
+    for source in inventory["entries"]:
+        entry = source
+        targets = list(source["adapter_targets"])
+        packagist_source = any(
+            item.get("webUrl", "").rstrip("/") == "https://packagist.org"
+            for item in source.get("provider_metadata", {}).get("sources", [])
+        )
+        if source["raw_name"] == "php" and packagist_source:
+            entry = {**source, "adapter_state": "planned"}
+            if not any(target["tool_id"] == "composer" for target in targets):
+                targets.append(
+                    {
+                        "tool_id": "composer",
+                        "state": "planned",
+                        "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/55",
+                    }
+                )
+            entry["adapter_targets"] = targets
+        if entry["adapter_state"] == "planned":
+            planned_entries.append(entry)
     active_providers = {entry["provider_id"] for entry in planned_entries}
     providers = [
         {
@@ -1137,6 +1244,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "apk",
                         "apt",
                         "cargo",
+                        "composer",
                         "conda",
                         "dnf",
                         "flatpak",
