@@ -69,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "26"
+CATALOG_FORMAT_REVISION = "27"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -175,6 +175,13 @@ GRADLE_DISTRIBUTION_PROVIDERS = {"huaweicloud", "nju"}
 NODE_DISTRIBUTION_TOOLS = {"fnm", "nvm"}
 NODE_DISTRIBUTION_UPSTREAM = "nodejs--release-artifacts"
 IOJS_RELEASE_UPSTREAM = "iojs--release-artifacts"
+GO_PROXY_UPSTREAM = "goproxy--language-registry"
+GO_PROXY_ACTIONABLE_PROVIDERS = {"aliyun"}
+GO_PROXY_ENDPOINTS = {
+    "aliyun": "https://mirrors.aliyun.com/goproxy/",
+    "huaweicloud": "https://repo.huaweicloud.com/repository/goproxy/",
+    "nju": "https://repo.nju.edu.cn/go/",
+}
 
 
 def utc_now() -> str:
@@ -192,11 +199,13 @@ def runtime_upstream_identity(
         return "gradle-distributions", "release-artifacts"
     if tool_id == "nvm" and entry["raw_name"] == "iojs":
         return "iojs", "release-artifacts"
+    if tool_id == "go" and entry["raw_name"] in {"go", "goproxy"}:
+        return "goproxy", "language-registry"
     return entry["normalized_upstream"], entry["content_type"]
 
 
 def tool_scopes(tool_id: str) -> list[str]:
-    if tool_id in NODE_DISTRIBUTION_TOOLS:
+    if tool_id in NODE_DISTRIBUTION_TOOLS or tool_id == "go":
         return ["user"]
     if tool_id in {"flatpak", "nix"}:
         return ["system", "user"]
@@ -250,6 +259,18 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "go"
+        and upstream_key == GO_PROXY_UPSTREAM
+        and entry["provider_id"] in GO_PROXY_ACTIONABLE_PROVIDERS
+    ):
+        return [
+            {
+                "role": "index",
+                "protocol": "https",
+                "url": GO_PROXY_ENDPOINTS[entry["provider_id"]],
+            }
+        ]
     if (
         tool_id in NODE_DISTRIBUTION_TOOLS
         and upstream_key == NODE_DISTRIBUTION_UPSTREAM
@@ -579,6 +600,57 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "go"
+        and upstream_key == GO_PROXY_UPSTREAM
+        and entry["provider_id"] in GO_PROXY_ACTIONABLE_PROVIDERS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        delivery_mode = "proxy"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/github.com/pkg/errors/@v/list",
+                "expected_status": [200, 206],
+                "contains": "v0.9.1",
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/github.com/pkg/errors/@v/v0.9.1.info",
+                "expected_status": [200, 206],
+                "contains": "v0.9.1",
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/github.com/pkg/errors/@v/v0.9.1.mod",
+                "expected_status": [200, 206],
+                "contains": "module github.com/pkg/errors",
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/github.com/pkg/errors/@v/v0.9.1.zip",
+                "expected_status": [200, 206],
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/sumdb/sum.golang.org/supported",
+                "expected_status": [200, 206],
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/sumdb/sum.golang.org/lookup/github.com/pkg/errors@v0.9.1",
+                "expected_status": [200, 206],
+                "contains": "github.com/pkg/errors v0.9.1 h1:",
+            },
+        ]
+    elif (
         tool_id in NODE_DISTRIBUTION_TOOLS
         and upstream_key == NODE_DISTRIBUTION_UPSTREAM
     ) or (tool_id == "nvm" and upstream_key == IOJS_RELEASE_UPSTREAM):
@@ -835,6 +907,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "dnf",
                         "flatpak",
                         "fnm",
+                        "go",
                         "gradle",
                         "guix",
                         "maven",

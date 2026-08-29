@@ -53,6 +53,7 @@ real-boundary checks have passed.
 - [Maven adapter](docs/adapters/maven.md)
 - [nvm adapter](docs/adapters/nvm.md)
 - [fnm adapter](docs/adapters/fnm.md)
+- [Go Modules adapter](docs/adapters/go.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

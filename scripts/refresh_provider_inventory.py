@@ -105,6 +105,8 @@ LANGUAGE_REGISTRIES = {
     "ctan",
     "dart-pub",
     "elpa",
+    "goproxy",
+    "go",
     "hackage",
     "julia",
     "julia-pkg",
@@ -117,6 +119,13 @@ LANGUAGE_REGISTRIES = {
     "rubygems",
     "rust",
     "stackage",
+}
+
+ALIYUN_PUBLISHED_MIRRORS = {
+    "goproxy": {
+        "detail_url": "https://developer.aliyun.com/mirror/goproxy",
+        "endpoint": "https://mirrors.aliyun.com/goproxy/",
+    },
 }
 
 SYSTEM_REPOSITORY_MARKERS = {
@@ -563,6 +572,22 @@ def collect_aliyun(observed_at: str) -> tuple[list[dict[str, Any]], list[dict[st
                 ),
             )
         snapshots.append(fetched.source_snapshot(len(names), len(names), []))
+    for raw_name, published in ALIYUN_PUBLISHED_MIRRORS.items():
+        fetched = fetch(published["detail_url"])
+        if published["endpoint"].encode() not in fetched.body:
+            raise RuntimeError(
+                f"published endpoint missing from {published['detail_url']}: "
+                f"{published['endpoint']}"
+            )
+        records[raw_name] = make_record(
+            "aliyun",
+            raw_name,
+            published["detail_url"],
+            observed_at,
+            [endpoint(published["endpoint"], "published-instructions")],
+            {"detail_url": published["detail_url"]},
+        )
+        snapshots.append(fetched.source_snapshot(1, 1, []))
     return list(records.values()), snapshots
 
 
@@ -813,10 +838,17 @@ def main() -> int:
         print(f"collecting {provider_id}", file=sys.stderr)
         provider_entries, sources = collector(observed_at)
         entries.extend(provider_entries)
+        provider_sources = list(PROVIDERS[provider_id]["sources"])
+        if provider_id == "aliyun":
+            provider_sources.extend(
+                published["detail_url"]
+                for published in ALIYUN_PUBLISHED_MIRRORS.values()
+            )
         provider_documents.append(
             {
                 "id": provider_id,
                 **PROVIDERS[provider_id],
+                "sources": provider_sources,
                 "source_snapshots": sources,
                 "included_entries": len(provider_entries),
             }

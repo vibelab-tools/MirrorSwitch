@@ -10,7 +10,8 @@
       "homepage": "https://developer.aliyun.com/mirror/",
       "sources": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror",
-        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror",
+        "https://developer.aliyun.com/mirror/goproxy"
       ],
       "source_snapshots": [
         {
@@ -28,9 +29,17 @@
           "discovered_entries": 90,
           "included_entries": 90,
           "excluded_entries": []
+        },
+        {
+          "url": "https://developer.aliyun.com/mirror/goproxy",
+          "retrieved_at": "2026-08-29T05:21:09Z",
+          "sha256": "7ddab7de01f93a185f87d22e3839ba6a3fac75f4ec954d35e3eef63b432612ac",
+          "discovered_entries": 1,
+          "included_entries": 1,
+          "excluded_entries": []
         }
       ],
-      "included_entries": 187
+      "included_entries": 188
     },
     {
       "id": "huaweicloud",
@@ -3125,6 +3134,49 @@
       },
       "provider_metadata": {
         "detail_url": "https://developer.aliyun.com/mirror/golang"
+      }
+    },
+    {
+      "id": "aliyun:609513318c121e2b79e4",
+      "provider_id": "aliyun",
+      "raw_name": "goproxy",
+      "normalized_upstream": "goproxy",
+      "source_url": "https://developer.aliyun.com/mirror/goproxy",
+      "observed_at": "2026-08-28T10:52:05Z",
+      "public_endpoints": [
+        {
+          "url": "https://mirrors.aliyun.com/goproxy/",
+          "protocol": "https",
+          "derivation": "published-instructions"
+        }
+      ],
+      "content_type": "language-registry",
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "distributions": [],
+        "versions": [],
+        "architectures": [],
+        "evidence": "Only dimensions explicit in the listing or name are recorded; empty means unspecified by provider."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "go",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/51"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "A tool-specific metadata/artifact probe is required before this entry can become supported."
+      },
+      "provider_metadata": {
+        "detail_url": "https://developer.aliyun.com/mirror/goproxy"
       }
     },
     {
@@ -9734,9 +9786,13 @@
           "derivation": "published-path"
         }
       ],
-      "content_type": "static-files",
+      "content_type": "language-registry",
       "compatibility": {
-        "operating_systems": [],
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
         "distributions": [],
         "versions": [],
         "architectures": [],
@@ -21489,9 +21545,13 @@
           "derivation": "published-addition-path"
         }
       ],
-      "content_type": "static-files",
+      "content_type": "language-registry",
       "compatibility": {
-        "operating_systems": [],
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
         "distributions": [],
         "versions": [],
         "architectures": [],

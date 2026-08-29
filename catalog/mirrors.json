@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+802c6faf8a7a",
-  "content_revision": 202608290026,
-  "generated_at": "2026-08-29T04:45:00Z",
+  "content_version": "2026.08.28+04b5ae168019",
+  "content_revision": 202608290027,
+  "generated_at": "2026-08-29T05:30:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -663,20 +663,12 @@
       ]
     },
     {
-      "id": "go--static-files",
-      "family": "go",
-      "display_name": "go",
-      "content_kind": "static-files",
-      "aliases": [
-        "go"
-      ]
-    },
-    {
-      "id": "goproxy--static-files",
+      "id": "goproxy--language-registry",
       "family": "goproxy",
       "display_name": "goproxy",
-      "content_kind": "static-files",
+      "content_kind": "language-registry",
       "aliases": [
+        "go",
         "goproxy"
       ]
     },
@@ -1778,11 +1770,10 @@
       "id": "go",
       "adapter_key": "go",
       "display_name": "go",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/51",
       "supported_scopes": [
-        "user",
-        "environment"
+        "user"
       ],
       "composition": "single"
     },
@@ -13810,36 +13801,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "841c3b9be927302b48888c55",
-      "provider_id": "nju",
-      "upstream_id": "go--static-files",
-      "tool_id": "go",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "go"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.nju.edu.cn/go"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "843b14a4b8c24851b79ebad9",
       "provider_id": "nju",
       "upstream_id": "homebrew-autoupdate--git-mirror",
@@ -14918,6 +14879,43 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "91089236060313432992cfed",
+      "provider_id": "huaweicloud",
+      "upstream_id": "goproxy--language-registry",
+      "tool_id": "go",
+      "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "goproxy"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/goproxy/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -16897,6 +16895,43 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "aa72abbc46541b49ea61c6c1",
+      "provider_id": "nju",
+      "upstream_id": "goproxy--language-registry",
+      "tool_id": "go",
+      "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "go"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.nju.edu.cn/go"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "ab41e1a42f237654eea60387",
       "provider_id": "nju",
       "upstream_id": "rubygems--language-registry",
@@ -17202,6 +17237,103 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "ac51b34140ee39cda0344833",
+      "provider_id": "aliyun",
+      "upstream_id": "goproxy--language-registry",
+      "tool_id": "go",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "goproxy"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/goproxy/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/github.com/pkg/errors/@v/list",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "v0.9.1"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/github.com/pkg/errors/@v/v0.9.1.info",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "v0.9.1"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/github.com/pkg/errors/@v/v0.9.1.mod",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "module github.com/pkg/errors"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/github.com/pkg/errors/@v/v0.9.1.zip",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/sumdb/sum.golang.org/supported",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/sumdb/sum.golang.org/lookup/github.com/pkg/errors@v0.9.1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "github.com/pkg/errors v0.9.1 h1:"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/goproxy"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -18075,36 +18207,6 @@
           "container",
           "host"
         ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "b4732e5640bab2ae83927acd",
-      "provider_id": "huaweicloud",
-      "upstream_id": "goproxy--static-files",
-      "tool_id": "go",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "goproxy"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/goproxy/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
         "distributions": [],
         "repository_versions": []
       },
