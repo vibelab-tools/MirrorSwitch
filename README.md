@@ -54,6 +54,7 @@ real-boundary checks have passed.
 - [nvm adapter](docs/adapters/nvm.md)
 - [fnm adapter](docs/adapters/fnm.md)
 - [Go Modules adapter](docs/adapters/go.md)
+- [RubyGems adapter](docs/adapters/rubygems.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

@@ -6,6 +6,7 @@ use std::{
 
 use reqwest::{Method, blocking::Client};
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 use crate::{
@@ -667,6 +668,12 @@ fn validate_observation(
             .any(|window| window == expected)
         {
             return Err("required repository metadata marker is missing".into());
+        }
+    }
+    if let Some(expected) = &probe.sha256 {
+        let actual = format!("{:x}", Sha256::digest(&observation.body));
+        if &actual != expected {
+            return Err("downloaded artifact SHA-256 does not match the catalog".into());
         }
     }
     Ok(())

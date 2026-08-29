@@ -139,6 +139,10 @@ pub struct ProbeSpec {
     pub expected_content_type: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contains: Option<String>,
+    /// Exact digest for small downloaded artifacts. This is evaluated before
+    /// candidate latency contributes to selection.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -326,6 +330,13 @@ impl MirrorCatalog {
                         .any(|status| !(100..=599).contains(status))
                     || probe.contains.as_ref().is_some_and(String::is_empty)
                     || (probe.method == HttpMethod::Head && probe.contains.is_some())
+                    || probe.sha256.as_ref().is_some_and(|digest| {
+                        probe.method != HttpMethod::Get
+                            || digest.len() != 64
+                            || !digest
+                                .bytes()
+                                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+                    })
                     || !candidate.endpoints.iter().any(|endpoint| {
                         endpoint.role == probe.endpoint_role
                             && matches!(endpoint.protocol, Protocol::Http | Protocol::Https)
