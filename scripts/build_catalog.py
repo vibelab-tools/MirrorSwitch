@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "38"
+CATALOG_FORMAT_REVISION = "39"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -314,6 +314,18 @@ LEININGEN_CLOJARS_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/clojars/",
     "tuna": "https://mirrors.tuna.tsinghua.edu.cn/clojars/",
 }
+DART_PUB_RUNTIME_UPSTREAM = "dart-pub--language-registry"
+DART_PUB_HOSTED_ENDPOINTS = {
+    "sjtug": "https://mirror.sjtu.edu.cn/dart-pub/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/",
+}
+DART_PUB_ARTIFACT_ENDPOINTS = {
+    "sjtug": "https://storage.flutter-io.cn/dartlang-pub-exported-api/latest/api/archives/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/packages/",
+}
+DART_PUB_RETRY_SHA256 = (
+    "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
+)
 
 
 def utc_now() -> str:
@@ -374,7 +386,7 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["user", "project"]
     if tool_id == "gradle":
         return ["user", "project"]
-    if tool_id in {"maven", "sbt", "leiningen"}:
+    if tool_id in {"maven", "sbt", "leiningen", "dart-pub"}:
         return ["user"]
     if tool_id == "yarn":
         return ["user", "project"]
@@ -438,6 +450,22 @@ def candidate_endpoints(
                 {"role": "metadata", "protocol": "https", "url": endpoint},
                 {"role": "artifacts", "protocol": "https", "url": endpoint},
             ]
+    if (
+        tool_id == "dart-pub"
+        and upstream_key == DART_PUB_RUNTIME_UPSTREAM
+        and entry["raw_name"] == "dart-pub"
+        and entry["provider_id"] in DART_PUB_HOSTED_ENDPOINTS
+    ):
+        hosted = DART_PUB_HOSTED_ENDPOINTS[entry["provider_id"]]
+        return [
+            {"role": "index", "protocol": "https", "url": hosted},
+            {"role": "metadata", "protocol": "https", "url": hosted},
+            {
+                "role": "artifacts",
+                "protocol": "https",
+                "url": DART_PUB_ARTIFACT_ENDPOINTS[entry["provider_id"]],
+            },
+        ]
     if (
         tool_id == "ghcup"
         and upstream_key == GHCUP_RUNTIME_UPSTREAM
@@ -862,6 +890,61 @@ def runtime_properties(
                     "contains": "bf88d437e144ea38dfd550d9d50ea1385c8b1bc1",
                 },
             ]
+    elif (
+        tool_id == "dart-pub"
+        and upstream_key == DART_PUB_RUNTIME_UPSTREAM
+        and entry["raw_name"] == "dart-pub"
+        and entry["provider_id"] in DART_PUB_HOSTED_ENDPOINTS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "proxy"
+        archive_path = (
+            "/retry-3.1.2.tar.gz"
+            if entry["provider_id"] == "sjtug"
+            else "/retry/versions/3.1.2.tar.gz"
+        )
+        archive_content_type = (
+            "application/octet"
+            if entry["provider_id"] == "sjtug"
+            else "application/octet-stream"
+        )
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/api/packages/retry",
+                "expected_status": [200],
+                "expected_content_type": "application/json",
+                "contains": '"retry"',
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/api/packages/retry",
+                "expected_status": [200],
+                "expected_content_type": "application/json",
+                "contains": DART_PUB_RETRY_SHA256,
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": archive_path,
+                "expected_status": [200, 206],
+                "expected_content_type": archive_content_type,
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": archive_path,
+                "expected_status": [200, 206],
+                "expected_content_type": archive_content_type,
+                "sha256": DART_PUB_RETRY_SHA256,
+            },
+        ]
     elif (
         tool_id == "ghcup"
         and upstream_key == GHCUP_RUNTIME_UPSTREAM
@@ -1979,6 +2062,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "composer",
                         "conda",
                         "dnf",
+                        "dart-pub",
                         "flatpak",
                         "fnm",
                         "go",

@@ -5,6 +5,7 @@ mod cabal;
 mod cargo;
 mod composer;
 mod conda;
+mod dart_pub;
 mod dnf;
 mod flatpak;
 mod fnm;
@@ -46,6 +47,7 @@ pub use cabal::CabalAdapter;
 pub use cargo::CargoAdapter;
 pub use composer::ComposerAdapter;
 pub use conda::CondaAdapter;
+pub use dart_pub::DartPubAdapter;
 pub use dnf::DnfAdapter;
 pub use flatpak::FlatpakAdapter;
 pub use fnm::FnmAdapter;
@@ -84,6 +86,7 @@ static CARGO: CargoAdapter = CargoAdapter;
 static CONDA: CondaAdapter = CondaAdapter;
 static COMPOSER: ComposerAdapter = ComposerAdapter;
 static DNF: DnfAdapter = DnfAdapter;
+static DART_PUB: DartPubAdapter = DartPubAdapter;
 static FLATPAK: FlatpakAdapter = FlatpakAdapter;
 static FNM: FnmAdapter = FnmAdapter;
 static GO: GoAdapter = GoAdapter;
@@ -116,9 +119,9 @@ static ZYPPER: ZypperAdapter = ZypperAdapter;
 pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
         &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK, &OPKG,
-        &PIP, &PDM, &POETRY, &UV, &NPM, &YARN, &PNPM, &CONDA, &GRADLE, &MAVEN, &NVM, &FNM, &GO,
-        &RUBYGEMS, &BUNDLER, &CARGO, &RUSTUP, &COMPOSER, &NUGET, &CABAL, &SBT, &LEININGEN, &STACK,
-        &GHCUP,
+        &PIP, &PDM, &POETRY, &UV, &NPM, &YARN, &PNPM, &CONDA, &DART_PUB, &GRADLE, &MAVEN, &NVM,
+        &FNM, &GO, &RUBYGEMS, &BUNDLER, &CARGO, &RUSTUP, &COMPOSER, &NUGET, &CABAL, &SBT,
+        &LEININGEN, &STACK, &GHCUP,
     ]
 }
 
