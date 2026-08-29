@@ -63,6 +63,7 @@ real-boundary checks have passed.
 - [Cabal adapter](docs/adapters/cabal.md)
 - [Stack/Stackage adapter](docs/adapters/stack.md)
 - [GHCup adapter](docs/adapters/ghcup.md)
+- [sbt adapter](docs/adapters/sbt.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

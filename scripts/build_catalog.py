@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "36"
+CATALOG_FORMAT_REVISION = "37"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -304,6 +304,11 @@ GHCUP_METADATA_SHA256 = (
 GHCUP_SIGNATURE_SHA256 = (
     "f0b2c00cef942acd720da81bfee57401ede4985cb239ccc04d6c6b05af7e1bee"
 )
+SBT_MAVEN_UPSTREAM = "maven--language-registry"
+SBT_IVY_UPSTREAM = "sbt-plugins--language-registry"
+SBT_ACTIONABLE_PROVIDERS = {"huaweicloud"}
+SBT_MAVEN_ENDPOINT = "https://repo.huaweicloud.com/repository/maven/"
+SBT_IVY_ENDPOINT = "https://repo.huaweicloud.com/repository/ivy/"
 
 
 def utc_now() -> str:
@@ -317,6 +322,10 @@ def upstream_id(family: str, content_type: str) -> str:
 def runtime_upstream_identity(
     entry: dict[str, Any], tool_id: str
 ) -> tuple[str, str]:
+    if tool_id == "sbt" and entry["raw_name"] == "maven":
+        return "maven", "language-registry"
+    if tool_id == "sbt" and entry["raw_name"] in {"sbt", "ivy"}:
+        return "sbt-plugins", "language-registry"
     if tool_id == "composer" and entry["raw_name"] in {"composer", "php"}:
         return "packagist", "language-registry"
     if tool_id == "rustup" and entry["raw_name"] in {"rust-static", "rustup"}:
@@ -360,7 +369,7 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["user", "project"]
     if tool_id == "gradle":
         return ["user", "project"]
-    if tool_id == "maven":
+    if tool_id in {"maven", "sbt"}:
         return ["user"]
     if tool_id == "yarn":
         return ["user", "project"]
@@ -396,6 +405,22 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "sbt"
+        and upstream_key in {SBT_MAVEN_UPSTREAM, SBT_IVY_UPSTREAM}
+        and entry["provider_id"] in SBT_ACTIONABLE_PROVIDERS
+        and entry["raw_name"] in {"maven", "sbt"}
+    ):
+        endpoint = (
+            SBT_MAVEN_ENDPOINT
+            if upstream_key == SBT_MAVEN_UPSTREAM
+            else SBT_IVY_ENDPOINT
+        )
+        return [
+            {"role": "index", "protocol": "https", "url": endpoint},
+            {"role": "metadata", "protocol": "https", "url": endpoint},
+            {"role": "artifacts", "protocol": "https", "url": endpoint},
+        ]
     if (
         tool_id == "ghcup"
         and upstream_key == GHCUP_RUNTIME_UPSTREAM
@@ -669,6 +694,82 @@ def runtime_properties(
     )
     probes = candidate_probe(entry)
     if (
+        tool_id == "sbt"
+        and upstream_key in {SBT_MAVEN_UPSTREAM, SBT_IVY_UPSTREAM}
+        and entry["provider_id"] in SBT_ACTIONABLE_PROVIDERS
+        and entry["raw_name"] in {"maven", "sbt"}
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ["sbt-1.x", "sbt-2.x"]
+        delivery_mode = "proxy"
+        if upstream_key == SBT_MAVEN_UPSTREAM:
+            probes = [
+                {
+                    "endpoint_role": "metadata",
+                    "method": "get",
+                    "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+                    "expected_status": [200, 206],
+                    "contains": "<artifactId>commons-lang3</artifactId>",
+                },
+                {
+                    "endpoint_role": "index",
+                    "method": "get",
+                    "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
+                    "expected_status": [200, 206],
+                    "contains": "<artifactId>commons-lang3</artifactId>",
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "head",
+                    "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+                    "expected_status": [200, 206],
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
+                    "expected_status": [200, 206],
+                    "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae",
+                },
+            ]
+        else:
+            prefix = (
+                "/com.typesafe.sbt/sbt-native-packager/scala_2.12/"
+                "sbt_1.0/1.7.6/"
+            )
+            probes = [
+                {
+                    "endpoint_role": "metadata",
+                    "method": "get",
+                    "path": prefix + "ivys/ivy.xml",
+                    "expected_status": [200, 206],
+                    "contains": 'module="sbt-native-packager"',
+                },
+                {
+                    "endpoint_role": "index",
+                    "method": "get",
+                    "path": prefix + "ivys/ivy.xml.sha1",
+                    "expected_status": [200, 206],
+                    "contains": "a391298b496a45d2726b3b196b31d2467136e0c8",
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "head",
+                    "path": prefix + "jars/sbt-native-packager.jar",
+                    "expected_status": [200, 206],
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": prefix + "jars/sbt-native-packager.jar.sha1",
+                    "expected_status": [200, 206],
+                    "contains": "ee875aa975277e173b15588242b4eb773f9d430c",
+                },
+            ]
+    elif (
         tool_id == "ghcup"
         and upstream_key == GHCUP_RUNTIME_UPSTREAM
         and entry["provider_id"] in GHCUP_ACTIONABLE_PROVIDERS
@@ -1780,6 +1881,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "ghcup",
                         "rubygems",
                         "rustup",
+                        "sbt",
                         "stack",
                         "gradle",
                         "guix",

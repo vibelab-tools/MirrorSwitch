@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+154411c78232",
-  "content_revision": 202608290036,
-  "generated_at": "2026-08-29T15:11:06Z",
+  "content_version": "2026.08.28+0fc947203371",
+  "content_revision": 202608290037,
+  "generated_at": "2026-08-29T15:47:58Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1328,10 +1328,10 @@
       ]
     },
     {
-      "id": "sbt--static-files",
-      "family": "sbt",
-      "display_name": "sbt",
-      "content_kind": "static-files",
+      "id": "sbt-plugins--language-registry",
+      "family": "sbt-plugins",
+      "display_name": "sbt-plugins",
+      "content_kind": "language-registry",
       "aliases": [
         "sbt"
       ]
@@ -2228,12 +2228,10 @@
       "id": "sbt",
       "adapter_key": "sbt",
       "display_name": "sbt",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/61",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "user"
       ],
       "composition": "single"
     },
@@ -4920,6 +4918,97 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "1a1fd49991b65e6d8b2d31d1",
+      "provider_id": "huaweicloud",
+      "upstream_id": "sbt-plugins--language-registry",
+      "tool_id": "sbt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "sbt"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/ivy/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/ivy/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/ivy/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "sbt-1.x",
+          "sbt-2.x"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/com.typesafe.sbt/sbt-native-packager/scala_2.12/sbt_1.0/1.7.6/ivys/ivy.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "module=\"sbt-native-packager\""
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/com.typesafe.sbt/sbt-native-packager/scala_2.12/sbt_1.0/1.7.6/ivys/ivy.xml.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "a391298b496a45d2726b3b196b31d2467136e0c8"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/com.typesafe.sbt/sbt-native-packager/scala_2.12/sbt_1.0/1.7.6/jars/sbt-native-packager.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/com.typesafe.sbt/sbt-native-packager/scala_2.12/sbt_1.0/1.7.6/jars/sbt-native-packager.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "ee875aa975277e173b15588242b4eb773f9d430c"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "1b3dbba5922f80ebba8cdd7b",
       "provider_id": "ustc",
       "upstream_id": "stackage--language-registry",
@@ -5597,43 +5686,6 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/hackage.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "1f163945cbdd2e91c54a164d",
-      "provider_id": "huaweicloud",
-      "upstream_id": "maven--language-registry",
-      "tool_id": "sbt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "maven"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/maven/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -12964,6 +13016,97 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "702167cc9cda1b1c3aa2fb5d",
+      "provider_id": "huaweicloud",
+      "upstream_id": "maven--language-registry",
+      "tool_id": "sbt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "maven"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "sbt-1.x",
+          "sbt-2.x"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -21606,36 +21749,6 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/archlinux.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "c8529f7926ba8bbc6a684284",
-      "provider_id": "huaweicloud",
-      "upstream_id": "sbt--static-files",
-      "tool_id": "sbt",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "sbt"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/ivy/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
