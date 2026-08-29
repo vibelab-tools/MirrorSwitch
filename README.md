@@ -51,6 +51,7 @@ real-boundary checks have passed.
 - [uv adapter](docs/adapters/uv.md)
 - [Gradle adapter](docs/adapters/gradle.md)
 - [Maven adapter](docs/adapters/maven.md)
+- [nvm adapter](docs/adapters/nvm.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

@@ -10286,8 +10286,14 @@
         "evidence": "Only dimensions explicit in the listing or name are recorded; empty means unspecified by provider."
       },
       "inventory_state": "cataloged",
-      "adapter_state": "not-supported",
-      "adapter_targets": [],
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "nvm",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/49",
+          "state": "planned"
+        }
+      ],
       "validation": {
         "status": "pending-adapter",
         "reason": "A tool-specific metadata/artifact probe is required before this entry can become supported."

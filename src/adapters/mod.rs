@@ -8,6 +8,7 @@ mod guix;
 mod maven;
 mod nix;
 mod npm;
+mod nvm;
 mod opkg;
 mod pacman;
 mod pdm;
@@ -35,6 +36,7 @@ pub use guix::GuixAdapter;
 pub use maven::MavenAdapter;
 pub use nix::NixAdapter;
 pub use npm::NpmAdapter;
+pub use nvm::NvmAdapter;
 pub use opkg::OpkgAdapter;
 pub use pacman::PacmanAdapter;
 pub use pdm::PdmAdapter;
@@ -57,6 +59,7 @@ static GRADLE: GradleAdapter = GradleAdapter;
 static GUIX: GuixAdapter = GuixAdapter;
 static MAVEN: MavenAdapter = MavenAdapter;
 static NIX: NixAdapter = NixAdapter;
+static NVM: NvmAdapter = NvmAdapter;
 static NPM: NpmAdapter = NpmAdapter;
 static OPKG: OpkgAdapter = OpkgAdapter;
 static PACMAN: PacmanAdapter = PacmanAdapter;
@@ -74,7 +77,7 @@ static ZYPPER: ZypperAdapter = ZypperAdapter;
 pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
         &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK, &OPKG,
-        &PIP, &PDM, &POETRY, &UV, &NPM, &YARN, &PNPM, &CONDA, &GRADLE, &MAVEN,
+        &PIP, &PDM, &POETRY, &UV, &NPM, &YARN, &PNPM, &CONDA, &GRADLE, &MAVEN, &NVM,
     ]
 }
 

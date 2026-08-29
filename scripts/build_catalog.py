@@ -69,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "24"
+CATALOG_FORMAT_REVISION = "25"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -172,6 +172,10 @@ MAVEN_REGISTRY_ENDPOINTS = {
     "nju": "https://repo.nju.edu.cn/maven/",
 }
 GRADLE_DISTRIBUTION_PROVIDERS = {"huaweicloud", "nju"}
+NVM_RUNTIME_UPSTREAMS = {
+    "nodejs--release-artifacts",
+    "iojs--release-artifacts",
+}
 
 
 def utc_now() -> str:
@@ -187,10 +191,14 @@ def runtime_upstream_identity(
 ) -> tuple[str, str]:
     if tool_id == "gradle" and entry["raw_name"] in {"gradle", "gradle/distributions"}:
         return "gradle-distributions", "release-artifacts"
+    if tool_id == "nvm" and entry["raw_name"] == "iojs":
+        return "iojs", "release-artifacts"
     return entry["normalized_upstream"], entry["content_type"]
 
 
 def tool_scopes(tool_id: str) -> list[str]:
+    if tool_id == "nvm":
+        return ["user"]
     if tool_id in {"flatpak", "nix"}:
         return ["system", "user"]
     if tool_id == "pip":
@@ -243,6 +251,15 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if tool_id == "nvm" and upstream_key in NVM_RUNTIME_UPSTREAMS:
+        return [
+            {
+                "role": "releases",
+                "protocol": item["protocol"],
+                "url": item["url"],
+            }
+            for item in entry["public_endpoints"]
+        ]
     if (
         tool_id in {"gradle", "maven"}
         and upstream_key == GRADLE_MAVEN_UPSTREAM
@@ -559,6 +576,33 @@ def runtime_properties(
                 "expected_status": [200, 206],
             },
         ]
+    elif tool_id == "nvm" and upstream_key in NVM_RUNTIME_UPSTREAMS:
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "releases",
+                "method": "head",
+                "path": "/index.tab",
+                "expected_status": [200, 206],
+            },
+            {
+                "endpoint_role": "releases",
+                "method": "get",
+                "path": "/{version}/SHASUMS256.txt",
+                "expected_status": [200, 206],
+                "contains": "{artifact_prefix}-{version}-linux-{architecture}.tar.xz",
+            },
+            {
+                "endpoint_role": "releases",
+                "method": "head",
+                "path": "/{version}/{artifact_prefix}-{version}-linux-{architecture}.tar.xz",
+                "expected_status": [200, 206],
+            },
+        ]
     elif (
         tool_id in {"gradle", "maven"}
         and upstream_key == GRADLE_MAVEN_UPSTREAM
@@ -790,6 +834,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "maven",
                         "nix",
                         "npm",
+                        "nvm",
                         "opkg",
                         "pdm",
                         "pip",

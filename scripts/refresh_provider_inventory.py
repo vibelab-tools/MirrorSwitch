@@ -175,6 +175,7 @@ ISSUE_TARGETS: list[tuple[set[str], list[tuple[str, int]]]] = [
     ({"gradle"}, [("gradle", 47)]),
     ({"maven"}, [("maven", 48), ("gradle", 47), ("sbt", 61)]),
     ({"nodejs"}, [("nvm", 49), ("fnm", 50)]),
+    ({"iojs"}, [("nvm", 49)]),
     ({"go", "goproxy"}, [("go", 51)]),
     ({"rubygems"}, [("rubygems", 52), ("bundler", 58)]),
     ({"crates.io-index"}, [("cargo", 53)]),
