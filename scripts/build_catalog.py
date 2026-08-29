@@ -69,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "22"
+CATALOG_FORMAT_REVISION = "23"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -164,6 +164,14 @@ NPM_ACTIONABLE_PROVIDERS = {"huaweicloud"}
 NPM_REGISTRY_TOOLS = {"npm", "pnpm", "yarn"}
 CONDA_RUNTIME_UPSTREAM = "anaconda--language-registry"
 CONDA_ACTIONABLE_PROVIDERS = {"nju", "tuna", "ustc"}
+GRADLE_MAVEN_UPSTREAM = "maven--language-registry"
+GRADLE_DISTRIBUTION_UPSTREAM = "gradle-distributions--release-artifacts"
+GRADLE_MAVEN_ENDPOINTS = {
+    "aliyun": "https://maven.aliyun.com/repository/public/",
+    "huaweicloud": "https://repo.huaweicloud.com/repository/maven/",
+    "nju": "https://repo.nju.edu.cn/maven/",
+}
+GRADLE_DISTRIBUTION_PROVIDERS = {"huaweicloud", "nju"}
 
 
 def utc_now() -> str:
@@ -172,6 +180,14 @@ def utc_now() -> str:
 
 def upstream_id(family: str, content_type: str) -> str:
     return f"{family}--{content_type}"
+
+
+def runtime_upstream_identity(
+    entry: dict[str, Any], tool_id: str
+) -> tuple[str, str]:
+    if tool_id == "gradle" and entry["raw_name"] in {"gradle", "gradle/distributions"}:
+        return "gradle-distributions", "release-artifacts"
+    return entry["normalized_upstream"], entry["content_type"]
 
 
 def tool_scopes(tool_id: str) -> list[str]:
@@ -188,6 +204,8 @@ def tool_scopes(tool_id: str) -> list[str]:
     if tool_id == "poetry":
         return ["project"]
     if tool_id == "uv":
+        return ["user", "project"]
+    if tool_id == "gradle":
         return ["user", "project"]
     if tool_id == "yarn":
         return ["user", "project"]
@@ -223,6 +241,26 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "gradle"
+        and upstream_key == GRADLE_MAVEN_UPSTREAM
+        and entry["raw_name"] == "maven"
+        and entry["provider_id"] in GRADLE_MAVEN_ENDPOINTS
+    ):
+        endpoint = GRADLE_MAVEN_ENDPOINTS[entry["provider_id"]]
+        return [
+            {"role": "index", "protocol": "https", "url": endpoint},
+            {"role": "artifacts", "protocol": "https", "url": endpoint},
+        ]
+    if tool_id == "gradle" and upstream_key == GRADLE_DISTRIBUTION_UPSTREAM:
+        return [
+            {
+                "role": "releases",
+                "protocol": item["protocol"],
+                "url": item["url"],
+            }
+            for item in entry["public_endpoints"]
+        ]
     if (
         tool_id in {"pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
@@ -520,6 +558,57 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "gradle"
+        and upstream_key == GRADLE_MAVEN_UPSTREAM
+        and entry["raw_name"] == "maven"
+        and entry["provider_id"] in GRADLE_MAVEN_ENDPOINTS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "proxy"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+                "expected_status": [200, 206],
+                "contains": "<artifactId>commons-lang3</artifactId>",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+                "expected_status": [200, 206],
+            },
+        ]
+    elif (
+        tool_id == "gradle"
+        and upstream_key == GRADLE_DISTRIBUTION_UPSTREAM
+        and entry["provider_id"] in GRADLE_DISTRIBUTION_PROVIDERS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "releases",
+                "method": "get",
+                "path": "/{distribution_file}.sha256",
+                "expected_status": [200, 206],
+                "contains": "{distribution_checksum}",
+            },
+            {
+                "endpoint_role": "releases",
+                "method": "head",
+                "path": "/{distribution_file}",
+                "expected_status": [200, 206],
+            },
+        ]
+    elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
@@ -646,21 +735,21 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
     tool_map: dict[str, dict[str, Any]] = {}
     candidate_map: dict[str, dict[str, Any]] = {}
     for entry in planned_entries:
-        upstream_key = upstream_id(entry["normalized_upstream"], entry["content_type"])
-        upstream = upstream_map.setdefault(
-            upstream_key,
-            {
-                "id": upstream_key,
-                "family": entry["normalized_upstream"],
-                "display_name": entry["normalized_upstream"],
-                "content_kind": entry["content_type"],
-                "aliases": set(),
-            },
-        )
-        upstream["aliases"].add(entry["raw_name"])
-
         for target in entry["adapter_targets"]:
             tool_id = target["tool_id"]
+            upstream_family, content_kind = runtime_upstream_identity(entry, tool_id)
+            upstream_key = upstream_id(upstream_family, content_kind)
+            upstream = upstream_map.setdefault(
+                upstream_key,
+                {
+                    "id": upstream_key,
+                    "family": upstream_family,
+                    "display_name": upstream_family,
+                    "content_kind": content_kind,
+                    "aliases": set(),
+                },
+            )
+            upstream["aliases"].add(entry["raw_name"])
             tool = {
                 "id": tool_id,
                 "adapter_key": tool_id,
@@ -674,6 +763,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "conda",
                         "dnf",
                         "flatpak",
+                        "gradle",
                         "guix",
                         "nix",
                         "npm",

@@ -49,6 +49,7 @@ real-boundary checks have passed.
 - [PDM adapter](docs/adapters/pdm.md)
 - [Poetry adapter](docs/adapters/poetry.md)
 - [uv adapter](docs/adapters/uv.md)
+- [Gradle adapter](docs/adapters/gradle.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

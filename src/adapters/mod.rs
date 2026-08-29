@@ -3,6 +3,7 @@ mod apt;
 mod conda;
 mod dnf;
 mod flatpak;
+mod gradle;
 mod guix;
 mod nix;
 mod npm;
@@ -28,6 +29,7 @@ pub use apt::AptAdapter;
 pub use conda::CondaAdapter;
 pub use dnf::DnfAdapter;
 pub use flatpak::FlatpakAdapter;
+pub use gradle::GradleAdapter;
 pub use guix::GuixAdapter;
 pub use nix::NixAdapter;
 pub use npm::NpmAdapter;
@@ -49,6 +51,7 @@ static APT: AptAdapter = AptAdapter;
 static CONDA: CondaAdapter = CondaAdapter;
 static DNF: DnfAdapter = DnfAdapter;
 static FLATPAK: FlatpakAdapter = FlatpakAdapter;
+static GRADLE: GradleAdapter = GradleAdapter;
 static GUIX: GuixAdapter = GuixAdapter;
 static NIX: NixAdapter = NixAdapter;
 static NPM: NpmAdapter = NpmAdapter;
@@ -68,7 +71,7 @@ static ZYPPER: ZypperAdapter = ZypperAdapter;
 pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
         &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK, &OPKG,
-        &PIP, &PDM, &POETRY, &UV, &NPM, &YARN, &PNPM, &CONDA,
+        &PIP, &PDM, &POETRY, &UV, &NPM, &YARN, &PNPM, &CONDA, &GRADLE,
     ]
 }
 

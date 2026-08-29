@@ -94,6 +94,7 @@ fn apply_is_idempotent_and_selected_snapshot_restores_with_permissions() {
         panic!("the initial apply must write files");
     };
     assert_eq!(receipt.changed_files, 2);
+    assert_eq!(receipt.changed_targets, [first.clone(), second.clone()]);
     assert_eq!(fs::read(&first).unwrap(), b"token=first-new\nkeep=true\n");
     assert_eq!(engine.apply(&transaction).unwrap(), ApplyOutcome::Unchanged);
     assert_eq!(fs::read_dir(&state).unwrap().count(), 1);

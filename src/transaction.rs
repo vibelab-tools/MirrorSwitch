@@ -279,6 +279,10 @@ impl<F: FileSystem> TransactionEngine<F> {
             transaction_id,
             participants: manifest.participants,
             changed_files: pending.len(),
+            changed_targets: pending
+                .iter()
+                .map(|(change, _)| change.target.clone())
+                .collect(),
         }))
     }
 
@@ -449,6 +453,7 @@ pub struct TransactionReceipt {
     pub transaction_id: String,
     pub participants: Vec<TransactionParticipant>,
     pub changed_files: usize,
+    pub changed_targets: Vec<PathBuf>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
