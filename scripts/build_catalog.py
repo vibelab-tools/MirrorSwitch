@@ -69,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "23"
+CATALOG_FORMAT_REVISION = "24"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -166,7 +166,7 @@ CONDA_RUNTIME_UPSTREAM = "anaconda--language-registry"
 CONDA_ACTIONABLE_PROVIDERS = {"nju", "tuna", "ustc"}
 GRADLE_MAVEN_UPSTREAM = "maven--language-registry"
 GRADLE_DISTRIBUTION_UPSTREAM = "gradle-distributions--release-artifacts"
-GRADLE_MAVEN_ENDPOINTS = {
+MAVEN_REGISTRY_ENDPOINTS = {
     "aliyun": "https://maven.aliyun.com/repository/public/",
     "huaweicloud": "https://repo.huaweicloud.com/repository/maven/",
     "nju": "https://repo.nju.edu.cn/maven/",
@@ -207,6 +207,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["user", "project"]
     if tool_id == "gradle":
         return ["user", "project"]
+    if tool_id == "maven":
+        return ["user"]
     if tool_id == "yarn":
         return ["user", "project"]
     if tool_id == "conda":
@@ -242,12 +244,12 @@ def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
     if (
-        tool_id == "gradle"
+        tool_id in {"gradle", "maven"}
         and upstream_key == GRADLE_MAVEN_UPSTREAM
         and entry["raw_name"] == "maven"
-        and entry["provider_id"] in GRADLE_MAVEN_ENDPOINTS
+        and entry["provider_id"] in MAVEN_REGISTRY_ENDPOINTS
     ):
-        endpoint = GRADLE_MAVEN_ENDPOINTS[entry["provider_id"]]
+        endpoint = MAVEN_REGISTRY_ENDPOINTS[entry["provider_id"]]
         return [
             {"role": "index", "protocol": "https", "url": endpoint},
             {"role": "artifacts", "protocol": "https", "url": endpoint},
@@ -558,10 +560,10 @@ def runtime_properties(
             },
         ]
     elif (
-        tool_id == "gradle"
+        tool_id in {"gradle", "maven"}
         and upstream_key == GRADLE_MAVEN_UPSTREAM
         and entry["raw_name"] == "maven"
-        and entry["provider_id"] in GRADLE_MAVEN_ENDPOINTS
+        and entry["provider_id"] in MAVEN_REGISTRY_ENDPOINTS
     ):
         compatibility["operating_systems"] = ["linux"]
         compatibility["architectures"] = ["x86_64", "arm64"]
@@ -583,6 +585,26 @@ def runtime_properties(
                 "expected_status": [200, 206],
             },
         ]
+        if tool_id == "maven":
+            probes.insert(
+                1,
+                {
+                    "endpoint_role": "index",
+                    "method": "get",
+                    "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
+                    "expected_status": [200, 206],
+                    "contains": "<artifactId>commons-lang3</artifactId>",
+                },
+            )
+            probes.append(
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
+                    "expected_status": [200, 206],
+                    "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae",
+                }
+            )
     elif (
         tool_id == "gradle"
         and upstream_key == GRADLE_DISTRIBUTION_UPSTREAM
@@ -765,6 +787,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "flatpak",
                         "gradle",
                         "guix",
+                        "maven",
                         "nix",
                         "npm",
                         "opkg",

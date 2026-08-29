@@ -50,6 +50,7 @@ real-boundary checks have passed.
 - [Poetry adapter](docs/adapters/poetry.md)
 - [uv adapter](docs/adapters/uv.md)
 - [Gradle adapter](docs/adapters/gradle.md)
+- [Maven adapter](docs/adapters/maven.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License
