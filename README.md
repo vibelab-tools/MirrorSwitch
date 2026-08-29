@@ -59,6 +59,7 @@ real-boundary checks have passed.
 - [rustup adapter](docs/adapters/rustup.md)
 - [Composer adapter](docs/adapters/composer.md)
 - [NuGet adapter](docs/adapters/nuget.md)
+- [Cabal adapter](docs/adapters/cabal.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

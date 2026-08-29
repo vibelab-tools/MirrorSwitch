@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "32"
+CATALOG_FORMAT_REVISION = "33"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -254,6 +254,14 @@ NUGET_FLAT_ENDPOINT = (
 NUGET_NUPKG_SHA256 = (
     "7ff7a30aecc20302ace0de0473ac9fd91a2fae1053d278f48510cffb4dff232e"
 )
+CABAL_RUNTIME_UPSTREAM = "hackage--language-registry"
+CABAL_ACTIONABLE_PROVIDERS = {"nju", "tuna", "ustc"}
+CABAL_TARBALL_SHA256 = (
+    "5e4b39da395656a59827b0280508aafdc70335798b50e5d6fd52596026251825"
+)
+CABAL_ROOT_SHA256 = (
+    "f62e46cb51d4a499a8336894d7a46071b7e528135ad71614c7102c1de0aeeabc"
+)
 
 
 def utc_now() -> str:
@@ -283,6 +291,7 @@ def runtime_upstream_identity(
 def tool_scopes(tool_id: str) -> list[str]:
     if tool_id in NODE_DISTRIBUTION_TOOLS or tool_id in {
         "cargo",
+        "cabal",
         "composer",
         "go",
         "nuget",
@@ -342,6 +351,17 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "cabal"
+        and upstream_key == CABAL_RUNTIME_UPSTREAM
+        and entry["provider_id"] in CABAL_ACTIONABLE_PROVIDERS
+    ):
+        endpoint = entry["public_endpoints"][0]["url"]
+        return [
+            {"role": "metadata", "protocol": "https", "url": endpoint},
+            {"role": "index", "protocol": "https", "url": endpoint},
+            {"role": "artifacts", "protocol": "https", "url": endpoint},
+        ]
     if (
         tool_id == "nuget"
         and upstream_key == NUGET_RUNTIME_UPSTREAM
@@ -810,6 +830,66 @@ def runtime_properties(
                 "path": "/sumdb/sum.golang.org/lookup/github.com/pkg/errors@v0.9.1",
                 "expected_status": [200, 206],
                 "contains": "github.com/pkg/errors v0.9.1 h1:",
+            },
+        ]
+    elif (
+        tool_id == "cabal"
+        and upstream_key == CABAL_RUNTIME_UPSTREAM
+        and entry["provider_id"] in CABAL_ACTIONABLE_PROVIDERS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ["secure"]
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/root.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": '"Root"',
+                "sha256": CABAL_ROOT_SHA256,
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/timestamp.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": '"Timestamp"',
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/snapshot.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": "01-index.tar.gz",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/mirrors.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": '"Mirrorlist"',
+            },
+            {
+                "endpoint_role": "index",
+                "method": "head",
+                "path": "/01-index.tar.gz",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/octet-stream",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/package/StateVar-1.2.2.tar.gz",
+                "expected_status": [200, 206],
+                "sha256": CABAL_TARBALL_SHA256,
             },
         ]
     elif (
@@ -1335,6 +1415,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                     in {
                         "apk",
                         "apt",
+                        "cabal",
                         "cargo",
                         "composer",
                         "conda",
