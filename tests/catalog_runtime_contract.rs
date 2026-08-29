@@ -21,9 +21,9 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             .map(|tool| tool.id.as_str())
             .collect::<Vec<_>>(),
         [
-            "apk", "apt", "conda", "dnf", "flatpak", "gradle", "guix", "maven", "nix", "npm",
-            "nvm", "opkg", "pacman", "pdm", "pip", "pnpm", "poetry", "portage", "uv", "xbps",
-            "yarn", "yum", "zypper"
+            "apk", "apt", "conda", "dnf", "flatpak", "fnm", "gradle", "guix", "maven", "nix",
+            "npm", "nvm", "opkg", "pacman", "pdm", "pip", "pnpm", "poetry", "portage", "uv",
+            "xbps", "yarn", "yum", "zypper"
         ]
     );
 }
