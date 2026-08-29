@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+594297babcf0",
-  "content_revision": 202608290035,
-  "generated_at": "2026-08-29T14:25:33Z",
+  "content_version": "2026.08.28+154411c78232",
+  "content_revision": 202608290036,
+  "generated_at": "2026-08-29T15:11:06Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1753,12 +1753,10 @@
       "id": "ghcup",
       "adapter_key": "ghcup",
       "display_name": "ghcup",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/60",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "user"
       ],
       "composition": "single"
     },
@@ -2687,6 +2685,149 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "03b069af5af2dc5dd57038c6",
+      "provider_id": "nju",
+      "upstream_id": "ghcup--release-artifacts",
+      "tool_id": "ghcup",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ghcup"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ghcup/yaml_v2/haskell/ghcup-metadata/master/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirror.nju.edu.cn/ghcup/packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "0.0.9"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ghcup-0.0.9.yaml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "ghcupDownloads:",
+          "sha256": "2e8eb78bafb9c8434c157923c1990542c9a969b0dec4b548537e4bd64d9b1e4d"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ghcup-0.0.9.yaml.sig",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "f0b2c00cef942acd720da81bfee57401ede4985cb239ccc04d6c6b05af7e1bee"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ghcup-0.0.9.yaml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{ghc_sha}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ghcup-0.0.9.yaml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{cabal_sha}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ghcup-0.0.9.yaml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{hls_sha}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ghcup-0.0.9.yaml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{stack_sha}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/~ghc/9.10.3/{ghc_file}",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/~ghcup/unofficial-bindists/cabal/3.14.2.0/{cabal_file}",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/~ghcup/unofficial-bindists/haskell-language-server/2.13.0.0/{hls_file}",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/~ghcup/unofficial-bindists/stack/3.7.1/{stack_file}",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17563,43 +17704,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "a52b6afa5fb01f82ccc251c2",
-      "provider_id": "nju",
-      "upstream_id": "ghcup--release-artifacts",
-      "tool_id": "ghcup",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ghcup"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/ghcup/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

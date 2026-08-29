@@ -8,6 +8,7 @@ mod conda;
 mod dnf;
 mod flatpak;
 mod fnm;
+mod ghcup;
 mod go;
 mod gradle;
 mod guix;
@@ -46,6 +47,7 @@ pub use conda::CondaAdapter;
 pub use dnf::DnfAdapter;
 pub use flatpak::FlatpakAdapter;
 pub use fnm::FnmAdapter;
+pub use ghcup::GhcupAdapter;
 pub use go::GoAdapter;
 pub use gradle::GradleAdapter;
 pub use guix::GuixAdapter;
@@ -82,6 +84,7 @@ static FLATPAK: FlatpakAdapter = FlatpakAdapter;
 static FNM: FnmAdapter = FnmAdapter;
 static GO: GoAdapter = GoAdapter;
 static GRADLE: GradleAdapter = GradleAdapter;
+static GHCUP: GhcupAdapter = GhcupAdapter;
 static GUIX: GuixAdapter = GuixAdapter;
 static MAVEN: MavenAdapter = MavenAdapter;
 static NIX: NixAdapter = NixAdapter;
@@ -108,7 +111,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
         &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK, &OPKG,
         &PIP, &PDM, &POETRY, &UV, &NPM, &YARN, &PNPM, &CONDA, &GRADLE, &MAVEN, &NVM, &FNM, &GO,
-        &RUBYGEMS, &BUNDLER, &CARGO, &RUSTUP, &COMPOSER, &NUGET, &CABAL, &STACK,
+        &RUBYGEMS, &BUNDLER, &CARGO, &RUSTUP, &COMPOSER, &NUGET, &CABAL, &STACK, &GHCUP,
     ]
 }
 

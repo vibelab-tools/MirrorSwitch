@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "35"
+CATALOG_FORMAT_REVISION = "36"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -291,6 +291,19 @@ STACK_SNAPSHOT_SHA256 = (
 STACK_GLOBAL_HINTS_SHA256 = (
     "c26bcae5f588e370090d946cc79f57666c4cda31bb1f50c8ad4024f058289c96"
 )
+GHCUP_RUNTIME_UPSTREAM = "ghcup--release-artifacts"
+GHCUP_ACTIONABLE_PROVIDERS = {"nju"}
+GHCUP_METADATA_ENDPOINT = (
+    "https://mirrors.nju.edu.cn/ghcup/yaml_v2/"
+    "haskell/ghcup-metadata/master/"
+)
+GHCUP_ARTIFACT_ENDPOINT = "https://mirror.nju.edu.cn/ghcup/packages/"
+GHCUP_METADATA_SHA256 = (
+    "2e8eb78bafb9c8434c157923c1990542c9a969b0dec4b548537e4bd64d9b1e4d"
+)
+GHCUP_SIGNATURE_SHA256 = (
+    "f0b2c00cef942acd720da81bfee57401ede4985cb239ccc04d6c6b05af7e1bee"
+)
 
 
 def utc_now() -> str:
@@ -325,6 +338,7 @@ def tool_scopes(tool_id: str) -> list[str]:
         "cabal",
         "composer",
         "go",
+        "ghcup",
         "nuget",
         "rubygems",
         "rustup",
@@ -382,6 +396,23 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "ghcup"
+        and upstream_key == GHCUP_RUNTIME_UPSTREAM
+        and entry["provider_id"] in GHCUP_ACTIONABLE_PROVIDERS
+    ):
+        return [
+            {
+                "role": "metadata",
+                "protocol": "https",
+                "url": GHCUP_METADATA_ENDPOINT,
+            },
+            {
+                "role": "artifacts",
+                "protocol": "https",
+                "url": GHCUP_ARTIFACT_ENDPOINT,
+            },
+        ]
     if (
         tool_id == "stack"
         and upstream_key == STACKAGE_RUNTIME_UPSTREAM
@@ -638,6 +669,68 @@ def runtime_properties(
     )
     probes = candidate_probe(entry)
     if (
+        tool_id == "ghcup"
+        and upstream_key == GHCUP_RUNTIME_UPSTREAM
+        and entry["provider_id"] in GHCUP_ACTIONABLE_PROVIDERS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ["0.0.9"]
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/ghcup-0.0.9.yaml",
+                "expected_status": [200, 206],
+                "contains": "ghcupDownloads:",
+                "sha256": GHCUP_METADATA_SHA256,
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/ghcup-0.0.9.yaml.sig",
+                "expected_status": [200, 206],
+                "sha256": GHCUP_SIGNATURE_SHA256,
+            },
+            *[
+                {
+                    "endpoint_role": "metadata",
+                    "method": "get",
+                    "path": "/ghcup-0.0.9.yaml",
+                    "expected_status": [200, 206],
+                    "contains": "{" + tool + "_sha}",
+                }
+                for tool in ("ghc", "cabal", "hls", "stack")
+            ],
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": "/~ghc/9.10.3/{ghc_file}",
+                "expected_status": [200, 206],
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": "/~ghcup/unofficial-bindists/cabal/3.14.2.0/{cabal_file}",
+                "expected_status": [200, 206],
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": "/~ghcup/unofficial-bindists/haskell-language-server/2.13.0.0/{hls_file}",
+                "expected_status": [200, 206],
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": "/~ghcup/unofficial-bindists/stack/3.7.1/{stack_file}",
+                "expected_status": [200, 206],
+            },
+        ]
+    elif (
         tool_id == "stack"
         and upstream_key == STACKAGE_RUNTIME_UPSTREAM
         and entry["provider_id"] in STACK_ACTIONABLE_PROVIDERS
@@ -1684,6 +1777,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "flatpak",
                         "fnm",
                         "go",
+                        "ghcup",
                         "rubygems",
                         "rustup",
                         "stack",

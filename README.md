@@ -62,6 +62,7 @@ real-boundary checks have passed.
 - [NuGet adapter](docs/adapters/nuget.md)
 - [Cabal adapter](docs/adapters/cabal.md)
 - [Stack/Stackage adapter](docs/adapters/stack.md)
+- [GHCup adapter](docs/adapters/ghcup.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License
