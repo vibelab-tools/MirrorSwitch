@@ -23,7 +23,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
         [
             "apk", "apt", "cargo", "conda", "dnf", "flatpak", "fnm", "go", "gradle", "guix",
             "maven", "nix", "npm", "nvm", "opkg", "pacman", "pdm", "pip", "pnpm", "poetry",
-            "portage", "rubygems", "uv", "xbps", "yarn", "yum", "zypper"
+            "portage", "rubygems", "rustup", "uv", "xbps", "yarn", "yum", "zypper"
         ]
     );
 }

@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "29"
+CATALOG_FORMAT_REVISION = "30"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -215,6 +215,20 @@ CARGO_CRATE_PATHS = {
 CARGO_CRATE_SHA256 = (
     "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 )
+RUSTUP_RUNTIME_UPSTREAM = "rust-toolchain--release-artifacts"
+RUSTUP_ACTIONABLE_PROVIDERS = {"huaweicloud", "ustc"}
+RUSTUP_DIST_ENDPOINTS = {
+    "huaweicloud": "https://repo.huaweicloud.com/rustup/",
+    "ustc": "https://mirrors.ustc.edu.cn/rust-static/",
+}
+RUSTUP_UPDATE_ENDPOINTS = {
+    "huaweicloud": "https://repo.huaweicloud.com/rustup/rustup/",
+    "ustc": "https://mirrors.ustc.edu.cn/rust-static/rustup/",
+}
+RUSTUP_MANIFEST_SHA256 = {
+    "huaweicloud": "4a49195d2e5b4e5efd922e8a670ec40376c14b772233a46273ac9b8d5e810127",
+    "ustc": "3f7d139b73bbbd0004ef6e58b430831c68cdad2b1f64ee2eb35d54c09199489a",
+}
 
 
 def utc_now() -> str:
@@ -228,6 +242,8 @@ def upstream_id(family: str, content_type: str) -> str:
 def runtime_upstream_identity(
     entry: dict[str, Any], tool_id: str
 ) -> tuple[str, str]:
+    if tool_id == "rustup" and entry["raw_name"] in {"rust-static", "rustup"}:
+        return "rust-toolchain", "release-artifacts"
     if tool_id == "gradle" and entry["raw_name"] in {"gradle", "gradle/distributions"}:
         return "gradle-distributions", "release-artifacts"
     if tool_id == "nvm" and entry["raw_name"] == "iojs":
@@ -238,7 +254,12 @@ def runtime_upstream_identity(
 
 
 def tool_scopes(tool_id: str) -> list[str]:
-    if tool_id in NODE_DISTRIBUTION_TOOLS or tool_id in {"cargo", "go", "rubygems"}:
+    if tool_id in NODE_DISTRIBUTION_TOOLS or tool_id in {
+        "cargo",
+        "go",
+        "rubygems",
+        "rustup",
+    }:
         return ["user"]
     if tool_id in {"flatpak", "nix"}:
         return ["system", "user"]
@@ -292,6 +313,24 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "rustup"
+        and upstream_key == RUSTUP_RUNTIME_UPSTREAM
+        and entry["provider_id"] in RUSTUP_ACTIONABLE_PROVIDERS
+    ):
+        provider = entry["provider_id"]
+        return [
+            {
+                "role": "releases",
+                "protocol": "https",
+                "url": RUSTUP_DIST_ENDPOINTS[provider],
+            },
+            {
+                "role": "artifacts",
+                "protocol": "https",
+                "url": RUSTUP_UPDATE_ENDPOINTS[provider],
+            },
+        ]
     if (
         tool_id == "cargo"
         and upstream_key == CARGO_SPARSE_UPSTREAM
@@ -780,6 +819,71 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "rustup"
+        and upstream_key == RUSTUP_RUNTIME_UPSTREAM
+        and entry["provider_id"] in RUSTUP_ACTIONABLE_PROVIDERS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "mirror"
+        manifest_sha256 = RUSTUP_MANIFEST_SHA256[entry["provider_id"]]
+        probes = [
+            {
+                "endpoint_role": "releases",
+                "method": "get",
+                "path": "/dist/2026-08-20/channel-rust-stable.toml",
+                "expected_status": [200, 206],
+                "sha256": manifest_sha256,
+            },
+            {
+                "endpoint_role": "releases",
+                "method": "get",
+                "path": "/dist/2026-08-20/channel-rust-stable.toml.sha256",
+                "expected_status": [200, 206],
+                "contains": manifest_sha256,
+            },
+            {
+                "endpoint_role": "releases",
+                "method": "head",
+                "path": "/dist/2026-08-20/rustc-1.98.0-{host}.tar.xz",
+                "expected_status": [200, 206],
+            },
+            {
+                "endpoint_role": "releases",
+                "method": "head",
+                "path": "/dist/2026-08-20/cargo-1.98.0-{host}.tar.xz",
+                "expected_status": [200, 206],
+            },
+            {
+                "endpoint_role": "releases",
+                "method": "head",
+                "path": "/dist/2026-08-20/rust-std-1.98.0-{host}.tar.xz",
+                "expected_status": [200, 206],
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/release-stable.toml",
+                "expected_status": [200, 206],
+                "contains": "schema-version = '1'",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/archive/1.29.0/{host}/rustup-init.sha256",
+                "expected_status": [200, 206],
+                "contains": "{rustup_sha256}",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": "/archive/1.29.0/{host}/rustup-init",
+                "expected_status": [200, 206],
+            },
+        ]
+    elif (
         tool_id in NODE_DISTRIBUTION_TOOLS
         and upstream_key == NODE_DISTRIBUTION_UPSTREAM
     ) or (tool_id == "nvm" and upstream_key == IOJS_RELEASE_UPSTREAM):
@@ -1039,6 +1143,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "fnm",
                         "go",
                         "rubygems",
+                        "rustup",
                         "gradle",
                         "guix",
                         "maven",

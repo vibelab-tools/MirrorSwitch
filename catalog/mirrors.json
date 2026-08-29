@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+34b14103c60f",
-  "content_revision": 202608290029,
-  "generated_at": "2026-08-29T08:00:00Z",
+  "content_version": "2026.08.28+5d1ac1ececb7",
+  "content_revision": 202608290030,
+  "generated_at": "2026-08-29T08:30:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1309,20 +1309,12 @@
       ]
     },
     {
-      "id": "rust-static--release-artifacts",
-      "family": "rust-static",
-      "display_name": "rust-static",
+      "id": "rust-toolchain--release-artifacts",
+      "family": "rust-toolchain",
+      "display_name": "rust-toolchain",
       "content_kind": "release-artifacts",
       "aliases": [
-        "rust-static"
-      ]
-    },
-    {
-      "id": "rustup--release-artifacts",
-      "family": "rustup",
-      "display_name": "rustup",
-      "content_kind": "release-artifacts",
-      "aliases": [
+        "rust-static",
         "rustup"
       ]
     },
@@ -2212,11 +2204,10 @@
       "id": "rustup",
       "adapter_key": "rustup",
       "display_name": "rustup",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/54",
       "supported_scopes": [
-        "user",
-        "environment"
+        "user"
       ],
       "composition": "single"
     },
@@ -5560,6 +5551,43 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "228626a270422f3f47cb135c",
+      "provider_id": "tuna",
+      "upstream_id": "rust-toolchain--release-artifacts",
+      "tool_id": "rustup",
+      "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "rustup"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/rustup/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "22a118d240543ff40ed76f38",
       "provider_id": "aliyun",
       "upstream_id": "opensuse--repository-metadata",
@@ -6173,43 +6201,6 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "296fa8d6b21047b0d8671b4c",
-      "provider_id": "huaweicloud",
-      "upstream_id": "rustup--release-artifacts",
-      "tool_id": "rustup",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rustup"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/rustup/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -6828,6 +6819,43 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "2f9529c39b9140692a36b602",
+      "provider_id": "aliyun",
+      "upstream_id": "rust-toolchain--release-artifacts",
+      "tool_id": "rustup",
+      "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "rustup"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/rustup/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -7611,6 +7639,126 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "394b49882c112813447dbeb6",
+      "provider_id": "huaweicloud",
+      "upstream_id": "rust-toolchain--release-artifacts",
+      "tool_id": "rustup",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rustup"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/rustup/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/rustup/rustup/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/dist/2026-08-20/channel-rust-stable.toml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "4a49195d2e5b4e5efd922e8a670ec40376c14b772233a46273ac9b8d5e810127"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/dist/2026-08-20/channel-rust-stable.toml.sha256",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "4a49195d2e5b4e5efd922e8a670ec40376c14b772233a46273ac9b8d5e810127"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/dist/2026-08-20/rustc-1.98.0-{host}.tar.xz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/dist/2026-08-20/cargo-1.98.0-{host}.tar.xz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/dist/2026-08-20/rust-std-1.98.0-{host}.tar.xz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/release-stable.toml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "schema-version = '1'"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/1.29.0/{host}/rustup-init.sha256",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{rustup_sha256}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/archive/1.29.0/{host}/rustup-init",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -9558,43 +9706,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "5165e491e869741a3404f870",
-      "provider_id": "nju",
-      "upstream_id": "rustup--release-artifacts",
-      "tool_id": "rustup",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rustup"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/rustup/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "51fed95b90e95a9675020b31",
       "provider_id": "aliyun",
       "upstream_id": "npm--language-registry",
@@ -10099,6 +10210,126 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "57b30605eb6fbd8bf258bdec",
+      "provider_id": "ustc",
+      "upstream_id": "rust-toolchain--release-artifacts",
+      "tool_id": "rustup",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rust-static"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/rust-static/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/rust-static/rustup/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/dist/2026-08-20/channel-rust-stable.toml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "3f7d139b73bbbd0004ef6e58b430831c68cdad2b1f64ee2eb35d54c09199489a"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/dist/2026-08-20/channel-rust-stable.toml.sha256",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "3f7d139b73bbbd0004ef6e58b430831c68cdad2b1f64ee2eb35d54c09199489a"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/dist/2026-08-20/rustc-1.98.0-{host}.tar.xz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/dist/2026-08-20/cargo-1.98.0-{host}.tar.xz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/dist/2026-08-20/rust-std-1.98.0-{host}.tar.xz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/release-stable.toml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "schema-version = '1'"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/1.29.0/{host}/rustup-init.sha256",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{rustup_sha256}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/archive/1.29.0/{host}/rustup-init",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/rust-static.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -16847,43 +17078,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "a98acbdf27b1fc9b7ba011c9",
-      "provider_id": "tuna",
-      "upstream_id": "rustup--release-artifacts",
-      "tool_id": "rustup",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rustup"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/rustup/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "a9eb5d6bc72b0185f6cceac3",
       "provider_id": "nju",
       "upstream_id": "opensuse-history--repository-metadata",
@@ -18931,6 +19125,43 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "bb0f409c806756188881337a",
+      "provider_id": "sjtug",
+      "upstream_id": "rust-toolchain--release-artifacts",
+      "tool_id": "rustup",
+      "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "rust-static"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/rust-static/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "bb9d8c662cf3e512324fe5ce",
       "provider_id": "huaweicloud",
       "upstream_id": "mysql--static-files",
@@ -19087,43 +19318,6 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "bde4a7ffe99e00a49bddf234",
-      "provider_id": "sjtug",
-      "upstream_id": "rust-static--release-artifacts",
-      "tool_id": "rustup",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rust-static"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/rust-static/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -19882,43 +20076,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "c69f7083b945f1f0160ada97",
-      "provider_id": "aliyun",
-      "upstream_id": "rustup--release-artifacts",
-      "tool_id": "rustup",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rustup"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/rustup/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -21646,6 +21803,43 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "d611f8237c41b5ab6ffc9d63",
+      "provider_id": "nju",
+      "upstream_id": "rust-toolchain--release-artifacts",
+      "tool_id": "rustup",
+      "catalog_state": "cataloged",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "rustup"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/rustup/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -24582,43 +24776,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "fc056fc65e0605615af58f3e",
-      "provider_id": "ustc",
-      "upstream_id": "rust-static--release-artifacts",
-      "tool_id": "rustup",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rust-static"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/rust-static/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/rust-static.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
