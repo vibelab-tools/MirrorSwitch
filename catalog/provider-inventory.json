@@ -21886,6 +21886,11 @@
           "tool_id": "cabal",
           "state": "planned",
           "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/57"
+        },
+        {
+          "tool_id": "stack",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/59"
         }
       ],
       "validation": {
@@ -42423,6 +42428,11 @@
           "tool_id": "cabal",
           "state": "planned",
           "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/57"
+        },
+        {
+          "tool_id": "stack",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/59"
         }
       ],
       "validation": {
@@ -46334,6 +46344,11 @@
           "tool_id": "cabal",
           "state": "planned",
           "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/57"
+        },
+        {
+          "tool_id": "stack",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/59"
         }
       ],
       "validation": {

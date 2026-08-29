@@ -25,6 +25,7 @@ mod poetry;
 mod portage;
 mod rubygems;
 mod rustup;
+mod stack;
 mod uv;
 mod xbps;
 mod yarn;
@@ -62,6 +63,7 @@ pub use poetry::PoetryAdapter;
 pub use portage::PortageAdapter;
 pub use rubygems::RubyGemsAdapter;
 pub use rustup::RustupAdapter;
+pub use stack::StackAdapter;
 pub use uv::UvAdapter;
 pub use xbps::XbpsAdapter;
 pub use yarn::YarnAdapter;
@@ -95,6 +97,7 @@ static POETRY: PoetryAdapter = PoetryAdapter;
 static PORTAGE: PortageAdapter = PortageAdapter;
 static RUBYGEMS: RubyGemsAdapter = RubyGemsAdapter;
 static RUSTUP: RustupAdapter = RustupAdapter;
+static STACK: StackAdapter = StackAdapter;
 static UV: UvAdapter = UvAdapter;
 static XBPS: XbpsAdapter = XbpsAdapter;
 static YARN: YarnAdapter = YarnAdapter;
@@ -105,7 +108,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
         &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK, &OPKG,
         &PIP, &PDM, &POETRY, &UV, &NPM, &YARN, &PNPM, &CONDA, &GRADLE, &MAVEN, &NVM, &FNM, &GO,
-        &RUBYGEMS, &BUNDLER, &CARGO, &RUSTUP, &COMPOSER, &NUGET, &CABAL,
+        &RUBYGEMS, &BUNDLER, &CARGO, &RUSTUP, &COMPOSER, &NUGET, &CABAL, &STACK,
     ]
 }
 
