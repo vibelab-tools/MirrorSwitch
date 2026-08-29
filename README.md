@@ -48,6 +48,7 @@ real-boundary checks have passed.
 - [Conda/Mamba adapter](docs/adapters/conda.md)
 - [PDM adapter](docs/adapters/pdm.md)
 - [Poetry adapter](docs/adapters/poetry.md)
+- [uv adapter](docs/adapters/uv.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
 
 ## License

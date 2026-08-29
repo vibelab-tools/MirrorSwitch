@@ -69,7 +69,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "21"
+CATALOG_FORMAT_REVISION = "22"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -187,6 +187,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["user"]
     if tool_id == "poetry":
         return ["project"]
+    if tool_id == "uv":
+        return ["user", "project"]
     if tool_id == "yarn":
         return ["user", "project"]
     if tool_id == "conda":
@@ -222,7 +224,7 @@ def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
     if (
-        tool_id in {"pdm", "poetry"}
+        tool_id in {"pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
     ):
@@ -518,7 +520,7 @@ def runtime_properties(
             },
         ]
     elif (
-        tool_id in {"pip", "pdm", "poetry"}
+        tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
     ):
@@ -537,7 +539,7 @@ def runtime_properties(
                 "contains": "sampleproject-",
             }
         ]
-        if tool_id in {"pdm", "poetry"}:
+        if tool_id in {"pdm", "poetry", "uv"}:
             probes.append(
                 {
                     "endpoint_role": "artifacts",
@@ -680,6 +682,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "pip",
                         "pnpm",
                         "poetry",
+                        "uv",
                         "yum",
                         "yarn",
                         "pacman",
