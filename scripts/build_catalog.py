@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "31"
+CATALOG_FORMAT_REVISION = "32"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -241,6 +241,19 @@ COMPOSER_DIST_SHA256 = (
 COMPOSER_SOURCE_SHA256 = (
     "c365225b9567800008110f8f7b2873bed86c5a0c40ce3ae399059ff3c22b778e"
 )
+NUGET_RUNTIME_UPSTREAM = "nuget--language-registry"
+NUGET_ACTIONABLE_PROVIDERS = {"huaweicloud"}
+NUGET_INDEX_ENDPOINT = "https://repo.huaweicloud.com/repository/nuget/v3/"
+NUGET_REGISTRATION_ENDPOINT = (
+    "https://repo.huaweicloud.com/artifactory/api/nuget/v3/"
+    "nuget-remote/registration-semver2/"
+)
+NUGET_FLAT_ENDPOINT = (
+    "https://repo.huaweicloud.com/artifactory/api/nuget/v3/nuget-remote/"
+)
+NUGET_NUPKG_SHA256 = (
+    "7ff7a30aecc20302ace0de0473ac9fd91a2fae1053d278f48510cffb4dff232e"
+)
 
 
 def utc_now() -> str:
@@ -272,6 +285,7 @@ def tool_scopes(tool_id: str) -> list[str]:
         "cargo",
         "composer",
         "go",
+        "nuget",
         "rubygems",
         "rustup",
     }:
@@ -328,6 +342,24 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "nuget"
+        and upstream_key == NUGET_RUNTIME_UPSTREAM
+        and entry["provider_id"] in NUGET_ACTIONABLE_PROVIDERS
+    ):
+        return [
+            {"role": "index", "protocol": "https", "url": NUGET_INDEX_ENDPOINT},
+            {
+                "role": "metadata",
+                "protocol": "https",
+                "url": NUGET_REGISTRATION_ENDPOINT,
+            },
+            {
+                "role": "artifacts",
+                "protocol": "https",
+                "url": NUGET_FLAT_ENDPOINT,
+            },
+        ]
     if (
         tool_id == "composer"
         and upstream_key == COMPOSER_RUNTIME_UPSTREAM
@@ -778,6 +810,66 @@ def runtime_properties(
                 "path": "/sumdb/sum.golang.org/lookup/github.com/pkg/errors@v0.9.1",
                 "expected_status": [200, 206],
                 "contains": "github.com/pkg/errors v0.9.1 h1:",
+            },
+        ]
+    elif (
+        tool_id == "nuget"
+        and upstream_key == NUGET_RUNTIME_UPSTREAM
+        and entry["provider_id"] in NUGET_ACTIONABLE_PROVIDERS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ["v3"]
+        delivery_mode = "proxy"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/index.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": "PackageBaseAddress/3.0.0",
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/index.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": NUGET_REGISTRATION_ENDPOINT,
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/nuget.versioning/index.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": "registration-semver2/nuget.versioning/page/",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/nuget.versioning/page/6.0.5/7.9.0.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": '"version":"6.12.1"',
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/nuget.versioning/index.json",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/json",
+                "contains": '"6.12.1"',
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/nuget.versioning/6.12.1/nuget.versioning.6.12.1.nupkg",
+                "expected_status": [200, 206],
+                "sha256": NUGET_NUPKG_SHA256,
             },
         ]
     elif (
@@ -1258,6 +1350,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "nix",
                         "npm",
                         "nvm",
+                        "nuget",
                         "opkg",
                         "pdm",
                         "pip",
