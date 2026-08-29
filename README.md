@@ -55,6 +55,7 @@ real-boundary checks have passed.
 - [fnm adapter](docs/adapters/fnm.md)
 - [Go Modules adapter](docs/adapters/go.md)
 - [RubyGems adapter](docs/adapters/rubygems.md)
+- [Bundler adapter](docs/adapters/bundler.md)
 - [Cargo adapter](docs/adapters/cargo.md)
 - [rustup adapter](docs/adapters/rustup.md)
 - [Composer adapter](docs/adapters/composer.md)

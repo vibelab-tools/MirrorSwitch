@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+68ca77b1595c",
-  "content_revision": 202608290033,
-  "generated_at": "2026-08-29T11:45:00Z",
+  "content_version": "2026.08.28+5109331f107a",
+  "content_revision": 202608290034,
+  "generated_at": "2026-08-29T12:45:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1516,12 +1516,11 @@
       "id": "bundler",
       "adapter_key": "bundler",
       "display_name": "bundler",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/58",
       "supported_scopes": [
         "user",
-        "project",
-        "environment"
+        "project"
       ],
       "composition": "single"
     },
@@ -2782,43 +2781,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/ros2.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "0462dce361de903f24023c8f",
-      "provider_id": "tuna",
-      "upstream_id": "rubygems--language-registry",
-      "tool_id": "bundler",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rubygems"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/rubygems/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -9401,6 +9363,86 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "4b533d273183d70fc6382e02",
+      "provider_id": "nju",
+      "upstream_id": "rubygems--language-registry",
+      "tool_id": "bundler",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rubygems"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/rubygems/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/rubygems/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/rubygems/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/specs.4.8.gz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/quick/Marshal.4.8/net-protocol-0.3.0.gemspec.rz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "19ecdd263f82ef67af89a112014f1905b4074d831b7ecfa67d64eb3fc6359229"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/gems/net-protocol-0.3.0.gem",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "ba310c3d4f1cad46bb1ab20336b06669b1ff8f7c568d9cb9342b32a718547472"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "4b8a4b374ae9ffa4604d4b04",
       "provider_id": "nju",
       "upstream_id": "pypi--language-registry",
@@ -10347,6 +10389,97 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "576ea759ff5157923f9403bf",
+      "provider_id": "tuna",
+      "upstream_id": "rubygems--language-registry",
+      "tool_id": "bundler",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rubygems"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/rubygems/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/rubygems/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/rubygems/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/versions",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/info/net-protocol",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "text/plain",
+          "contains": "0.3.0 "
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/info/net-protocol",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "text/plain",
+          "contains": "timeout:>= 0"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/gems/net-protocol-0.3.0.gem",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "ba310c3d4f1cad46bb1ab20336b06669b1ff8f7c568d9cb9342b32a718547472"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -11428,43 +11561,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "62ad611c5739cae3479b1850",
-      "provider_id": "ustc",
-      "upstream_id": "rubygems--language-registry",
-      "tool_id": "bundler",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rubygems"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/rubygems/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/rubygems.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "632787a9a0de9aba976e78dd",
       "provider_id": "aliyun",
       "upstream_id": "debian-backports--repository-metadata",
@@ -12183,6 +12279,97 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "6f4513793da6e9c4ff2d3a24",
+      "provider_id": "ustc",
+      "upstream_id": "rubygems--language-registry",
+      "tool_id": "bundler",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rubygems"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/rubygems/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/rubygems/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/rubygems/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/versions",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/info/net-protocol",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "text/plain",
+          "contains": "0.3.0 "
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/info/net-protocol",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "text/plain",
+          "contains": "timeout:>= 0"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/gems/net-protocol-0.3.0.gem",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "ba310c3d4f1cad46bb1ab20336b06669b1ff8f7c568d9cb9342b32a718547472"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/rubygems.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -14774,43 +14961,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "895547fe486bd5dae3980dce",
-      "provider_id": "nju",
-      "upstream_id": "rubygems--language-registry",
-      "tool_id": "bundler",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rubygems"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/rubygems/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "8a9995f373144aa9173cb09b",
       "provider_id": "nju",
       "upstream_id": "homebrew-cask--git-mirror",
@@ -16924,43 +17074,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "a585c34d7b0c03bdcc3babda",
-      "provider_id": "aliyun",
-      "upstream_id": "rubygems--language-registry",
-      "tool_id": "bundler",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "rubygems"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/rubygems/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "a5c7929c1af8c433c18e4a27",
       "provider_id": "huaweicloud",
       "upstream_id": "mariadb--static-files",
@@ -17114,6 +17227,86 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "a765b85096657b95537b2909",
+      "provider_id": "aliyun",
+      "upstream_id": "rubygems--language-registry",
+      "tool_id": "bundler",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rubygems"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/rubygems/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/rubygems/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/rubygems/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/specs.4.8.gz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/quick/Marshal.4.8/net-protocol-0.3.0.gemspec.rz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "19ecdd263f82ef67af89a112014f1905b4074d831b7ecfa67d64eb3fc6359229"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/gems/net-protocol-0.3.0.gem",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "ba310c3d4f1cad46bb1ab20336b06669b1ff8f7c568d9cb9342b32a718547472"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

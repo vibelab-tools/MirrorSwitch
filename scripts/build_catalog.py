@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "33"
+CATALOG_FORMAT_REVISION = "34"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -195,6 +195,11 @@ RUBYGEMS_ENDPOINTS = {
 RUBYGEMS_GEM_SHA256 = (
     "ba310c3d4f1cad46bb1ab20336b06669b1ff8f7c568d9cb9342b32a718547472"
 )
+BUNDLER_CLASSIC_GEMSPEC_SHA256 = (
+    "19ecdd263f82ef67af89a112014f1905b4074d831b7ecfa67d64eb3fc6359229"
+)
+BUNDLER_ACTIONABLE_PROVIDERS = {"aliyun", "nju", "tuna", "ustc"}
+BUNDLER_COMPACT_PROVIDERS = {"tuna", "ustc"}
 CARGO_SPARSE_UPSTREAM = "crates.io-index--language-registry"
 CARGO_SPARSE_ACTIONABLE_PROVIDERS = {"aliyun", "nju", "ustc"}
 CARGO_SPARSE_INDEX_ENDPOINTS = {
@@ -289,6 +294,8 @@ def runtime_upstream_identity(
 
 
 def tool_scopes(tool_id: str) -> list[str]:
+    if tool_id == "bundler":
+        return ["user", "project"]
     if tool_id in NODE_DISTRIBUTION_TOOLS or tool_id in {
         "cargo",
         "cabal",
@@ -351,6 +358,17 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "bundler"
+        and upstream_key == RUBYGEMS_RUNTIME_UPSTREAM
+        and entry["provider_id"] in BUNDLER_ACTIONABLE_PROVIDERS
+    ):
+        endpoint = RUBYGEMS_ENDPOINTS[entry["provider_id"]]
+        return [
+            {"role": "index", "protocol": "https", "url": endpoint},
+            {"role": "metadata", "protocol": "https", "url": endpoint},
+            {"role": "artifacts", "protocol": "https", "url": endpoint},
+        ]
     if (
         tool_id == "cabal"
         and upstream_key == CABAL_RUNTIME_UPSTREAM
@@ -1012,6 +1030,74 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "bundler"
+        and upstream_key == RUBYGEMS_RUNTIME_UPSTREAM
+        and entry["provider_id"] in BUNDLER_ACTIONABLE_PROVIDERS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "mirror"
+        if entry["provider_id"] in BUNDLER_COMPACT_PROVIDERS:
+            probes = [
+                {
+                    "endpoint_role": "index",
+                    "method": "head",
+                    "path": "/versions",
+                    "expected_status": [200, 206],
+                },
+                {
+                    "endpoint_role": "metadata",
+                    "method": "get",
+                    "path": "/info/net-protocol",
+                    "expected_status": [200, 206],
+                    "expected_content_type": "text/plain",
+                    "contains": "0.3.0 ",
+                },
+                {
+                    "endpoint_role": "metadata",
+                    "method": "get",
+                    "path": "/info/net-protocol",
+                    "expected_status": [200, 206],
+                    "expected_content_type": "text/plain",
+                    "contains": "timeout:>= 0",
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/gems/net-protocol-0.3.0.gem",
+                    "expected_status": [200, 206],
+                    "expected_content_type": "application/octet-stream",
+                    "sha256": RUBYGEMS_GEM_SHA256,
+                },
+            ]
+        else:
+            probes = [
+                {
+                    "endpoint_role": "index",
+                    "method": "head",
+                    "path": "/specs.4.8.gz",
+                    "expected_status": [200, 206],
+                },
+                {
+                    "endpoint_role": "metadata",
+                    "method": "get",
+                    "path": "/quick/Marshal.4.8/net-protocol-0.3.0.gemspec.rz",
+                    "expected_status": [200, 206],
+                    "expected_content_type": "application/octet-stream",
+                    "sha256": BUNDLER_CLASSIC_GEMSPEC_SHA256,
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/gems/net-protocol-0.3.0.gem",
+                    "expected_status": [200, 206],
+                    "expected_content_type": "application/octet-stream",
+                    "sha256": RUBYGEMS_GEM_SHA256,
+                },
+            ]
+    elif (
         tool_id == "rubygems"
         and upstream_key == RUBYGEMS_RUNTIME_UPSTREAM
         and entry["provider_id"] in RUBYGEMS_ACTIONABLE_PROVIDERS
@@ -1415,6 +1501,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                     in {
                         "apk",
                         "apt",
+                        "bundler",
                         "cabal",
                         "cargo",
                         "composer",

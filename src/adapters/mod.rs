@@ -1,5 +1,6 @@
 mod apk;
 mod apt;
+mod bundler;
 mod cabal;
 mod cargo;
 mod composer;
@@ -36,6 +37,7 @@ use crate::Adapter;
 
 pub use apk::ApkAdapter;
 pub use apt::AptAdapter;
+pub use bundler::BundlerAdapter;
 pub use cabal::CabalAdapter;
 pub use cargo::CargoAdapter;
 pub use composer::ComposerAdapter;
@@ -68,6 +70,7 @@ pub use zypper::ZypperAdapter;
 
 static APK: ApkAdapter = ApkAdapter;
 static APT: AptAdapter = AptAdapter;
+static BUNDLER: BundlerAdapter = BundlerAdapter;
 static CABAL: CabalAdapter = CabalAdapter;
 static CARGO: CargoAdapter = CargoAdapter;
 static CONDA: CondaAdapter = CondaAdapter;
@@ -102,7 +105,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
         &APT, &DNF, &YUM, &PACMAN, &ZYPPER, &PORTAGE, &APK, &XBPS, &NIX, &GUIX, &FLATPAK, &OPKG,
         &PIP, &PDM, &POETRY, &UV, &NPM, &YARN, &PNPM, &CONDA, &GRADLE, &MAVEN, &NVM, &FNM, &GO,
-        &RUBYGEMS, &CARGO, &RUSTUP, &COMPOSER, &NUGET, &CABAL,
+        &RUBYGEMS, &BUNDLER, &CARGO, &RUSTUP, &COMPOSER, &NUGET, &CABAL,
     ]
 }
 
