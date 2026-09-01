@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "45"
+CATALOG_FORMAT_REVISION = "46"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -370,6 +370,29 @@ PYENV_ARCHIVE_SHA256 = (
 PYENV_SIGNATURE_SHA256 = (
     "ae37dfde764ccb50a8ad649940bdeba47c93ef99be2501db9759894b7c2b5b9d"
 )
+BAZEL_RELEASE_UPSTREAM = "bazel--release-artifacts"
+BAZEL_APT_UPSTREAM = "bazel-apt--repository-metadata"
+BAZEL_VERSION = "9.2.0"
+BAZEL_HUAWEI_ENDPOINT = "https://repo.huaweicloud.com/bazel/"
+BAZEL_APT_ENDPOINTS = {
+    "nju": "https://mirrors.nju.edu.cn/bazel-apt/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/bazel-apt/",
+}
+BAZEL_X64_SHA256 = (
+    "7668a95db1250f12c40407251e4e203b4ec8bf39bc495d2f485b2d8c99048694"
+)
+BAZEL_ARM64_SHA256 = (
+    "049dd21f40ad979db11c3ee68c96a42ce75f1185e69ac61ab20de1501427a410"
+)
+BAZEL_X64_CHECKSUM_FILE_SHA256 = (
+    "b1703900c78dfc49f1f332aeee87217fe49741035c086d6a2131889a8df92c00"
+)
+BAZEL_ARM64_CHECKSUM_FILE_SHA256 = (
+    "e4e30d2abf88528f8046ffeeb2b1fd4e4abdc42c7db1f4de84f85856f93a1d80"
+)
+BAZEL_DEB_SHA256 = (
+    "7c54a526c195f1b1a404372eb05cf1d7a5ede898bf6f8e791febd0f25bff8e0b"
+)
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -443,6 +466,10 @@ def runtime_upstream_identity(
         return "flutter", "release-artifacts"
     if tool_id == "pyenv" and entry["raw_name"] in {"python", "python-release"}:
         return "python-releases", "release-artifacts"
+    if tool_id == "bazel" and entry["raw_name"] == "bazel":
+        return "bazel", "release-artifacts"
+    if tool_id == "bazel" and entry["raw_name"] == "bazel-apt":
+        return "bazel-apt", "repository-metadata"
     return entry["normalized_upstream"], entry["content_type"]
 
 
@@ -486,6 +513,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["user"]
     if tool_id == "pyenv":
         return ["user"]
+    if tool_id == "bazel":
+        return ["system", "user"]
     if tool_id in {
         "maven",
         "sbt",
@@ -547,6 +576,21 @@ def candidate_endpoints(
         and entry["raw_name"] == "python"
     ):
         endpoint = PYENV_ENDPOINTS[entry["provider_id"]]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "artifacts"]
+        ]
+    if tool_id == "bazel" and upstream_key == BAZEL_RELEASE_UPSTREAM:
+        return [
+            {"role": role, "protocol": "https", "url": BAZEL_HUAWEI_ENDPOINT}
+            for role in ["index", "metadata", "artifacts"]
+        ]
+    if (
+        tool_id == "bazel"
+        and upstream_key == BAZEL_APT_UPSTREAM
+        and entry["provider_id"] in BAZEL_APT_ENDPOINTS
+    ):
+        endpoint = BAZEL_APT_ENDPOINTS[entry["provider_id"]]
         return [
             {"role": role, "protocol": "https", "url": endpoint}
             for role in ["index", "metadata", "artifacts"]
@@ -2308,6 +2352,97 @@ def runtime_properties(
                 "sha256": PYENV_ARCHIVE_SHA256,
             },
         ]
+    elif tool_id == "bazel" and upstream_key == BAZEL_RELEASE_UPSTREAM:
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = [BAZEL_VERSION]
+        delivery_mode = "mirror"
+        release_root = f"/{BAZEL_VERSION}"
+        x64 = f"bazel-{BAZEL_VERSION}-linux-x86_64"
+        arm64 = f"bazel-{BAZEL_VERSION}-linux-arm64"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": f"{release_root}/",
+                "expected_status": [200],
+                "contains": x64,
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": f"{release_root}/{x64}.sha256",
+                "expected_status": [200],
+                "contains": BAZEL_X64_SHA256,
+                "sha256": BAZEL_X64_CHECKSUM_FILE_SHA256,
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": f"{release_root}/{arm64}.sha256",
+                "expected_status": [200],
+                "contains": BAZEL_ARM64_SHA256,
+                "sha256": BAZEL_ARM64_CHECKSUM_FILE_SHA256,
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": f"{release_root}/{x64}",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": f"{release_root}/{arm64}",
+                "expected_status": [200],
+            },
+        ]
+    elif (
+        tool_id == "bazel"
+        and upstream_key == BAZEL_APT_UPSTREAM
+        and entry["provider_id"] in BAZEL_APT_ENDPOINTS
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = [
+            {"id": "debian", "versions": [], "codenames": []},
+            {"id": "ubuntu", "versions": [], "codenames": []},
+        ]
+        compatibility["repository_versions"] = [BAZEL_VERSION]
+        delivery_mode = "mirror"
+        deb = f"bazel_{BAZEL_VERSION}_amd64.deb"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/dists/stable/jdk1.8/binary-amd64/Packages",
+                "expected_status": [200],
+                "contains": BAZEL_DEB_SHA256,
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/dists/stable/InRelease",
+                "expected_status": [200],
+                "contains": "Origin: Bazel Authors",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/dists/stable/Release",
+                "expected_status": [200],
+                "contains": "Architectures: amd64",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": f"/pool/jdk1.8/b/bazel/{deb}",
+                "expected_status": [200],
+            },
+        ]
     elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
@@ -2511,6 +2646,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                     in {
                         "apk",
                         "apt",
+                        "bazel",
                         "bioconductor",
                         "bundler",
                         "cabal",

@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+815d771cbe5b",
-  "content_revision": 20260901052329,
-  "generated_at": "2026-09-01T05:23:29Z",
+  "content_version": "2026.08.28+5b041208c2bb",
+  "content_revision": 20260901061000,
+  "generated_at": "2026-09-01T06:10:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -119,19 +119,19 @@
       ]
     },
     {
-      "id": "bazel--static-files",
+      "id": "bazel--release-artifacts",
       "family": "bazel",
       "display_name": "bazel",
-      "content_kind": "static-files",
+      "content_kind": "release-artifacts",
       "aliases": [
         "bazel"
       ]
     },
     {
-      "id": "bazel-apt--static-files",
+      "id": "bazel-apt--repository-metadata",
       "family": "bazel-apt",
       "display_name": "bazel-apt",
-      "content_kind": "static-files",
+      "content_kind": "repository-metadata",
       "aliases": [
         "bazel-apt"
       ]
@@ -1483,12 +1483,11 @@
       "id": "bazel",
       "adapter_key": "bazel",
       "display_name": "bazel",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/70",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "system",
+        "user"
       ],
       "composition": "single"
     },
@@ -13276,6 +13275,102 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "659d07478ba56bad2ac6a7bb",
+      "provider_id": "tuna",
+      "upstream_id": "bazel-apt--repository-metadata",
+      "tool_id": "bazel",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "bazel-apt"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/bazel-apt/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/bazel-apt/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/bazel-apt/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          },
+          {
+            "id": "ubuntu",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": [
+          "9.2.0"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/dists/stable/jdk1.8/binary-amd64/Packages",
+          "expected_status": [
+            200
+          ],
+          "contains": "7c54a526c195f1b1a404372eb05cf1d7a5ede898bf6f8e791febd0f25bff8e0b"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/stable/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: Bazel Authors"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/stable/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architectures: amd64"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/pool/jdk1.8/b/bazel/bazel_9.2.0_amd64.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "688d907573a52aeb7df42571",
       "provider_id": "huaweicloud",
       "upstream_id": "centos--repository-metadata",
@@ -14490,36 +14585,6 @@
           "role": "artifacts",
           "protocol": "https",
           "url": "https://mirrors.nju.edu.cn/gitlab-runner/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "7827564b709ea2627557a3d4",
-      "provider_id": "nju",
-      "upstream_id": "bazel-apt--static-files",
-      "tool_id": "bazel",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "bazel-apt"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/bazel-apt/"
         }
       ],
       "compatibility": {
@@ -15761,36 +15826,6 @@
           ]
         }
       ],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "82a0991f461f9d81e8f9ebf7",
-      "provider_id": "tuna",
-      "upstream_id": "bazel-apt--static-files",
-      "tool_id": "bazel",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "bazel-apt"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/bazel-apt/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
@@ -21158,6 +21193,102 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "b7a22d794810ee0ccd00e9e1",
+      "provider_id": "huaweicloud",
+      "upstream_id": "bazel--release-artifacts",
+      "tool_id": "bazel",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "bazel"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/bazel/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/bazel/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/bazel/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "9.2.0"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/9.2.0/",
+          "expected_status": [
+            200
+          ],
+          "contains": "bazel-9.2.0-linux-x86_64"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/9.2.0/bazel-9.2.0-linux-x86_64.sha256",
+          "expected_status": [
+            200
+          ],
+          "contains": "7668a95db1250f12c40407251e4e203b4ec8bf39bc495d2f485b2d8c99048694",
+          "sha256": "b1703900c78dfc49f1f332aeee87217fe49741035c086d6a2131889a8df92c00"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/9.2.0/bazel-9.2.0-linux-arm64.sha256",
+          "expected_status": [
+            200
+          ],
+          "contains": "049dd21f40ad979db11c3ee68c96a42ce75f1185e69ac61ab20de1501427a410",
+          "sha256": "e4e30d2abf88528f8046ffeeb2b1fd4e4abdc42c7db1f4de84f85856f93a1d80"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/9.2.0/bazel-9.2.0-linux-x86_64",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/9.2.0/bazel-9.2.0-linux-arm64",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "b7d5f62b15a563bc7df9ce3e",
       "provider_id": "ustc",
       "upstream_id": "nodejs--release-artifacts",
@@ -24547,6 +24678,102 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "d323c6c0e07e29ce0363ce3e",
+      "provider_id": "nju",
+      "upstream_id": "bazel-apt--repository-metadata",
+      "tool_id": "bazel",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "bazel-apt"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/bazel-apt/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/bazel-apt/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/bazel-apt/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "debian",
+            "versions": [],
+            "codenames": []
+          },
+          {
+            "id": "ubuntu",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": [
+          "9.2.0"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/dists/stable/jdk1.8/binary-amd64/Packages",
+          "expected_status": [
+            200
+          ],
+          "contains": "7c54a526c195f1b1a404372eb05cf1d7a5ede898bf6f8e791febd0f25bff8e0b"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/stable/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: Bazel Authors"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/dists/stable/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architectures: amd64"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/pool/jdk1.8/b/bazel/bazel_9.2.0_amd64.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "d336886d626dfc6e9137c8e8",
       "provider_id": "aliyun",
       "upstream_id": "ctan--language-registry",
@@ -25958,36 +26185,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "e4083af6e811f7a1897875a6",
-      "provider_id": "huaweicloud",
-      "upstream_id": "bazel--static-files",
-      "tool_id": "bazel",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "bazel"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/bazel/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

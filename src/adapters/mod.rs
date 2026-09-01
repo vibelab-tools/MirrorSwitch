@@ -1,5 +1,6 @@
 mod apk;
 mod apt;
+mod bazel;
 mod bioconductor;
 mod bundler;
 mod cabal;
@@ -48,6 +49,7 @@ use crate::Adapter;
 
 pub use apk::ApkAdapter;
 pub use apt::AptAdapter;
+pub use bazel::BazelAdapter;
 pub use bioconductor::BioconductorAdapter;
 pub use bundler::BundlerAdapter;
 pub use cabal::CabalAdapter;
@@ -92,6 +94,7 @@ pub use zypper::ZypperAdapter;
 
 static APK: ApkAdapter = ApkAdapter;
 static APT: AptAdapter = AptAdapter;
+static BAZEL: BazelAdapter = BazelAdapter;
 static BIOCONDUCTOR: BioconductorAdapter = BioconductorAdapter;
 static BUNDLER: BundlerAdapter = BundlerAdapter;
 static CABAL: CabalAdapter = CabalAdapter;
@@ -179,6 +182,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &CPAN,
         &CRAN,
         &PYENV,
+        &BAZEL,
     ]
 }
 
