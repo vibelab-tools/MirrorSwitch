@@ -24,6 +24,7 @@ mod nix;
 mod npm;
 mod nuget;
 mod nvm;
+mod opam;
 mod opkg;
 mod pacman;
 mod pdm;
@@ -73,6 +74,7 @@ pub use nix::NixAdapter;
 pub use npm::NpmAdapter;
 pub use nuget::NugetAdapter;
 pub use nvm::NvmAdapter;
+pub use opam::OpamAdapter;
 pub use opkg::OpkgAdapter;
 pub use pacman::PacmanAdapter;
 pub use pdm::PdmAdapter;
@@ -119,6 +121,7 @@ static NVM: NvmAdapter = NvmAdapter;
 static NPM: NpmAdapter = NpmAdapter;
 static NUGET: NugetAdapter = NugetAdapter;
 static OPKG: OpkgAdapter = OpkgAdapter;
+static OPAM: OpamAdapter = OpamAdapter;
 static PACMAN: PacmanAdapter = PacmanAdapter;
 static PDM: PdmAdapter = PdmAdapter;
 static PIP: PipAdapter = PipAdapter;
@@ -183,6 +186,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &CRAN,
         &PYENV,
         &BAZEL,
+        &OPAM,
     ]
 }
 

@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "46"
+CATALOG_FORMAT_REVISION = "47"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -393,6 +393,14 @@ BAZEL_ARM64_CHECKSUM_FILE_SHA256 = (
 BAZEL_DEB_SHA256 = (
     "7c54a526c195f1b1a404372eb05cf1d7a5ede898bf6f8e791febd0f25bff8e0b"
 )
+OPAM_REPOSITORY_UPSTREAM = "opam-repository--git-mirror"
+OPAM_CACHE_UPSTREAM = "opam-cache--binary-cache"
+OPAM_REPOSITORY_ENDPOINT = "https://mirrors.nju.edu.cn/git/opam-repository.git"
+OPAM_CACHE_ENDPOINT = "https://mirror.sjtu.edu.cn/opam-cache/"
+OPAM_REPOSITORY_REVISION = "3884cbee403b0a4e2211b428d54928e6e69434cc"
+OPAM_CACHE_SHA256 = (
+    "61f0b75950614ac5378c6ec0d822cce6463402d919d5810b736fc46522b3a73e"
+)
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -470,6 +478,8 @@ def runtime_upstream_identity(
         return "bazel", "release-artifacts"
     if tool_id == "bazel" and entry["raw_name"] == "bazel-apt":
         return "bazel-apt", "repository-metadata"
+    if tool_id == "opam" and entry["raw_name"] == "opam-cache":
+        return "opam-cache", "binary-cache"
     return entry["normalized_upstream"], entry["content_type"]
 
 
@@ -515,6 +525,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["user"]
     if tool_id == "bazel":
         return ["system", "user"]
+    if tool_id == "opam":
+        return ["user"]
     if tool_id in {
         "maven",
         "sbt",
@@ -593,6 +605,21 @@ def candidate_endpoints(
         endpoint = BAZEL_APT_ENDPOINTS[entry["provider_id"]]
         return [
             {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "artifacts"]
+        ]
+    if (
+        tool_id == "opam"
+        and upstream_key == OPAM_REPOSITORY_UPSTREAM
+        and entry["public_endpoints"][0]["url"].rstrip("/")
+        == OPAM_REPOSITORY_ENDPOINT
+    ):
+        return [
+            {"role": role, "protocol": "https", "url": OPAM_REPOSITORY_ENDPOINT}
+            for role in ["index", "metadata", "artifacts"]
+        ]
+    if tool_id == "opam" and upstream_key == OPAM_CACHE_UPSTREAM:
+        return [
+            {"role": role, "protocol": "https", "url": OPAM_CACHE_ENDPOINT}
             for role in ["index", "metadata", "artifacts"]
         ]
     if (
@@ -2444,6 +2471,69 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "opam"
+        and upstream_key == OPAM_REPOSITORY_UPSTREAM
+        and entry["public_endpoints"][0]["url"].rstrip("/")
+        == OPAM_REPOSITORY_ENDPOINT
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = [OPAM_REPOSITORY_REVISION]
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/info/refs",
+                "expected_status": [200],
+                "contains": OPAM_REPOSITORY_REVISION,
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/HEAD",
+                "expected_status": [200],
+                "contains": "ref: refs/heads/master",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/objects/info/packs",
+                "expected_status": [200],
+                "contains": "P pack-",
+            },
+        ]
+    elif tool_id == "opam" and upstream_key == OPAM_CACHE_UPSTREAM:
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "proxy"
+        cache_path = f"/sha256/61/{OPAM_CACHE_SHA256}"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "head",
+                "path": cache_path,
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": cache_path,
+                "expected_status": [200],
+                "sha256": OPAM_CACHE_SHA256,
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": cache_path,
+                "expected_status": [200],
+            },
+        ]
+    elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
@@ -2676,6 +2766,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "nvm",
                         "nuget",
                         "opkg",
+                        "opam",
                         "pdm",
                         "pip",
                         "pnpm",

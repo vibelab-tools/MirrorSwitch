@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+5b041208c2bb",
-  "content_revision": 20260901061000,
-  "generated_at": "2026-09-01T06:10:00Z",
+  "content_version": "2026.08.28+8fa69311f0a3",
+  "content_revision": 20260901071512,
+  "generated_at": "2026-09-01T07:15:12Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1088,10 +1088,10 @@
       ]
     },
     {
-      "id": "opam-cache--language-registry",
+      "id": "opam-cache--binary-cache",
       "family": "opam-cache",
       "display_name": "opam-cache",
-      "content_kind": "language-registry",
+      "content_kind": "binary-cache",
       "aliases": [
         "opam-cache"
       ]
@@ -2037,12 +2037,10 @@
       "id": "opam",
       "adapter_key": "opam",
       "display_name": "opam",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/71",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "user"
       ],
       "composition": "single"
     },
@@ -14075,43 +14073,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "70b4ff73160a968a9e5b5ee6",
-      "provider_id": "sjtug",
-      "upstream_id": "opam-cache--language-registry",
-      "tool_id": "opam",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "opam-cache"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/opam-cache/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "7120f0fae7f24d4a319cce69",
       "provider_id": "sjtug",
       "upstream_id": "debian-ports--repository-metadata",
@@ -14310,6 +14271,84 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "726886361195cd6c1ccb2b46",
+      "provider_id": "nju",
+      "upstream_id": "opam-repository--git-mirror",
+      "tool_id": "opam",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "opam-repository.git"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/opam-repository.git"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/opam-repository.git"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/opam-repository.git"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "3884cbee403b0a4e2211b428d54928e6e69434cc"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/info/refs",
+          "expected_status": [
+            200
+          ],
+          "contains": "3884cbee403b0a4e2211b428d54928e6e69434cc"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/HEAD",
+          "expected_status": [
+            200
+          ],
+          "contains": "ref: refs/heads/master"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/objects/info/packs",
+          "expected_status": [
+            200
+          ],
+          "contains": "P pack-"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17065,43 +17104,6 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "90dc4eb1c2f88692f83715b9",
-      "provider_id": "nju",
-      "upstream_id": "opam-repository--git-mirror",
-      "tool_id": "opam",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "opam-repository.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/opam-repository.git"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -26445,6 +26447,80 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "e6bf6ac2010cbc8e2c58f43c",
+      "provider_id": "sjtug",
+      "upstream_id": "opam-cache--binary-cache",
+      "tool_id": "opam",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "opam-cache"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/opam-cache/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/opam-cache/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/opam-cache/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/sha256/61/61f0b75950614ac5378c6ec0d822cce6463402d919d5810b736fc46522b3a73e",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/sha256/61/61f0b75950614ac5378c6ec0d822cce6463402d919d5810b736fc46522b3a73e",
+          "expected_status": [
+            200
+          ],
+          "sha256": "61f0b75950614ac5378c6ec0d822cce6463402d919d5810b736fc46522b3a73e"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/sha256/61/61f0b75950614ac5378c6ec0d822cce6463402d919d5810b736fc46522b3a73e",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
