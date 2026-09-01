@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "43"
+CATALOG_FORMAT_REVISION = "44"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -348,6 +348,13 @@ CPAN_RUNTIME_UPSTREAM = "cpan--language-registry"
 CPAN_TRY_TINY_SHA256 = (
     "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
 )
+CRAN_RUNTIME_UPSTREAM = "cran--language-registry"
+CRAN_DIGEST_DESCRIPTION_SHA256 = (
+    "07dcde79e44828236433e7de97be2e49b8f4e689b262160fff1a76b300a71043"
+)
+CRAN_DIGEST_ARCHIVE_SHA256 = (
+    "8bf048b49b2d17077138fae758bda56bbd53278d9437f2fdeaedf979c90a13c9"
+)
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -458,6 +465,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["user"]
     if tool_id == "cpan":
         return ["user"]
+    if tool_id == "cran":
+        return ["user"]
     if tool_id in {
         "maven",
         "sbt",
@@ -501,6 +510,12 @@ def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
     if tool_id == "cpan" and upstream_key == CPAN_RUNTIME_UPSTREAM:
+        endpoint = entry["public_endpoints"][0]["url"]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "artifacts"]
+        ]
+    if tool_id == "cran" and upstream_key == CRAN_RUNTIME_UPSTREAM:
         endpoint = entry["public_endpoints"][0]["url"]
         return [
             {"role": role, "protocol": "https", "url": endpoint}
@@ -2185,6 +2200,41 @@ def runtime_properties(
                 "sha256": CPAN_TRY_TINY_SHA256,
             },
         ]
+    elif tool_id == "cran" and upstream_key == CRAN_RUNTIME_UPSTREAM:
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "head",
+                "path": "/src/contrib/PACKAGES.gz",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/web/packages/digest/DESCRIPTION",
+                "expected_status": [200],
+                "contains": "Version: 0.6.39",
+                "sha256": CRAN_DIGEST_DESCRIPTION_SHA256,
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": "/src/contrib/digest_0.6.39.tar.gz",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/src/contrib/digest_0.6.39.tar.gz",
+                "expected_status": [200],
+                "sha256": CRAN_DIGEST_ARCHIVE_SHA256,
+            },
+        ]
     elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
@@ -2384,6 +2434,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "composer",
                         "conda",
                         "cpan",
+                        "cran",
                         "dnf",
                         "dart-pub",
                         "flatpak",

@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+55e92fbf234b",
-  "content_revision": 20260901035116,
-  "generated_at": "2026-09-01T03:51:16Z",
+  "content_version": "2026.08.28+c896990272cd",
+  "content_revision": 20260901044247,
+  "generated_at": "2026-09-01T04:42:47Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1609,12 +1609,10 @@
       "id": "cran",
       "adapter_key": "cran",
       "display_name": "cran",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/68",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "user"
       ],
       "composition": "single"
     },
@@ -6150,6 +6148,90 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "20b0bd560d9bb6863d25aa18",
+      "provider_id": "tuna",
+      "upstream_id": "cran--language-registry",
+      "tool_id": "cran",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CRAN"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/CRAN/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/CRAN/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/CRAN/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/src/contrib/PACKAGES.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/web/packages/digest/DESCRIPTION",
+          "expected_status": [
+            200
+          ],
+          "contains": "Version: 0.6.39",
+          "sha256": "07dcde79e44828236433e7de97be2e49b8f4e689b262160fff1a76b300a71043"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/src/contrib/digest_0.6.39.tar.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/src/contrib/digest_0.6.39.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "sha256": "8bf048b49b2d17077138fae758bda56bbd53278d9437f2fdeaedf979c90a13c9"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "20eb424ac9d189874672a21e",
       "provider_id": "huaweicloud",
       "upstream_id": "pypi--language-registry",
@@ -9938,6 +10020,90 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "489feb761d0e607669ed7ae0",
+      "provider_id": "nju",
+      "upstream_id": "cran--language-registry",
+      "tool_id": "cran",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CRAN"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/CRAN/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/CRAN/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/CRAN/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/src/contrib/PACKAGES.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/web/packages/digest/DESCRIPTION",
+          "expected_status": [
+            200
+          ],
+          "contains": "Version: 0.6.39",
+          "sha256": "07dcde79e44828236433e7de97be2e49b8f4e689b262160fff1a76b300a71043"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/src/contrib/digest_0.6.39.tar.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/src/contrib/digest_0.6.39.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "sha256": "8bf048b49b2d17077138fae758bda56bbd53278d9437f2fdeaedf979c90a13c9"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "494dfda326b8f8497122786b",
       "provider_id": "nju",
       "upstream_id": "scoop-main--git-mirror",
@@ -10658,6 +10824,90 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "503bb03c2d5635b4db850705",
+      "provider_id": "ustc",
+      "upstream_id": "cran--language-registry",
+      "tool_id": "cran",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CRAN"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/CRAN/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/CRAN/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/CRAN/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/src/contrib/PACKAGES.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/web/packages/digest/DESCRIPTION",
+          "expected_status": [
+            200
+          ],
+          "contains": "Version: 0.6.39",
+          "sha256": "07dcde79e44828236433e7de97be2e49b8f4e689b262160fff1a76b300a71043"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/src/contrib/digest_0.6.39.tar.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/src/contrib/digest_0.6.39.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "sha256": "8bf048b49b2d17077138fae758bda56bbd53278d9437f2fdeaedf979c90a13c9"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/CRAN.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -16289,43 +16539,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "8cd514f10af69e9b1e83879e",
-      "provider_id": "tuna",
-      "upstream_id": "cran--language-registry",
-      "tool_id": "cran",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "CRAN"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/CRAN/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "8d3065824318f91dfddb043e",
       "provider_id": "aliyun",
       "upstream_id": "homebrew--static-files",
@@ -18549,43 +18762,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "a4b76fe05a39253cacf2e11e",
-      "provider_id": "nju",
-      "upstream_id": "cran--language-registry",
-      "tool_id": "cran",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "CRAN"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/CRAN/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "a4c952ae48679e69a1a761a5",
       "provider_id": "aliyun",
       "upstream_id": "blackarch--repository-metadata",
@@ -19505,43 +19681,6 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "abbb766182fed11260827aaa",
-      "provider_id": "aliyun",
-      "upstream_id": "cran--language-registry",
-      "tool_id": "cran",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "CRAN"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/CRAN/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -24099,6 +24238,90 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "d2e8a22feacc21786e2061c7",
+      "provider_id": "aliyun",
+      "upstream_id": "cran--language-registry",
+      "tool_id": "cran",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CRAN"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/CRAN/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/CRAN/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/CRAN/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/src/contrib/PACKAGES.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/web/packages/digest/DESCRIPTION",
+          "expected_status": [
+            200
+          ],
+          "contains": "Version: 0.6.39",
+          "sha256": "07dcde79e44828236433e7de97be2e49b8f4e689b262160fff1a76b300a71043"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/src/contrib/digest_0.6.39.tar.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/src/contrib/digest_0.6.39.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "sha256": "8bf048b49b2d17077138fae758bda56bbd53278d9437f2fdeaedf979c90a13c9"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "d2f19877f1dfc93275a1eaa0",
       "provider_id": "huaweicloud",
       "upstream_id": "centos-vault--repository-metadata",
@@ -24398,43 +24621,6 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "d43c5d20694e3363fab191a9",
-      "provider_id": "ustc",
-      "upstream_id": "cran--language-registry",
-      "tool_id": "cran",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "CRAN"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/CRAN/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/CRAN.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

@@ -7,6 +7,7 @@ mod cargo;
 mod composer;
 mod conda;
 mod cpan;
+mod cran;
 mod dart_pub;
 mod dnf;
 mod flatpak;
@@ -53,6 +54,7 @@ pub use cargo::CargoAdapter;
 pub use composer::ComposerAdapter;
 pub use conda::CondaAdapter;
 pub use cpan::CpanAdapter;
+pub use cran::CranAdapter;
 pub use dart_pub::DartPubAdapter;
 pub use dnf::DnfAdapter;
 pub use flatpak::FlatpakAdapter;
@@ -95,6 +97,7 @@ static CARGO: CargoAdapter = CargoAdapter;
 static CONDA: CondaAdapter = CondaAdapter;
 static COMPOSER: ComposerAdapter = ComposerAdapter;
 static CPAN: CpanAdapter = CpanAdapter;
+static CRAN: CranAdapter = CranAdapter;
 static DNF: DnfAdapter = DnfAdapter;
 static DART_PUB: DartPubAdapter = DartPubAdapter;
 static FLATPAK: FlatpakAdapter = FlatpakAdapter;
@@ -171,6 +174,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &TLMGR,
         &FLUTTER,
         &CPAN,
+        &CRAN,
     ]
 }
 
