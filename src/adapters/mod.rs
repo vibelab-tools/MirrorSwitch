@@ -32,6 +32,7 @@ mod pacman;
 mod pdm;
 mod pip;
 mod pnpm;
+mod podman_registry;
 mod poetry;
 mod portage;
 mod pyenv;
@@ -84,6 +85,7 @@ pub use pacman::PacmanAdapter;
 pub use pdm::PdmAdapter;
 pub use pip::PipAdapter;
 pub use pnpm::PnpmAdapter;
+pub use podman_registry::PodmanRegistryAdapter;
 pub use poetry::PoetryAdapter;
 pub use portage::PortageAdapter;
 pub use pyenv::PyenvAdapter;
@@ -132,6 +134,7 @@ static PACMAN: PacmanAdapter = PacmanAdapter;
 static PDM: PdmAdapter = PdmAdapter;
 static PIP: PipAdapter = PipAdapter;
 static PNPM: PnpmAdapter = PnpmAdapter;
+static PODMAN_REGISTRY: PodmanRegistryAdapter = PodmanRegistryAdapter;
 static POETRY: PoetryAdapter = PoetryAdapter;
 static PORTAGE: PortageAdapter = PortageAdapter;
 static PYENV: PyenvAdapter = PyenvAdapter;
@@ -167,6 +170,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &NPM,
         &YARN,
         &PNPM,
+        &PODMAN_REGISTRY,
         &CONDA,
         &BIOCONDUCTOR,
         &DART_PUB,

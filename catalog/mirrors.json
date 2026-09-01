@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+b95e677cfd15",
-  "content_revision": 20260901100000,
-  "generated_at": "2026-09-01T10:00:00Z",
+  "content_version": "2026.08.28+ab710a8e1e81",
+  "content_revision": 20260901113000,
+  "generated_at": "2026-09-01T11:30:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -556,9 +556,9 @@
       ]
     },
     {
-      "id": "gcr--container-registry",
-      "family": "gcr",
-      "display_name": "gcr",
+      "id": "gcr.io--container-registry",
+      "family": "gcr.io",
+      "display_name": "gcr.io",
       "content_kind": "container-registry",
       "aliases": [
         "gcr"
@@ -628,9 +628,9 @@
       ]
     },
     {
-      "id": "ghcr--container-registry",
-      "family": "ghcr",
-      "display_name": "ghcr",
+      "id": "ghcr.io--container-registry",
+      "family": "ghcr.io",
+      "display_name": "ghcr.io",
       "content_kind": "container-registry",
       "aliases": [
         "ghcr"
@@ -1229,9 +1229,9 @@
       ]
     },
     {
-      "id": "quay--container-registry",
-      "family": "quay",
-      "display_name": "quay",
+      "id": "quay.io--container-registry",
+      "family": "quay.io",
+      "display_name": "quay.io",
       "content_kind": "container-registry",
       "aliases": [
         "quay"
@@ -2124,10 +2124,11 @@
       "id": "podman-registry",
       "adapter_key": "podman-registry",
       "display_name": "podman-registry",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/76",
       "supported_scopes": [
-        "system"
+        "system",
+        "user"
       ],
       "composition": "single"
     },
@@ -3390,41 +3391,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "066c0f963d5cc644bda57738",
-      "provider_id": "nju",
-      "upstream_id": "quay--container-registry",
-      "tool_id": "podman-registry",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "quay"
-      ],
-      "endpoints": [
-        {
-          "role": "registry",
-          "protocol": "https",
-          "url": "https://quay.nju.edu.cn"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -12708,6 +12674,65 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "5ef643ee97846f7b0f715897",
+      "provider_id": "nju",
+      "upstream_id": "gcr.io--container-registry",
+      "tool_id": "podman-registry",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "gcr"
+      ],
+      "endpoints": [
+        {
+          "role": "registry",
+          "protocol": "https",
+          "url": "https://gcr.nju.edu.cn"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/{repository_path}/manifests/{tag}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "contains": "\"architecture\": \"{oci_arch}\""
+        },
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/{repository_path}/manifests/{tag}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "contains": "\"digest\": \"sha256:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "5f888913af5dd99943714cfe",
       "provider_id": "nju",
       "upstream_id": "maven--language-registry",
@@ -16523,41 +16548,6 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "893c216e801ad7f26b86bcf1",
-      "provider_id": "nju",
-      "upstream_id": "gcr--container-registry",
-      "tool_id": "podman-registry",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "gcr"
-      ],
-      "endpoints": [
-        {
-          "role": "registry",
-          "protocol": "https",
-          "url": "https://gcr.nju.edu.cn"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -20718,6 +20708,65 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "b27c9b321a8f254c9d11e135",
+      "provider_id": "nju",
+      "upstream_id": "quay.io--container-registry",
+      "tool_id": "podman-registry",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "quay"
+      ],
+      "endpoints": [
+        {
+          "role": "registry",
+          "protocol": "https",
+          "url": "https://quay.nju.edu.cn"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/{repository_path}/manifests/{tag}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "contains": "\"architecture\": \"{oci_arch}\""
+        },
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/{repository_path}/manifests/{tag}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "contains": "\"digest\": \"sha256:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -27652,41 +27701,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "f3658d7040590d2bd7204fcb",
-      "provider_id": "nju",
-      "upstream_id": "ghcr--container-registry",
-      "tool_id": "podman-registry",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ghcr"
-      ],
-      "endpoints": [
-        {
-          "role": "registry",
-          "protocol": "https",
-          "url": "https://ghcr.nju.edu.cn"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "f3b52e063cbde75cc23b0c11",
       "provider_id": "huaweicloud",
       "upstream_id": "kunpeng-maven--language-registry",
@@ -27919,6 +27933,65 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "f78fce31994a6d65f70d07e2",
+      "provider_id": "nju",
+      "upstream_id": "ghcr.io--container-registry",
+      "tool_id": "podman-registry",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "ghcr"
+      ],
+      "endpoints": [
+        {
+          "role": "registry",
+          "protocol": "https",
+          "url": "https://ghcr.nju.edu.cn"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/{repository_path}/manifests/{tag}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "contains": "\"architecture\": \"{oci_arch}\""
+        },
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/{repository_path}/manifests/{tag}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "contains": "\"digest\": \"sha256:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
