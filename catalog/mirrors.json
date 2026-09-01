@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+c896990272cd",
-  "content_revision": 20260901044247,
-  "generated_at": "2026-09-01T04:42:47Z",
+  "content_version": "2026.08.28+815d771cbe5b",
+  "content_revision": 20260901052329,
+  "generated_at": "2026-09-01T05:23:29Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1224,6 +1224,7 @@
       "display_name": "python-releases",
       "content_kind": "release-artifacts",
       "aliases": [
+        "python",
         "python-release"
       ]
     },
@@ -2152,11 +2153,10 @@
       "id": "pyenv",
       "adapter_key": "pyenv",
       "display_name": "pyenv",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/69",
       "supported_scopes": [
-        "user",
-        "environment"
+        "user"
       ],
       "composition": "single"
     },
@@ -9902,6 +9902,92 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "468743e2c1857084badca644",
+      "provider_id": "nju",
+      "upstream_id": "python-releases--release-artifacts",
+      "tool_id": "pyenv",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "python"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/python/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/python/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/python/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "3.14.7/3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/3.14.7/",
+          "expected_status": [
+            200
+          ],
+          "contains": "Python-3.14.7.tar.xz"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/3.14.7/Python-3.14.7.tar.xz.sig",
+          "expected_status": [
+            200
+          ],
+          "sha256": "ae37dfde764ccb50a8ad649940bdeba47c93ef99be2501db9759894b7c2b5b9d"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/3.14.7/Python-3.14.7.tar.xz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/3.14.7/Python-3.14.7.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "sha256": "3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "47b29a7cfa7a718066ad8d7b",
       "provider_id": "huaweicloud",
       "upstream_id": "fedora--repository-metadata",
@@ -16795,6 +16881,92 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "908437aa78d40903981bfa02",
+      "provider_id": "tuna",
+      "upstream_id": "python-releases--release-artifacts",
+      "tool_id": "pyenv",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "python"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/python/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/python/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/python/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "3.14.7/3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/3.14.7/",
+          "expected_status": [
+            200
+          ],
+          "contains": "Python-3.14.7.tar.xz"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/3.14.7/Python-3.14.7.tar.xz.sig",
+          "expected_status": [
+            200
+          ],
+          "sha256": "ae37dfde764ccb50a8ad649940bdeba47c93ef99be2501db9759894b7c2b5b9d"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/3.14.7/Python-3.14.7.tar.xz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/3.14.7/Python-3.14.7.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "sha256": "3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -27621,6 +27793,92 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "faa6a98fd42d55d56e0ef716",
+      "provider_id": "huaweicloud",
+      "upstream_id": "python-releases--release-artifacts",
+      "tool_id": "pyenv",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "python"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/python/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/python/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/python/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "3.14.7/3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/3.14.7/",
+          "expected_status": [
+            200
+          ],
+          "contains": "Python-3.14.7.tar.xz"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/3.14.7/Python-3.14.7.tar.xz.sig",
+          "expected_status": [
+            200
+          ],
+          "sha256": "ae37dfde764ccb50a8ad649940bdeba47c93ef99be2501db9759894b7c2b5b9d"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/3.14.7/Python-3.14.7.tar.xz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/3.14.7/Python-3.14.7.tar.xz",
+          "expected_status": [
+            200
+          ],
+          "sha256": "3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

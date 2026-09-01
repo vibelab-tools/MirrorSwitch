@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "44"
+CATALOG_FORMAT_REVISION = "45"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -355,6 +355,21 @@ CRAN_DIGEST_DESCRIPTION_SHA256 = (
 CRAN_DIGEST_ARCHIVE_SHA256 = (
     "8bf048b49b2d17077138fae758bda56bbd53278d9437f2fdeaedf979c90a13c9"
 )
+PYENV_RUNTIME_UPSTREAM = "python-releases--release-artifacts"
+PYENV_ENDPOINTS = {
+    "huaweicloud": "https://repo.huaweicloud.com/python/",
+    "nju": "https://mirrors.nju.edu.cn/python/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/python/",
+}
+PYENV_RELEASE_IDENTITY = (
+    "3.14.7/3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81"
+)
+PYENV_ARCHIVE_SHA256 = (
+    "3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81"
+)
+PYENV_SIGNATURE_SHA256 = (
+    "ae37dfde764ccb50a8ad649940bdeba47c93ef99be2501db9759894b7c2b5b9d"
+)
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -426,6 +441,8 @@ def runtime_upstream_identity(
         return "dart-pub", "language-registry"
     if tool_id == "flutter" and entry["raw_name"] in {"flutter", "flutter_infra"}:
         return "flutter", "release-artifacts"
+    if tool_id == "pyenv" and entry["raw_name"] in {"python", "python-release"}:
+        return "python-releases", "release-artifacts"
     return entry["normalized_upstream"], entry["content_type"]
 
 
@@ -466,6 +483,8 @@ def tool_scopes(tool_id: str) -> list[str]:
     if tool_id == "cpan":
         return ["user"]
     if tool_id == "cran":
+        return ["user"]
+    if tool_id == "pyenv":
         return ["user"]
     if tool_id in {
         "maven",
@@ -517,6 +536,17 @@ def candidate_endpoints(
         ]
     if tool_id == "cran" and upstream_key == CRAN_RUNTIME_UPSTREAM:
         endpoint = entry["public_endpoints"][0]["url"]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "artifacts"]
+        ]
+    if (
+        tool_id == "pyenv"
+        and upstream_key == PYENV_RUNTIME_UPSTREAM
+        and entry["provider_id"] in PYENV_ENDPOINTS
+        and entry["raw_name"] == "python"
+    ):
+        endpoint = PYENV_ENDPOINTS[entry["provider_id"]]
         return [
             {"role": role, "protocol": "https", "url": endpoint}
             for role in ["index", "metadata", "artifacts"]
@@ -2236,6 +2266,49 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "pyenv"
+        and upstream_key == PYENV_RUNTIME_UPSTREAM
+        and entry["provider_id"] in PYENV_ENDPOINTS
+        and entry["raw_name"] == "python"
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = [PYENV_RELEASE_IDENTITY]
+        delivery_mode = "mirror"
+        release_root = "/3.14.7"
+        archive = "Python-3.14.7.tar.xz"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": f"{release_root}/",
+                "expected_status": [200],
+                "contains": archive,
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": f"{release_root}/{archive}.sig",
+                "expected_status": [200],
+                "sha256": PYENV_SIGNATURE_SHA256,
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": f"{release_root}/{archive}",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": f"{release_root}/{archive}",
+                "expected_status": [200],
+                "sha256": PYENV_ARCHIVE_SHA256,
+            },
+        ]
+    elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
@@ -2385,6 +2458,17 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                     }
                 )
             entry["adapter_targets"] = targets
+        if source["raw_name"] == "python" and source["provider_id"] in PYENV_ENDPOINTS:
+            entry = {**source, "adapter_state": "planned"}
+            if not any(target["tool_id"] == "pyenv" for target in targets):
+                targets.append(
+                    {
+                        "tool_id": "pyenv",
+                        "state": "planned",
+                        "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/69",
+                    }
+                )
+            entry["adapter_targets"] = targets
         if entry["adapter_state"] == "planned":
             planned_entries.append(entry)
     active_providers = {entry["provider_id"] for entry in planned_entries}
@@ -2465,6 +2549,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "yarn",
                         "pacman",
                         "portage",
+                        "pyenv",
                         "xbps",
                         "zypper",
                     }
@@ -2494,6 +2579,11 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                 separators=(",", ":"),
             )
             candidate_id = hashlib.sha256(grouping.encode()).hexdigest()[:24]
+            runtime_content_validated = (
+                tool_id == "pyenv"
+                and upstream_key == PYENV_RUNTIME_UPSTREAM
+                and bool(probes)
+            )
             candidate = candidate_map.setdefault(
                 candidate_id,
                 {
@@ -2503,9 +2593,12 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                     "tool_id": tool_id,
                     "catalog_state": "partial"
                     if not compatibility["operating_systems"]
-                    or any(
-                        endpoint["derivation"].endswith("not-published-in-listing")
-                        for endpoint in entry["public_endpoints"]
+                    or (
+                        not runtime_content_validated
+                        and any(
+                            endpoint["derivation"].endswith("not-published-in-listing")
+                            for endpoint in entry["public_endpoints"]
+                        )
                     )
                     else "cataloged",
                     "delivery_mode": delivery_mode,

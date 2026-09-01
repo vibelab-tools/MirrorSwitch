@@ -30,6 +30,7 @@ mod pip;
 mod pnpm;
 mod poetry;
 mod portage;
+mod pyenv;
 mod rubygems;
 mod rustup;
 mod sbt;
@@ -77,6 +78,7 @@ pub use pip::PipAdapter;
 pub use pnpm::PnpmAdapter;
 pub use poetry::PoetryAdapter;
 pub use portage::PortageAdapter;
+pub use pyenv::PyenvAdapter;
 pub use rubygems::RubyGemsAdapter;
 pub use rustup::RustupAdapter;
 pub use sbt::SbtAdapter;
@@ -120,6 +122,7 @@ static PIP: PipAdapter = PipAdapter;
 static PNPM: PnpmAdapter = PnpmAdapter;
 static POETRY: PoetryAdapter = PoetryAdapter;
 static PORTAGE: PortageAdapter = PortageAdapter;
+static PYENV: PyenvAdapter = PyenvAdapter;
 static RUBYGEMS: RubyGemsAdapter = RubyGemsAdapter;
 static RUSTUP: RustupAdapter = RustupAdapter;
 static SBT: SbtAdapter = SbtAdapter;
@@ -175,6 +178,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &FLUTTER,
         &CPAN,
         &CRAN,
+        &PYENV,
     ]
 }
 
