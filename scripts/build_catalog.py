@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "41"
+CATALOG_FORMAT_REVISION = "42"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -326,6 +326,24 @@ DART_PUB_ARTIFACT_ENDPOINTS = {
 DART_PUB_RETRY_SHA256 = (
     "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
 )
+FLUTTER_STORAGE_RUNTIME_UPSTREAM = "flutter--release-artifacts"
+FLUTTER_STORAGE_ENDPOINTS = {
+    "nju": "https://mirrors.nju.edu.cn/flutter/",
+    "sjtug": "https://mirror.sjtu.edu.cn/",
+}
+FLUTTER_RELEASE_IDENTITY = (
+    "stable/3.47.2/d3b14c876900e553bc736ca19295fc09e3853e8e/"
+    "a804b261645ef8c13eb3d5c44a5c2fb0340c5539"
+)
+FLUTTER_FRAMEWORK_VERSION = "3.47.2"
+FLUTTER_FRAMEWORK_REVISION = "d3b14c876900e553bc736ca19295fc09e3853e8e"
+FLUTTER_ENGINE_ARTIFACT_VERSION = "a804b261645ef8c13eb3d5c44a5c2fb0340c5539"
+FLUTTER_X64_PROVENANCE_SHA256 = (
+    "233a40905c350398edeb1eacad7ef43b68a8b84f0cf520201c27071dc3a70124"
+)
+FLUTTER_ARM64_PROVENANCE_SHA256 = (
+    "d06ce9d4f7f1907523507c082e4511a0ce1d45a0853bde8e0aa0ab86b2d446cc"
+)
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -393,6 +411,10 @@ def runtime_upstream_identity(
         return "iojs", "release-artifacts"
     if tool_id == "go" and entry["raw_name"] in {"go", "goproxy"}:
         return "goproxy", "language-registry"
+    if tool_id == "flutter" and entry["raw_name"] == "dart-pub":
+        return "dart-pub", "language-registry"
+    if tool_id == "flutter" and entry["raw_name"] in {"flutter", "flutter_infra"}:
+        return "flutter", "release-artifacts"
     return entry["normalized_upstream"], entry["content_type"]
 
 
@@ -428,6 +450,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["user", "project"]
     if tool_id == "tlmgr":
         return ["system", "user"]
+    if tool_id == "flutter":
+        return ["user"]
     if tool_id in {
         "maven",
         "sbt",
@@ -470,6 +494,22 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "flutter"
+        and upstream_key == FLUTTER_STORAGE_RUNTIME_UPSTREAM
+        and (
+            (entry["provider_id"] == "nju" and entry["raw_name"] == "flutter")
+            or (
+                entry["provider_id"] == "sjtug"
+                and entry["raw_name"] == "flutter_infra"
+            )
+        )
+    ):
+        endpoint = FLUTTER_STORAGE_ENDPOINTS[entry["provider_id"]]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "artifacts"]
+        ]
     if (
         tool_id == "tlmgr"
         and upstream_key == TLMGR_RUNTIME_UPSTREAM
@@ -521,7 +561,7 @@ def candidate_endpoints(
                 {"role": "artifacts", "protocol": "https", "url": endpoint},
             ]
     if (
-        tool_id == "dart-pub"
+        tool_id in {"dart-pub", "flutter"}
         and upstream_key == DART_PUB_RUNTIME_UPSTREAM
         and entry["raw_name"] == "dart-pub"
         and entry["provider_id"] in DART_PUB_HOSTED_ENDPOINTS
@@ -1046,7 +1086,68 @@ def runtime_properties(
                 },
             ]
     elif (
-        tool_id == "dart-pub"
+        tool_id == "flutter"
+        and upstream_key == FLUTTER_STORAGE_RUNTIME_UPSTREAM
+        and (
+            (entry["provider_id"] == "nju" and entry["raw_name"] == "flutter")
+            or (
+                entry["provider_id"] == "sjtug"
+                and entry["raw_name"] == "flutter_infra"
+            )
+        )
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = [FLUTTER_RELEASE_IDENTITY]
+        delivery_mode = "mirror"
+        engine_root = (
+            "/flutter_infra_release/flutter/"
+            f"{FLUTTER_ENGINE_ARTIFACT_VERSION}"
+        )
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/flutter_infra_release/releases/releases_linux.json",
+                "expected_status": [200],
+                "expected_content_type": "application/json",
+                "contains": (
+                    f'"hash": "{FLUTTER_FRAMEWORK_REVISION}",\n'
+                    '      "channel": "stable",\n'
+                    f'      "version": "{FLUTTER_FRAMEWORK_VERSION}"'
+                ),
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": f"{engine_root}/linux-x64/artifacts.zip.intoto.jsonl",
+                "expected_status": [200],
+                "sha256": FLUTTER_X64_PROVENANCE_SHA256,
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": f"{engine_root}/linux-x64/artifacts.zip",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": f"{engine_root}/linux-arm64/artifacts.zip.intoto.jsonl",
+                "expected_status": [200],
+                "sha256": FLUTTER_ARM64_PROVENANCE_SHA256,
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": f"{engine_root}/linux-arm64/artifacts.zip",
+                "expected_status": [200],
+            },
+        ]
+    elif (
+        tool_id in {"dart-pub", "flutter"}
         and upstream_key == DART_PUB_RUNTIME_UPSTREAM
         and entry["raw_name"] == "dart-pub"
         and entry["provider_id"] in DART_PUB_HOSTED_ENDPOINTS
@@ -2169,6 +2270,17 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                     }
                 )
             entry["adapter_targets"] = targets
+        if source["raw_name"] == "dart-pub":
+            entry = {**source, "adapter_state": "planned"}
+            if not any(target["tool_id"] == "flutter" for target in targets):
+                targets.append(
+                    {
+                        "tool_id": "flutter",
+                        "state": "planned",
+                        "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/66",
+                    }
+                )
+            entry["adapter_targets"] = targets
         if entry["adapter_state"] == "planned":
             planned_entries.append(entry)
     active_providers = {entry["provider_id"] for entry in planned_entries}
@@ -2221,6 +2333,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "dart-pub",
                         "flatpak",
                         "fnm",
+                        "flutter",
                         "go",
                         "ghcup",
                         "rubygems",

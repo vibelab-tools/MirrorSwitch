@@ -9,6 +9,7 @@ mod conda;
 mod dart_pub;
 mod dnf;
 mod flatpak;
+mod flutter;
 mod fnm;
 mod ghcup;
 mod go;
@@ -53,6 +54,7 @@ pub use conda::CondaAdapter;
 pub use dart_pub::DartPubAdapter;
 pub use dnf::DnfAdapter;
 pub use flatpak::FlatpakAdapter;
+pub use flutter::FlutterAdapter;
 pub use fnm::FnmAdapter;
 pub use ghcup::GhcupAdapter;
 pub use go::GoAdapter;
@@ -94,6 +96,7 @@ static DNF: DnfAdapter = DnfAdapter;
 static DART_PUB: DartPubAdapter = DartPubAdapter;
 static FLATPAK: FlatpakAdapter = FlatpakAdapter;
 static FNM: FnmAdapter = FnmAdapter;
+static FLUTTER: FlutterAdapter = FlutterAdapter;
 static GO: GoAdapter = GoAdapter;
 static GRADLE: GradleAdapter = GradleAdapter;
 static GHCUP: GhcupAdapter = GhcupAdapter;
@@ -163,6 +166,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &STACK,
         &GHCUP,
         &TLMGR,
+        &FLUTTER,
     ]
 }
 
