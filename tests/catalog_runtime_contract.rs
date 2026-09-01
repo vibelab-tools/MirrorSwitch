@@ -41,6 +41,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             "go",
             "gradle",
             "guix",
+            "julia",
             "leiningen",
             "maven",
             "nix",

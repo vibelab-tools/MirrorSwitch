@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "47"
+CATALOG_FORMAT_REVISION = "48"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -401,6 +401,30 @@ OPAM_REPOSITORY_REVISION = "3884cbee403b0a4e2211b428d54928e6e69434cc"
 OPAM_CACHE_SHA256 = (
     "61f0b75950614ac5378c6ec0d822cce6463402d919d5810b736fc46522b3a73e"
 )
+JULIA_RUNTIME_UPSTREAM = "julia--language-registry"
+JULIA_NJU_ENDPOINT = "https://mirrors.nju.edu.cn/julia/"
+JULIA_GENERAL_REGISTRY_UUID = "23338594-aafe-5451-b93e-139f81909106"
+JULIA_GENERAL_REGISTRY_TREE = "c6e23649d0bda5ca27b700da3c569fe000639859"
+JULIA_EXAMPLE_UUID = "7876af07-990d-54b4-ab0e-23690620f79a"
+JULIA_EXAMPLE_TREE = "e1f0e1a832ccd8e97d6d0348dec33ee139a5aeaf"
+JULIA_EXAMPLE_SOURCE_SHA256 = (
+    "87dd4f0b8977bbdc95ce08fa896d635aafaa3e65ddd06af5e9a2c3eaa432cad8"
+)
+JULIA_HELLO_UUID = "dca1746e-5efc-54fc-8249-22745bc95a49"
+JULIA_HELLO_TREE = "370059fde9f8b780a2335dcbcf05ba224053d45f"
+JULIA_HELLO_SOURCE_SHA256 = (
+    "1aec74638a21b3890c58763ff1bbe05ec26d48a567f5b5d87c7e68a2a7d9f51c"
+)
+JULIA_HELLO_ARTIFACTS = {
+    "x86_64": (
+        "c8aa41cab66118db2387696eba33856344935ce3",
+        "ba2e68bc72a3e6cadefb8ff892bc7c76289b06b7606cc4d1f2613ce917c5425f",
+    ),
+    "arm64": (
+        "a2368a2caae8074bdda6e71d51acb43553fcd076",
+        "7b56d8aa960fe3e540f945126c942f4be1bcb1da66f4fd530450a70efcd76955",
+    ),
+}
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -527,6 +551,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["system", "user"]
     if tool_id == "opam":
         return ["user"]
+    if tool_id == "julia":
+        return ["user"]
     if tool_id in {
         "maven",
         "sbt",
@@ -620,6 +646,16 @@ def candidate_endpoints(
     if tool_id == "opam" and upstream_key == OPAM_CACHE_UPSTREAM:
         return [
             {"role": role, "protocol": "https", "url": OPAM_CACHE_ENDPOINT}
+            for role in ["index", "metadata", "artifacts"]
+        ]
+    if (
+        tool_id == "julia"
+        and upstream_key == JULIA_RUNTIME_UPSTREAM
+        and entry["provider_id"] == "nju"
+        and entry["raw_name"] == "julia"
+    ):
+        return [
+            {"role": role, "protocol": "https", "url": JULIA_NJU_ENDPOINT}
             for role in ["index", "metadata", "artifacts"]
         ]
     if (
@@ -2534,6 +2570,65 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "julia"
+        and upstream_key == JULIA_RUNTIME_UPSTREAM
+        and entry["provider_id"] == "nju"
+        and entry["raw_name"] == "julia"
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "proxy"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/registries",
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+                "contains": f"/registry/{JULIA_GENERAL_REGISTRY_UUID}/",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": (
+                    f"/registry/{JULIA_GENERAL_REGISTRY_UUID}/"
+                    f"{JULIA_GENERAL_REGISTRY_TREE}"
+                ),
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": f"/package/{JULIA_EXAMPLE_UUID}/{JULIA_EXAMPLE_TREE}",
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+                "sha256": JULIA_EXAMPLE_SOURCE_SHA256,
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": f"/package/{JULIA_HELLO_UUID}/{JULIA_HELLO_TREE}",
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+                "sha256": JULIA_HELLO_SOURCE_SHA256,
+            },
+            *[
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": f"/artifact/{tree}",
+                    "expected_status": [200],
+                    "expected_content_type": "application/octet-stream",
+                    "sha256": digest,
+                }
+                for tree, digest in JULIA_HELLO_ARTIFACTS.values()
+            ],
+        ]
+    elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
@@ -2759,6 +2854,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "tlmgr",
                         "gradle",
                         "guix",
+                        "julia",
                         "leiningen",
                         "maven",
                         "nix",
