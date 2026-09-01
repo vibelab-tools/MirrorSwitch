@@ -135,6 +135,10 @@ pub struct ProbeSpec {
     pub method: HttpMethod,
     pub path: String,
     pub expected_status: Vec<u16>,
+    /// Optional, tightly constrained HTTP Accept value for protocol
+    /// negotiation such as an OCI/Docker multi-platform manifest index.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accept: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expected_content_type: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -330,6 +334,10 @@ impl MirrorCatalog {
                         .any(|status| !(100..=599).contains(status))
                     || probe.contains.as_ref().is_some_and(String::is_empty)
                     || (probe.method == HttpMethod::Head && probe.contains.is_some())
+                    || probe.accept.as_ref().is_some_and(|accept| {
+                        accept
+                            != "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
+                    })
                     || probe.sha256.as_ref().is_some_and(|digest| {
                         probe.method != HttpMethod::Get
                             || digest.len() != 64

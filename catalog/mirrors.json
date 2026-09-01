@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+751b04147584",
-  "content_revision": 20260901085000,
-  "generated_at": "2026-09-01T08:50:00Z",
+  "content_version": "2026.08.28+b95e677cfd15",
+  "content_revision": 20260901100000,
+  "generated_at": "2026-09-01T10:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1238,6 +1238,15 @@
       ]
     },
     {
+      "id": "registry.k8s.io--container-registry",
+      "family": "registry.k8s.io",
+      "display_name": "registry.k8s.io",
+      "content_kind": "container-registry",
+      "aliases": [
+        "k8s"
+      ]
+    },
+    {
       "id": "rocky--repository-metadata",
       "family": "rocky",
       "display_name": "rocky",
@@ -1851,6 +1860,17 @@
       "display_name": "julia",
       "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/72",
+      "supported_scopes": [
+        "user"
+      ],
+      "composition": "single"
+    },
+    {
+      "id": "kubernetes-images",
+      "adapter_key": "kubernetes-images",
+      "display_name": "kubernetes-images",
+      "state": "supported",
+      "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/74",
       "supported_scopes": [
         "user"
       ],
@@ -21315,6 +21335,65 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/node.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "b7e30a38c64c4c9c30bc533d",
+      "provider_id": "nju",
+      "upstream_id": "registry.k8s.io--container-registry",
+      "tool_id": "kubernetes-images",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "k8s"
+      ],
+      "endpoints": [
+        {
+          "role": "registry",
+          "protocol": "https",
+          "url": "https://k8s.nju.edu.cn/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/{repository_path}/manifests/{tag}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "contains": "\"architecture\": \"{oci_arch}\""
+        },
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/{repository_path}/manifests/{tag}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "contains": "\"digest\": \"sha256:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

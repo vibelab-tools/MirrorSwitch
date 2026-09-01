@@ -11,8 +11,8 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
 
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
     assert_eq!(catalog.providers.len(), 6);
-    assert_eq!(catalog.tools.len(), 76);
-    assert_eq!(catalog.candidates.len(), 523);
+    assert_eq!(catalog.tools.len(), 77);
+    assert_eq!(catalog.candidates.len(), 524);
     assert_eq!(
         catalog
             .tools
@@ -42,6 +42,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             "gradle",
             "guix",
             "julia",
+            "kubernetes-images",
             "leiningen",
             "maven",
             "nix",
@@ -92,6 +93,20 @@ fn repository_probe_cannot_target_a_root_or_escape_its_endpoint() {
         .find(|candidate| !candidate.probes.is_empty())
         .unwrap();
     candidate.probes[0].path = "/../".into();
+
+    let error = catalog.validate(&compiled_adapter_allowlist()).unwrap_err();
+    assert!(error.to_string().contains("invalid declarative probe path"));
+}
+
+#[test]
+fn repository_probe_accept_header_is_limited_to_reviewed_oci_negotiation() {
+    let mut catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
+    let candidate = catalog
+        .candidates
+        .iter_mut()
+        .find(|candidate| !candidate.probes.is_empty())
+        .unwrap();
+    candidate.probes[0].accept = Some("text/plain\r\nX-Unsafe: value".into());
 
     let error = catalog.validate(&compiled_adapter_allowlist()).unwrap_err();
     assert!(error.to_string().contains("invalid declarative probe path"));

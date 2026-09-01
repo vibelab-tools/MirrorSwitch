@@ -19,6 +19,7 @@ mod go;
 mod gradle;
 mod guix;
 mod julia;
+mod kubernetes_images;
 mod leiningen;
 mod maven;
 mod nix;
@@ -70,6 +71,7 @@ pub use go::GoAdapter;
 pub use gradle::GradleAdapter;
 pub use guix::GuixAdapter;
 pub use julia::JuliaAdapter;
+pub use kubernetes_images::KubernetesImagesAdapter;
 pub use leiningen::LeiningenAdapter;
 pub use maven::MavenAdapter;
 pub use nix::NixAdapter;
@@ -117,6 +119,7 @@ static GRADLE: GradleAdapter = GradleAdapter;
 static GHCUP: GhcupAdapter = GhcupAdapter;
 static GUIX: GuixAdapter = GuixAdapter;
 static JULIA: JuliaAdapter = JuliaAdapter;
+static KUBERNETES_IMAGES: KubernetesImagesAdapter = KubernetesImagesAdapter;
 static LEININGEN: LeiningenAdapter = LeiningenAdapter;
 static MAVEN: MavenAdapter = MavenAdapter;
 static NIX: NixAdapter = NixAdapter;
@@ -173,6 +176,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &FNM,
         &GO,
         &JULIA,
+        &KUBERNETES_IMAGES,
         &RUBYGEMS,
         &BUNDLER,
         &CARGO,

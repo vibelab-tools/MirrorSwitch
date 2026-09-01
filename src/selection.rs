@@ -68,6 +68,16 @@ pub trait CandidateProber {
         url: &str,
         limits: ProbeLimits,
     ) -> Result<ProbeObservation, ProbeError>;
+
+    fn probe_with_accept(
+        &self,
+        method: HttpMethod,
+        url: &str,
+        _accept: Option<&str>,
+        limits: ProbeLimits,
+    ) -> Result<ProbeObservation, ProbeError> {
+        self.probe(method, url, limits)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -80,21 +90,33 @@ impl CandidateProber for HttpCandidateProber {
         url: &str,
         limits: ProbeLimits,
     ) -> Result<ProbeObservation, ProbeError> {
+        self.probe_with_accept(method, url, None, limits)
+    }
+
+    fn probe_with_accept(
+        &self,
+        method: HttpMethod,
+        url: &str,
+        accept: Option<&str>,
+        limits: ProbeLimits,
+    ) -> Result<ProbeObservation, ProbeError> {
         let client = Client::builder()
             .timeout(limits.timeout)
             .build()
             .map_err(|error| ProbeError::Http(error.to_string()))?;
         let started = Instant::now();
-        let mut response = client
-            .request(
-                match method {
-                    HttpMethod::Head => Method::HEAD,
-                    HttpMethod::Get => Method::GET,
-                },
-                url,
-            )
-            .send()
-            .map_err(map_reqwest_error)?;
+        let request = client.request(
+            match method {
+                HttpMethod::Head => Method::HEAD,
+                HttpMethod::Get => Method::GET,
+            },
+            url,
+        );
+        let request = match accept {
+            Some(value) => request.header(reqwest::header::ACCEPT, value),
+            None => request,
+        };
+        let mut response = request.send().map_err(map_reqwest_error)?;
         if method == HttpMethod::Get
             && response
                 .content_length()
@@ -363,7 +385,7 @@ impl<'a, P: CandidateProber> MirrorSelector<'a, P> {
                 let url = probe_url(endpoint, &path)?;
                 let observation = self
                     .prober
-                    .probe(probe.method, &url, self.limits)
+                    .probe_with_accept(probe.method, &url, probe.accept.as_deref(), self.limits)
                     .map_err(|error| error.to_string())?;
                 let marker = probe
                     .contains

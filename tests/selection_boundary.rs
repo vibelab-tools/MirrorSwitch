@@ -488,6 +488,9 @@ fn real_http_probe_uses_repository_metadata_path_and_validates_content() {
         let length = stream.read(&mut request).unwrap();
         let request = String::from_utf8_lossy(&request[..length]);
         assert!(request.starts_with("GET /mirror/simple/pip/ HTTP/1.1"));
+        assert!(request.to_ascii_lowercase().contains(
+            "accept: application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
+        ));
         let body = b"signed repository metadata: pip-release";
         write!(
             stream,
@@ -503,6 +506,9 @@ fn real_http_probe_uses_repository_metadata_path_and_validates_content() {
     let candidate = &mut catalog.candidates[0];
     candidate.endpoints[0].protocol = Protocol::Http;
     candidate.endpoints[0].url = format!("http://{address}/mirror/");
+    candidate.probes[0].accept = Some(
+        "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json".into(),
+    );
     let mut request = request();
     request.allowed_protocols = vec![Protocol::Http];
     let selector = MirrorSelector::with_prober(

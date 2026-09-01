@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "48"
+CATALOG_FORMAT_REVISION = "49"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -425,6 +425,14 @@ JULIA_HELLO_ARTIFACTS = {
         "7b56d8aa960fe3e540f945126c942f4be1bcb1da66f4fd530450a70efcd76955",
     ),
 }
+KUBERNETES_IMAGES_UPSTREAM = "registry.k8s.io--container-registry"
+KUBERNETES_IMAGES_ENDPOINT = "https://k8s.nju.edu.cn/"
+OCI_MANIFEST_ACCEPT = (
+    "application/vnd.docker.distribution.manifest.list.v2+json, "
+    "application/vnd.oci.image.index.v1+json, "
+    "application/vnd.docker.distribution.manifest.v2+json, "
+    "application/vnd.oci.image.manifest.v1+json"
+)
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -504,6 +512,8 @@ def runtime_upstream_identity(
         return "bazel-apt", "repository-metadata"
     if tool_id == "opam" and entry["raw_name"] == "opam-cache":
         return "opam-cache", "binary-cache"
+    if tool_id == "kubernetes-images" and entry["raw_name"] == "k8s":
+        return "registry.k8s.io", "container-registry"
     return entry["normalized_upstream"], entry["content_type"]
 
 
@@ -552,6 +562,8 @@ def tool_scopes(tool_id: str) -> list[str]:
     if tool_id == "opam":
         return ["user"]
     if tool_id == "julia":
+        return ["user"]
+    if tool_id == "kubernetes-images":
         return ["user"]
     if tool_id in {
         "maven",
@@ -657,6 +669,19 @@ def candidate_endpoints(
         return [
             {"role": role, "protocol": "https", "url": JULIA_NJU_ENDPOINT}
             for role in ["index", "metadata", "artifacts"]
+        ]
+    if (
+        tool_id == "kubernetes-images"
+        and upstream_key == KUBERNETES_IMAGES_UPSTREAM
+        and entry["provider_id"] == "nju"
+        and entry["raw_name"] == "k8s"
+    ):
+        return [
+            {
+                "role": "registry",
+                "protocol": "https",
+                "url": KUBERNETES_IMAGES_ENDPOINT,
+            }
         ]
     if (
         tool_id == "flutter"
@@ -2629,6 +2654,37 @@ def runtime_properties(
             ],
         ]
     elif (
+        tool_id == "kubernetes-images"
+        and upstream_key == KUBERNETES_IMAGES_UPSTREAM
+        and entry["provider_id"] == "nju"
+        and entry["raw_name"] == "k8s"
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "proxy"
+        manifest_path = "/v2/{repository_path}/manifests/{tag}"
+        probes = [
+            {
+                "endpoint_role": "registry",
+                "method": "get",
+                "path": manifest_path,
+                "expected_status": [200],
+                "accept": OCI_MANIFEST_ACCEPT,
+                "contains": '"architecture": "{oci_arch}"',
+            },
+            {
+                "endpoint_role": "registry",
+                "method": "get",
+                "path": manifest_path,
+                "expected_status": [200],
+                "accept": OCI_MANIFEST_ACCEPT,
+                "contains": '"digest": "sha256:',
+            },
+        ]
+    elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
@@ -2855,6 +2911,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "gradle",
                         "guix",
                         "julia",
+                        "kubernetes-images",
                         "leiningen",
                         "maven",
                         "nix",

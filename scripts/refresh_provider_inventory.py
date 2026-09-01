@@ -212,7 +212,7 @@ ISSUE_TARGETS: list[tuple[set[str], list[tuple[str, int]]]] = [
     ({"opam"}, [("opam", 71)]),
     ({"julia", "julia-pkg"}, [("julia", 72)]),
     ({"conan"}, [("conan", 73)]),
-    ({"kubernetes-images"}, [("kubernetes-images", 74)]),
+    ({"k8s", "kubernetes-images"}, [("kubernetes-images", 74)]),
     ({"docker-hub", "docker-registry"}, [("docker-registry", 75)]),
     ({"quay", "gcr", "ghcr"}, [("podman-registry", 76)]),
     ({"kubernetes"}, [("kubernetes-packages", 77)]),
@@ -375,6 +375,8 @@ def classify_content(normalized: str, raw_name: str, public_endpoints: list[dict
         return "language-registry"
     if name == "docker-ce" or name == "kubernetes":
         return "repository-metadata"
+    if name == "k8s":
+        return "container-registry"
     if name.startswith(("mysql-repo", "ros2-")) or "yum" in name:
         return "repository-metadata"
     if any(token in name for token in ("dockerhub", "docker-hub", "registry", "quay", "ghcr", "gcr")):
