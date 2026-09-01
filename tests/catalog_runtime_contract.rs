@@ -29,6 +29,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             "cargo",
             "composer",
             "conda",
+            "cpan",
             "dart-pub",
             "dnf",
             "flatpak",

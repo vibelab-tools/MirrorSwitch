@@ -6,6 +6,7 @@ mod cabal;
 mod cargo;
 mod composer;
 mod conda;
+mod cpan;
 mod dart_pub;
 mod dnf;
 mod flatpak;
@@ -51,6 +52,7 @@ pub use cabal::CabalAdapter;
 pub use cargo::CargoAdapter;
 pub use composer::ComposerAdapter;
 pub use conda::CondaAdapter;
+pub use cpan::CpanAdapter;
 pub use dart_pub::DartPubAdapter;
 pub use dnf::DnfAdapter;
 pub use flatpak::FlatpakAdapter;
@@ -92,6 +94,7 @@ static CABAL: CabalAdapter = CabalAdapter;
 static CARGO: CargoAdapter = CargoAdapter;
 static CONDA: CondaAdapter = CondaAdapter;
 static COMPOSER: ComposerAdapter = ComposerAdapter;
+static CPAN: CpanAdapter = CpanAdapter;
 static DNF: DnfAdapter = DnfAdapter;
 static DART_PUB: DartPubAdapter = DartPubAdapter;
 static FLATPAK: FlatpakAdapter = FlatpakAdapter;
@@ -167,6 +170,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &GHCUP,
         &TLMGR,
         &FLUTTER,
+        &CPAN,
     ]
 }
 

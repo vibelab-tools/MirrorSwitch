@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "42"
+CATALOG_FORMAT_REVISION = "43"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -344,6 +344,10 @@ FLUTTER_X64_PROVENANCE_SHA256 = (
 FLUTTER_ARM64_PROVENANCE_SHA256 = (
     "d06ce9d4f7f1907523507c082e4511a0ce1d45a0853bde8e0aa0ab86b2d446cc"
 )
+CPAN_RUNTIME_UPSTREAM = "cpan--language-registry"
+CPAN_TRY_TINY_SHA256 = (
+    "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
+)
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -452,6 +456,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["system", "user"]
     if tool_id == "flutter":
         return ["user"]
+    if tool_id == "cpan":
+        return ["user"]
     if tool_id in {
         "maven",
         "sbt",
@@ -494,6 +500,12 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if tool_id == "cpan" and upstream_key == CPAN_RUNTIME_UPSTREAM:
+        endpoint = entry["public_endpoints"][0]["url"]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "artifacts"]
+        ]
     if (
         tool_id == "flutter"
         and upstream_key == FLUTTER_STORAGE_RUNTIME_UPSTREAM
@@ -2131,6 +2143,48 @@ def runtime_properties(
                 "expected_status": [200, 206],
             },
         ]
+    elif tool_id == "cpan" and upstream_key == CPAN_RUNTIME_UPSTREAM:
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "mirror"
+        try_tiny_root = "/authors/id/E/ET/ETHER"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "head",
+                "path": "/modules/02packages.details.txt.gz",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": f"{try_tiny_root}/Try-Tiny-0.32.meta",
+                "expected_status": [200],
+                "contains": '"name" : "Try-Tiny"',
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": f"{try_tiny_root}/CHECKSUMS",
+                "expected_status": [200],
+                "contains": CPAN_TRY_TINY_SHA256,
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "head",
+                "path": f"{try_tiny_root}/Try-Tiny-0.32.tar.gz",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": f"{try_tiny_root}/Try-Tiny-0.32.tar.gz",
+                "expected_status": [200],
+                "sha256": CPAN_TRY_TINY_SHA256,
+            },
+        ]
     elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
@@ -2329,6 +2383,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "cargo",
                         "composer",
                         "conda",
+                        "cpan",
                         "dnf",
                         "dart-pub",
                         "flatpak",
