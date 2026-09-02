@@ -13,6 +13,7 @@ use crate::{
     catalog::ConfigurationScope,
     context::{Architecture, Distribution, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{CurrentConfiguration, DetectedTool},
+    platform::compiled_os,
     transaction::TransactionEngine,
 };
 
@@ -44,6 +45,104 @@ impl LinuxDetectionOptions {
             effective_uid: effective_uid(),
             container_hint: std::env::var("container").ok(),
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct HostDetectionOptions {
+    pub os: OperatingSystem,
+    pub root: PathBuf,
+    pub home: PathBuf,
+    pub project_dir: Option<PathBuf>,
+    pub executable_path: Vec<PathBuf>,
+    pub architecture: String,
+    pub platform_version: Option<String>,
+    pub effective_uid: Option<u32>,
+    pub elevated: bool,
+    pub system_config: PathBuf,
+    pub user_config: PathBuf,
+    pub catalog_cache: PathBuf,
+    pub transaction_root: PathBuf,
+}
+
+impl HostDetectionOptions {
+    pub fn current() -> Self {
+        let os = compiled_os();
+        let home = current_home(os);
+        let local_data = std::env::var_os("LOCALAPPDATA")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home.join("AppData/Local"));
+        let roaming_data = std::env::var_os("APPDATA")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home.join("AppData/Roaming"));
+        let (effective_uid, elevated, system_config, user_config, catalog_cache, transaction_root) =
+            match os {
+                OperatingSystem::Linux => {
+                    let uid = effective_uid();
+                    let cache = std::env::var_os("XDG_CACHE_HOME")
+                        .map(PathBuf::from)
+                        .unwrap_or_else(|| home.join(".cache"));
+                    (
+                        Some(uid),
+                        uid == 0,
+                        PathBuf::from("/etc"),
+                        home.join(".config"),
+                        cache.join("mirrorswitch/catalog.json"),
+                        PathBuf::from("/var/lib/mirrorswitch/transactions"),
+                    )
+                }
+                OperatingSystem::Macos => {
+                    let uid = effective_uid();
+                    (
+                        Some(uid),
+                        uid == 0,
+                        PathBuf::from("/Library/Application Support"),
+                        home.join("Library/Application Support"),
+                        home.join("Library/Caches/MirrorSwitch/catalog.json"),
+                        home.join("Library/Application Support/MirrorSwitch/transactions"),
+                    )
+                }
+                OperatingSystem::Windows => {
+                    let program_data = std::env::var_os("ProgramData")
+                        .map(PathBuf::from)
+                        .unwrap_or_else(|| PathBuf::from(r"C:\ProgramData"));
+                    (
+                        None,
+                        windows_elevated(),
+                        program_data,
+                        roaming_data,
+                        local_data.join("MirrorSwitch/catalog.json"),
+                        local_data.join("MirrorSwitch/transactions"),
+                    )
+                }
+            };
+        Self {
+            os,
+            root: PathBuf::from("/"),
+            home,
+            project_dir: std::env::current_dir().ok(),
+            executable_path: std::env::var_os("PATH")
+                .map(|value| std::env::split_paths(&value).collect())
+                .unwrap_or_default(),
+            architecture: std::env::consts::ARCH.into(),
+            platform_version: platform_version(os),
+            effective_uid,
+            elevated,
+            system_config,
+            user_config,
+            catalog_cache,
+            transaction_root,
+        }
+    }
+
+    pub fn runtime(&self) -> OsRuntime {
+        let mut runtime = OsRuntime::new(&self.root, self.executable_path.clone())
+            .with_home(self.home.clone())
+            .with_transaction_root(self.transaction_root.clone());
+        if let Some(project) = &self.project_dir {
+            runtime = runtime.with_project_dir(project.clone());
+        }
+        runtime
     }
 }
 
@@ -100,7 +199,8 @@ pub struct ConfigurationLayout {
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub struct PermissionContext {
-    pub effective_uid: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effective_uid: Option<u32>,
     pub elevated: bool,
     pub system_scope_requires_elevation: bool,
 }
@@ -235,11 +335,118 @@ pub fn detect_linux(
         });
     }
 
-    let (runtimes, related_tools) = detect_related_tools(&runtime, &mut notices);
+    let detected = detect_adapters(&context, &runtime, adapters, &mut notices);
+
+    Ok(DetectionReport {
+        context,
+        container,
+        layout: ConfigurationLayout {
+            system: PathBuf::from("/etc"),
+            user: options.home.join(".config"),
+            project: options.project_dir.clone(),
+            service_management_available: environment == ExecutionEnvironment::Host
+                && physical_path(&options.root, Path::new("/run/systemd/system")).is_dir(),
+        },
+        permissions: PermissionContext {
+            effective_uid: Some(options.effective_uid),
+            elevated: options.effective_uid == 0,
+            system_scope_requires_elevation: options.effective_uid != 0,
+        },
+        runtimes: detected.runtimes,
+        related_tools: detected.related_tools,
+        tools: detected.tools,
+        selections: detected.selections,
+        notices,
+    })
+}
+
+pub fn detect_host(
+    options: &HostDetectionOptions,
+    adapters: &[&dyn Adapter],
+) -> Result<DetectionReport, DetectionError> {
+    if options.os != compiled_os() {
+        return Err(DetectionError::UnsupportedOperatingSystem(format!(
+            "requested {:?}, compiled for {:?}",
+            options.os,
+            compiled_os()
+        )));
+    }
+    if options.os == OperatingSystem::Linux {
+        return detect_linux(
+            &LinuxDetectionOptions {
+                root: options.root.clone(),
+                home: options.home.clone(),
+                project_dir: options.project_dir.clone(),
+                executable_path: options.executable_path.clone(),
+                architecture: options.architecture.clone(),
+                effective_uid: options.effective_uid.unwrap_or_else(effective_uid),
+                container_hint: std::env::var("container").ok(),
+            },
+            adapters,
+        );
+    }
+
+    let architecture = parse_architecture(&options.architecture)?;
+    let runtime = options.runtime();
+    let context = SystemContext {
+        os: options.os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: Some(Distribution {
+            id: match options.os {
+                OperatingSystem::Macos => "macos",
+                OperatingSystem::Windows => "windows",
+                OperatingSystem::Linux => unreachable!(),
+            }
+            .into(),
+            version_id: options.platform_version.clone(),
+            version_codename: None,
+            id_like: Vec::new(),
+        }),
+        root: options.root.clone(),
+    };
+    let mut notices = Vec::new();
+    let detected = detect_adapters(&context, &runtime, adapters, &mut notices);
+    Ok(DetectionReport {
+        context,
+        container: None,
+        layout: ConfigurationLayout {
+            system: options.system_config.clone(),
+            user: options.user_config.clone(),
+            project: options.project_dir.clone(),
+            service_management_available: true,
+        },
+        permissions: PermissionContext {
+            effective_uid: options.effective_uid,
+            elevated: options.elevated,
+            system_scope_requires_elevation: !options.elevated,
+        },
+        runtimes: detected.runtimes,
+        related_tools: detected.related_tools,
+        tools: detected.tools,
+        selections: detected.selections,
+        notices,
+    })
+}
+
+struct AdapterDetections {
+    runtimes: Vec<ExecutableObservation>,
+    related_tools: Vec<RelatedToolObservation>,
+    tools: Vec<ToolDetection>,
+    selections: Vec<TargetSelection>,
+}
+
+fn detect_adapters(
+    context: &SystemContext,
+    runtime: &OsRuntime,
+    adapters: &[&dyn Adapter],
+    notices: &mut Vec<DetectionNotice>,
+) -> AdapterDetections {
+    let (runtimes, related_tools) = detect_related_tools(runtime, notices);
     let mut tools = Vec::new();
     let mut selections = Vec::new();
     for adapter in adapters {
-        let detected = match adapter.detect(&context, &runtime) {
+        let detected = match adapter.detect(context, runtime) {
             Ok(Some(detected)) => detected,
             Ok(None) => {
                 notices.push(DetectionNotice {
@@ -262,7 +469,7 @@ pub fn detect_linux(
         let mut configurations = Vec::new();
         let mut configuration_failed = false;
         for &scope in adapter.supported_scopes() {
-            match adapter.read_current(&context, &runtime, &detected, scope) {
+            match adapter.read_current(context, runtime, &detected, scope) {
                 Ok(configuration) => configurations.push(configuration),
                 Err(error) => {
                     configuration_failed = true;
@@ -278,7 +485,7 @@ pub fn detect_linux(
             continue;
         }
 
-        let default_scope = match adapter.default_scope_for(&context, &runtime, &detected) {
+        let default_scope = match adapter.default_scope_for(context, runtime, &detected) {
             Ok(scope) => scope,
             Err(error) => {
                 notices.push(adapter_notice(
@@ -316,28 +523,12 @@ pub fn detect_linux(
             configurations,
         });
     }
-
-    Ok(DetectionReport {
-        context,
-        container,
-        layout: ConfigurationLayout {
-            system: PathBuf::from("/etc"),
-            user: options.home.join(".config"),
-            project: options.project_dir.clone(),
-            service_management_available: environment == ExecutionEnvironment::Host
-                && physical_path(&options.root, Path::new("/run/systemd/system")).is_dir(),
-        },
-        permissions: PermissionContext {
-            effective_uid: options.effective_uid,
-            elevated: options.effective_uid == 0,
-            system_scope_requires_elevation: options.effective_uid != 0,
-        },
+    AdapterDetections {
         runtimes,
         related_tools,
         tools,
         selections,
-        notices,
-    })
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -347,6 +538,7 @@ pub struct OsRuntime {
     home: Option<PathBuf>,
     project_dir: Option<PathBuf>,
     environment: Option<BTreeMap<String, String>>,
+    transaction_root: Option<PathBuf>,
 }
 
 impl OsRuntime {
@@ -357,6 +549,7 @@ impl OsRuntime {
             home: None,
             project_dir: None,
             environment: None,
+            transaction_root: None,
         }
     }
 
@@ -375,15 +568,19 @@ impl OsRuntime {
         self
     }
 
+    pub fn with_transaction_root(mut self, transaction_root: impl Into<PathBuf>) -> Self {
+        self.transaction_root = Some(transaction_root.into());
+        self
+    }
+
     pub fn find_command(&self, command: &str) -> Option<PathBuf> {
-        if command.contains('/') {
+        if command.contains('/') || (cfg!(windows) && command.contains('\\')) {
             let path = PathBuf::from(command);
             return executable(&physical_path(&self.root, &path)).then_some(path);
         }
-        self.executable_path.iter().find_map(|directory| {
-            let logical = directory.join(command);
-            executable(&physical_path(&self.root, &logical)).then_some(logical)
-        })
+        self.executable_path
+            .iter()
+            .find_map(|directory| find_command_in(directory, command, &self.root))
     }
 }
 
@@ -459,9 +656,7 @@ impl Runtime for OsRuntime {
         let logical = self.find_command(program).ok_or_else(|| {
             AdapterError::Runtime(format!("command {program} is not available on PATH"))
         })?;
-        Command::new(physical_path(&self.root, &logical))
-            .args(arguments)
-            .output()
+        run_command(&physical_path(&self.root, &logical), arguments, None)
             .map_err(|error| AdapterError::Runtime(format!("could not run {program}: {error}")))
     }
 
@@ -474,26 +669,26 @@ impl Runtime for OsRuntime {
         let logical = self.find_command(program).ok_or_else(|| {
             AdapterError::Runtime(format!("command {program} is not available on PATH"))
         })?;
-        Command::new(physical_path(&self.root, &logical))
-            .current_dir(physical_path(&self.root, directory))
-            .args(arguments)
-            .output()
-            .map_err(|error| {
-                AdapterError::Runtime(format!(
-                    "could not run {program} in {}: {error}",
-                    directory.display()
-                ))
-            })
+        run_command(
+            &physical_path(&self.root, &logical),
+            arguments,
+            Some(&physical_path(&self.root, directory)),
+        )
+        .map_err(|error| {
+            AdapterError::Runtime(format!(
+                "could not run {program} in {}: {error}",
+                directory.display()
+            ))
+        })
     }
 
     fn apply_plan(
         &mut self,
         plan: &crate::plan::ChangePlan,
     ) -> Result<crate::transaction::ApplyOutcome, AdapterError> {
-        TransactionEngine::new(physical_path(
-            &self.root,
-            Path::new("/var/lib/mirrorswitch/transactions"),
-        ))
+        TransactionEngine::new(self.transaction_root.clone().unwrap_or_else(|| {
+            physical_path(&self.root, Path::new("/var/lib/mirrorswitch/transactions"))
+        }))
         .apply(plan)
         .map_err(|error| AdapterError::Runtime(error.to_string()))
     }
@@ -502,10 +697,9 @@ impl Runtime for OsRuntime {
         &mut self,
         transaction_id: &str,
     ) -> Result<crate::transaction::RestoreReceipt, AdapterError> {
-        TransactionEngine::new(physical_path(
-            &self.root,
-            Path::new("/var/lib/mirrorswitch/transactions"),
-        ))
+        TransactionEngine::new(self.transaction_root.clone().unwrap_or_else(|| {
+            physical_path(&self.root, Path::new("/var/lib/mirrorswitch/transactions"))
+        }))
         .restore(transaction_id)
         .map_err(|error| AdapterError::Runtime(error.to_string()))
     }
@@ -825,6 +1019,119 @@ fn supported_distribution(id: &str) -> bool {
         "immortalwrt",
     ];
     SUPPORTED.contains(&id)
+}
+
+fn current_home(os: OperatingSystem) -> PathBuf {
+    match os {
+        OperatingSystem::Windows => std::env::var_os("USERPROFILE")
+            .map(PathBuf::from)
+            .or_else(|| {
+                let drive = std::env::var_os("HOMEDRIVE")?;
+                let path = std::env::var_os("HOMEPATH")?;
+                Some(PathBuf::from(drive).join(path))
+            })
+            .unwrap_or_else(|| PathBuf::from(r"C:\")),
+        OperatingSystem::Linux | OperatingSystem::Macos => std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("/")),
+    }
+}
+
+fn platform_version(os: OperatingSystem) -> Option<String> {
+    let output = match os {
+        OperatingSystem::Macos => Command::new("sw_vers")
+            .arg("-productVersion")
+            .output()
+            .ok()?,
+        OperatingSystem::Windows => Command::new("cmd.exe")
+            .args(["/D", "/C", "ver"])
+            .output()
+            .ok()?,
+        OperatingSystem::Linux => return None,
+    };
+    output
+        .status
+        .success()
+        .then(|| String::from_utf8_lossy(&output.stdout).trim().to_owned())
+        .filter(|value| !value.is_empty())
+}
+
+#[cfg(windows)]
+fn windows_elevated() -> bool {
+    use std::{ffi::c_void, mem::size_of};
+    use windows_sys::Win32::{
+        Foundation::{CloseHandle, HANDLE},
+        Security::{GetTokenInformation, TOKEN_ELEVATION, TOKEN_QUERY, TokenElevation},
+        System::Threading::{GetCurrentProcess, OpenProcessToken},
+    };
+
+    let mut token: HANDLE = std::ptr::null_mut();
+    // SAFETY: Windows fills the provided token handle and elevation buffers; both
+    // pointers remain valid for each call and the opened handle is always closed.
+    unsafe {
+        if OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) == 0 {
+            return false;
+        }
+        let mut elevation = TOKEN_ELEVATION { TokenIsElevated: 0 };
+        let mut returned = 0;
+        let success = GetTokenInformation(
+            token,
+            TokenElevation,
+            (&mut elevation as *mut TOKEN_ELEVATION).cast::<c_void>(),
+            size_of::<TOKEN_ELEVATION>() as u32,
+            &mut returned,
+        ) != 0;
+        let _ = CloseHandle(token);
+        success && elevation.TokenIsElevated != 0
+    }
+}
+
+#[cfg(not(windows))]
+fn windows_elevated() -> bool {
+    false
+}
+
+fn find_command_in(directory: &Path, command: &str, root: &Path) -> Option<PathBuf> {
+    let logical = directory.join(command);
+    if executable(&physical_path(root, &logical)) {
+        return Some(logical);
+    }
+    #[cfg(windows)]
+    if Path::new(command).extension().is_none() {
+        let extensions = std::env::var_os("PATHEXT")
+            .map(|value| value.to_string_lossy().into_owned())
+            .unwrap_or_else(|| ".COM;.EXE;.BAT;.CMD".into());
+        for extension in extensions.split(';').filter(|value| !value.is_empty()) {
+            let candidate = directory.join(format!("{command}{extension}"));
+            if executable(&physical_path(root, &candidate)) {
+                return Some(candidate);
+            }
+        }
+    }
+    None
+}
+
+fn run_command(path: &Path, arguments: &[String], directory: Option<&Path>) -> io::Result<Output> {
+    #[cfg(windows)]
+    let mut command = if matches!(
+        path.extension()
+            .and_then(|value| value.to_str())
+            .map(str::to_ascii_lowercase)
+            .as_deref(),
+        Some("cmd" | "bat")
+    ) {
+        let mut command = Command::new("cmd.exe");
+        command.args(["/D", "/C"]).arg(path);
+        command
+    } else {
+        Command::new(path)
+    };
+    #[cfg(not(windows))]
+    let mut command = Command::new(path);
+    if let Some(directory) = directory {
+        command.current_dir(directory);
+    }
+    command.args(arguments).output()
 }
 
 fn physical_path(root: &Path, logical: &Path) -> PathBuf {

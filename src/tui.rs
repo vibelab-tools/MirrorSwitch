@@ -27,7 +27,8 @@ pub fn select_tools(
         .collect::<BTreeSet<_>>();
     writeln!(
         output,
-        "MirrorSwitch | os=linux distribution={} architecture={:?} environment={:?}",
+        "MirrorSwitch | os={:?} distribution={} architecture={:?} environment={:?}",
+        report.context.os,
         report
             .context
             .distribution

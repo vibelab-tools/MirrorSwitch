@@ -10,7 +10,7 @@ use mirrorswitch::{
     adapters::{compiled_adapter_allowlist, compiled_adapters},
     catalog::ConfigurationScope,
     catalog_update::{CatalogUpdater, EMBEDDED_CATALOG},
-    detection::{LinuxDetectionOptions, OsRuntime, detect_linux},
+    detection::{HostDetectionOptions, detect_host},
     frontend::{
         FrontendSource, RequestInput, apply_detection_overrides, apply_execution,
         load_configuration, normalize_request, prepare_execution,
@@ -86,10 +86,10 @@ fn run() -> Result<u8, CliError> {
         return Err(usage(&parsed, "apply requires --yes"));
     }
 
-    let options = LinuxDetectionOptions::current();
+    let options = HostDetectionOptions::current();
     let adapters = compiled_adapters();
-    let mut report = detect_linux(&options, &adapters).map_err(|error| cli(&parsed, error))?;
-    let (catalog, catalog_status) = load_catalog(&parsed, &options.home)?;
+    let mut report = detect_host(&options, &adapters).map_err(|error| cli(&parsed, error))?;
+    let (catalog, catalog_status) = load_catalog(&parsed, &options.catalog_cache)?;
     let mut input = match &parsed.config {
         Some(path) => load_configuration(path).map_err(|error| cli(&parsed, error))?,
         None => RequestInput::default(),
@@ -145,7 +145,7 @@ fn run() -> Result<u8, CliError> {
     } else {
         normalize_request(&report, &input, source).map_err(|error| cli(&parsed, error))?
     };
-    let mut runtime = runtime(&options);
+    let mut runtime = options.runtime();
     let prepared = prepare_execution(&report, &request, &catalog, &adapters, HttpCandidateProber)
         .map_err(|error| cli(&parsed, error))?;
     let preview = prepared.preview();
@@ -186,18 +186,9 @@ fn run() -> Result<u8, CliError> {
     Ok(code)
 }
 
-fn runtime(options: &LinuxDetectionOptions) -> OsRuntime {
-    let mut runtime = OsRuntime::new(&options.root, options.executable_path.clone())
-        .with_home(options.home.clone());
-    if let Some(project) = &options.project_dir {
-        runtime = runtime.with_project_dir(project.clone());
-    }
-    runtime
-}
-
 fn load_catalog(
     parsed: &Arguments,
-    home: &Path,
+    cache: &Path,
 ) -> Result<(MirrorCatalog, serde_json::Value), CliError> {
     if parsed.offline {
         let catalog: MirrorCatalog =
@@ -215,10 +206,6 @@ fn load_catalog(
         });
         return Ok((catalog, status));
     }
-    let cache = env::var_os("XDG_CACHE_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| home.join(".cache"))
-        .join("mirrorswitch/catalog.json");
     let loaded = CatalogUpdater::new(cache)
         .load(&compiled_adapter_allowlist())
         .map_err(|error| cli(parsed, error))?;
@@ -237,8 +224,8 @@ fn restore(parsed: &Arguments) -> Result<u8, CliError> {
     if parsed.positionals.len() != 1 {
         return Err(usage(parsed, "restore accepts one transaction ID"));
     }
-    let options = LinuxDetectionOptions::current();
-    let mut runtime = runtime(&options);
+    let options = HostDetectionOptions::current();
+    let mut runtime = options.runtime();
     let receipt = runtime
         .restore_transaction(id)
         .map_err(|error| cli(parsed, error))?;

@@ -1,0 +1,99 @@
+name: macOS and Windows smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS Intel x86_64
+            runner: macos-15-intel
+            artifact: mirrorswitch-macos-x86_64
+          - name: macOS Apple Silicon arm64
+            runner: macos-15
+            artifact: mirrorswitch-macos-arm64
+          - name: Windows x86_64
+            runner: windows-2025
+            artifact: mirrorswitch-windows-x86_64
+          - name: Windows arm64
+            runner: windows-11-arm
+            artifact: mirrorswitch-windows-arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component rustfmt,clippy
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run native Rust boundaries
+        run: cargo test --locked --test host_detection_boundary --test catalog_contract --test catalog_runtime_contract --test catalog_update_boundary --test selection_boundary -- --test-threads=1
+      - name: Build release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS terminal entrypoints
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          binary="$PWD/target/release/mirrorswitch"
+          "$binary" --version
+          "$binary" --help | grep -F 'mirrorswitch detect'
+          "$binary" status --offline --json > status.json
+          "$binary" detect --offline --json > detect.json
+          python3 - <<'PY'
+          import json
+          assert json.load(open("status.json"))["context"]["os"] == "macos"
+          assert json.load(open("detect.json"))["report"]["context"]["os"] == "macos"
+          PY
+          printf 'n\n' | "$binary" tui --offline > tui.txt
+          grep -F 'os=Macos' tui.txt
+      - name: Exercise Windows terminal entrypoints
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
+          & $binary --version
+          if (-not ((& $binary --help) -match 'mirrorswitch detect')) { throw 'help command missing' }
+          $status = (& $binary status --offline --json) | ConvertFrom-Json
+          $detect = (& $binary detect --offline --json) | ConvertFrom-Json
+          if ($status.context.os -ne 'windows') { throw 'status OS mismatch' }
+          if ($detect.report.context.os -ne 'windows') { throw 'detect OS mismatch' }
+          'n' | & $binary tui --offline | Set-Content -Encoding utf8 tui.txt
+          if (-not ((Get-Content tui.txt) -match 'os=Windows')) { throw 'TUI OS missing' }
+      - name: Record macOS executable checksum
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cd target/release
+          shasum -a 256 mirrorswitch > mirrorswitch.sha256
+      - name: Record Windows executable checksum
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $digest = (Get-FileHash target/release/mirrorswitch.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$digest  mirrorswitch.exe" | Set-Content -Encoding ascii target/release/mirrorswitch.exe.sha256
+      - name: Save native smoke artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            target/release/mirrorswitch
+            target/release/mirrorswitch.exe
+            target/release/mirrorswitch.sha256
+            target/release/mirrorswitch.exe.sha256
+          if-no-files-found: error
+          retention-days: 7
