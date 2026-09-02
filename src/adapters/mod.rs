@@ -40,6 +40,7 @@ mod podman_registry;
 mod poetry;
 mod portage;
 mod pyenv;
+mod ros;
 mod rubygems;
 mod rustup;
 mod sbt;
@@ -97,6 +98,7 @@ pub use podman_registry::PodmanRegistryAdapter;
 pub use poetry::PoetryAdapter;
 pub use portage::PortageAdapter;
 pub use pyenv::PyenvAdapter;
+pub use ros::RosAdapter;
 pub use rubygems::RubyGemsAdapter;
 pub use rustup::RustupAdapter;
 pub use sbt::SbtAdapter;
@@ -151,6 +153,7 @@ static POETRY: PoetryAdapter = PoetryAdapter;
 static PORTAGE: PortageAdapter = PortageAdapter;
 static PYENV: PyenvAdapter = PyenvAdapter;
 static RUBYGEMS: RubyGemsAdapter = RubyGemsAdapter;
+static ROS: RosAdapter = RosAdapter;
 static RUSTUP: RustupAdapter = RustupAdapter;
 static SBT: SbtAdapter = SbtAdapter;
 static STACK: StackAdapter = StackAdapter;
@@ -197,6 +200,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &KUBERNETES_IMAGES,
         &KUBERNETES_PACKAGES,
         &RUBYGEMS,
+        &ROS,
         &BUNDLER,
         &CARGO,
         &RUSTUP,

@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "54"
+CATALOG_FORMAT_REVISION = "55"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -462,6 +462,19 @@ ELPA_ARCHIVES = {
     "nongnu": ("nongnu-elpa", "adoc-mode-0.9.0.tar"),
     "melpa": ("melpa", "dash-20260221.1346.tar"),
 }
+ROS1_UPSTREAM = "ros1-packages--repository-metadata"
+ROS1_ACTIONABLE_PROVIDERS = {"huaweicloud", "nju", "sjtug", "tuna", "ustc"}
+ROS1_ENDPOINTS = {
+    "huaweicloud": "https://repo.huaweicloud.com/ros/",
+    "nju": "https://mirrors.nju.edu.cn/ros/",
+    "sjtug": "https://mirror.sjtu.edu.cn/ros/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/ros/",
+    "ustc": "https://mirrors.ustc.edu.cn/ros/",
+}
+ROS1_BASELINE_PACKAGES = {
+    "amd64": "ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.010531_amd64.deb",
+    "arm64": "ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.024603_arm64.deb",
+}
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -545,6 +558,8 @@ def runtime_upstream_identity(
         return "registry.k8s.io", "container-registry"
     if tool_id == "containerd" and entry["raw_name"] == "k8s":
         return "registry.k8s.io", "container-registry"
+    if tool_id == "ros" and entry["raw_name"] == "ros":
+        return "ros1-packages", "repository-metadata"
     if tool_id == "podman-registry" and entry["raw_name"] in {"gcr", "ghcr", "quay"}:
         return f"{entry['raw_name']}.io", "container-registry"
     return entry["normalized_upstream"], entry["content_type"]
@@ -606,6 +621,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["system"]
     if tool_id == "elpa":
         return ["user"]
+    if tool_id == "ros":
+        return ["system"]
     if tool_id in {
         "maven",
         "sbt",
@@ -761,6 +778,17 @@ def candidate_endpoints(
         ]
     if tool_id == "elpa" and entry["raw_name"].startswith("elpa/"):
         endpoint = entry["public_endpoints"][0]["url"]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "packages"]
+        ]
+    if (
+        tool_id == "ros"
+        and upstream_key == ROS1_UPSTREAM
+        and entry["provider_id"] in ROS1_ACTIONABLE_PROVIDERS
+        and entry["raw_name"] == "ros"
+    ):
+        endpoint = ROS1_ENDPOINTS[entry["provider_id"]]
         return [
             {"role": role, "protocol": "https", "url": endpoint}
             for role in ["index", "metadata", "packages"]
@@ -3011,6 +3039,61 @@ def runtime_properties(
                 }
             )
     elif (
+        tool_id == "ros"
+        and upstream_key == ROS1_UPSTREAM
+        and entry["provider_id"] in ROS1_ACTIONABLE_PROVIDERS
+        and entry["raw_name"] == "ros"
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ["noetic-focal-final"]
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/ubuntu/dists/focal/Release",
+                "expected_status": [200],
+                "contains": "Origin: ROS",
+            },
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/ubuntu/dists/focal/Release",
+                "expected_status": [200],
+                "contains": "Architectures: i386 amd64 arm64 armhf",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/ubuntu/dists/focal/Release.gpg",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/ubuntu/dists/focal/main/binary-amd64/Packages.gz",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/ubuntu/dists/focal/main/binary-arm64/Packages.gz",
+                "expected_status": [200],
+            },
+            *[
+                {
+                    "endpoint_role": "packages",
+                    "method": "head",
+                    "path": f"/{path}",
+                    "expected_status": [200],
+                }
+                for path in ROS1_BASELINE_PACKAGES.values()
+            ],
+        ]
+    elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
@@ -3252,6 +3335,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "ghcup",
                         "rubygems",
                         "rustup",
+                        "ros",
                         "sbt",
                         "stack",
                         "tlmgr",

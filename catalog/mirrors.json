@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+79a5bf506800",
-  "content_revision": 20260902050000,
-  "generated_at": "2026-09-02T05:00:00Z",
+  "content_version": "2026.08.28+fc70d8cbf85e",
+  "content_revision": 20260902063000,
+  "generated_at": "2026-09-02T06:30:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1293,10 +1293,10 @@
       ]
     },
     {
-      "id": "ros--static-files",
-      "family": "ros",
-      "display_name": "ros",
-      "content_kind": "static-files",
+      "id": "ros1-packages--repository-metadata",
+      "family": "ros1-packages",
+      "display_name": "ros1-packages",
+      "content_kind": "repository-metadata",
       "aliases": [
         "ros"
       ]
@@ -2207,7 +2207,7 @@
       "id": "ros",
       "adapter_key": "ros",
       "display_name": "ros",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/81",
       "supported_scopes": [
         "system"
@@ -9846,38 +9846,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "3cf0c2dd1400b724f7fd5163",
-      "provider_id": "huaweicloud",
-      "upstream_id": "ros--static-files",
-      "tool_id": "ros",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ros"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/ros/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [
-          "x86_64"
-        ],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "3d48fe746c20ef752b29c7e1",
       "provider_id": "aliyun",
       "upstream_id": "ros2--static-files",
@@ -10443,6 +10411,115 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "4478581b3d14de6e0fefc1f6",
+      "provider_id": "huaweicloud",
+      "upstream_id": "ros1-packages--repository-metadata",
+      "tool_id": "ros",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/ros/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/ros/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/ros/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "noetic-focal-final"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/ubuntu/dists/focal/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/ubuntu/dists/focal/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architectures: i386 amd64 arm64 armhf"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/main/binary-amd64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/main/binary-arm64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.010531_amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.024603_arm64.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
       ],
@@ -11668,36 +11745,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "506382d8bb0826a5cf60b755",
-      "provider_id": "nju",
-      "upstream_id": "ros--static-files",
-      "tool_id": "ros",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ros"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/ros/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "508753ef3340e2a0e73c0f15",
       "provider_id": "ustc",
       "upstream_id": "immortalwrt--repository-metadata",
@@ -12787,6 +12834,115 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "57cdc74d121288b1380ed56b",
+      "provider_id": "nju",
+      "upstream_id": "ros1-packages--repository-metadata",
+      "tool_id": "ros",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ros/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ros/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ros/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "noetic-focal-final"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/ubuntu/dists/focal/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/ubuntu/dists/focal/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architectures: i386 amd64 arm64 armhf"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/main/binary-amd64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/main/binary-arm64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.010531_amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.024603_arm64.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "58b070b2b259c7b37ff90c02",
       "provider_id": "huaweicloud",
       "upstream_id": "julia--language-registry",
@@ -12893,6 +13049,115 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "5b05d2410ee173a6a4f9496e",
+      "provider_id": "ustc",
+      "upstream_id": "ros1-packages--repository-metadata",
+      "tool_id": "ros",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ros/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ros/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ros/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "noetic-focal-final"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/ubuntu/dists/focal/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/ubuntu/dists/focal/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architectures: i386 amd64 arm64 armhf"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/main/binary-amd64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/main/binary-arm64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.010531_amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.024603_arm64.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/ros.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -15528,6 +15793,115 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "768d08e5cf711b5b5619b00b",
+      "provider_id": "tuna",
+      "upstream_id": "ros1-packages--repository-metadata",
+      "tool_id": "ros",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ros/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ros/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ros/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "noetic-focal-final"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/ubuntu/dists/focal/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/ubuntu/dists/focal/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architectures: i386 amd64 arm64 armhf"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/main/binary-amd64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/main/binary-arm64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.010531_amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.024603_arm64.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "769ec8888a21fd79c0cba15a",
       "provider_id": "nju",
       "upstream_id": "gitlab-runner--static-files",
@@ -17061,36 +17435,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "86aef2f6604c03c720d8ac71",
-      "provider_id": "tuna",
-      "upstream_id": "ros--static-files",
-      "tool_id": "ros",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ros"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/ros/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -24668,6 +25012,115 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "c83994bf3bb39ca3d3c189b6",
+      "provider_id": "sjtug",
+      "upstream_id": "ros1-packages--repository-metadata",
+      "tool_id": "ros",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/ros/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/ros/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/ros/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "noetic-focal-final"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/ubuntu/dists/focal/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/ubuntu/dists/focal/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architectures: i386 amd64 arm64 armhf"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/main/binary-amd64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ubuntu/dists/focal/main/binary-arm64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.010531_amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.024603_arm64.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "c847b1e027965b836cbf686d",
       "provider_id": "ustc",
       "upstream_id": "archlinux--repository-metadata",
@@ -26690,36 +27143,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "d60538a2ea541380b511ac70",
-      "provider_id": "aliyun",
-      "upstream_id": "ros--static-files",
-      "tool_id": "ros",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ros"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/ros/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "d611f8237c41b5ab6ffc9d63",
       "provider_id": "nju",
       "upstream_id": "rust-toolchain--release-artifacts",
@@ -27931,36 +28354,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "e5795d8f0cf3574b2d62988f",
-      "provider_id": "sjtug",
-      "upstream_id": "ros--static-files",
-      "tool_id": "ros",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ros"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/ros/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "e5bedf6f7aa9dcc39f63eb49",
       "provider_id": "tuna",
       "upstream_id": "mysql--static-files",
@@ -28836,6 +29229,36 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "eecdbee539e14aec0ab3a8f7",
+      "provider_id": "aliyun",
+      "upstream_id": "ros1-packages--repository-metadata",
+      "tool_id": "ros",
+      "catalog_state": "partial",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "ros"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/ros/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [],
+        "architectures": [],
+        "environments": [],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "eef2caf5d80323d7766bd768",
       "provider_id": "huaweicloud",
       "upstream_id": "cocoapods--static-files",
@@ -29067,36 +29490,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "f3391e9089a5bd0916778b04",
-      "provider_id": "ustc",
-      "upstream_id": "ros--static-files",
-      "tool_id": "ros",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ros"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/ros/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/ros.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
