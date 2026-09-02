@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "63"
+CATALOG_FORMAT_REVISION = "64"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -575,6 +575,17 @@ ZABBIX_APT_REPOSITORY_VERSIONS = [
     for architecture in ["amd64", "arm64"]
 ]
 ZABBIX_RPM_REPOSITORY_VERSIONS = ["el-9-7.4-x86_64", "el-9-7.4-aarch64"]
+GITLAB_RUNNER_UPSTREAM = "gitlab-runner-packages--repository-metadata"
+GITLAB_RUNNER_ENDPOINTS = {
+    "nju": "https://mirrors.nju.edu.cn/gitlab-runner/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/gitlab-runner/",
+}
+GITLAB_RUNNER_APT_REPOSITORY_VERSIONS = [
+    f"{family}-{release}-19-{architecture}"
+    for family, release in [("debian", "bookworm"), ("ubuntu", "jammy"), ("ubuntu", "noble")]
+    for architecture in ["amd64", "arm64"]
+]
+GITLAB_RUNNER_RPM_REPOSITORY_VERSIONS = ["el-9-19-x86_64", "el-9-19-aarch64"]
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -676,6 +687,8 @@ def runtime_upstream_identity(
         return "grafana-packages", "repository-metadata"
     if tool_id == "zabbix" and entry["raw_name"].startswith("zabbix"):
         return "zabbix-packages", "repository-metadata"
+    if tool_id == "gitlab-runner" and entry["raw_name"].startswith("gitlab-runner"):
+        return "gitlab-runner-packages", "repository-metadata"
     if tool_id == "podman-registry" and entry["raw_name"] in {"gcr", "ghcr", "quay"}:
         return f"{entry['raw_name']}.io", "container-registry"
     return entry["normalized_upstream"], entry["content_type"]
@@ -981,6 +994,14 @@ def candidate_endpoints(
         and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
     ):
         endpoint = ZABBIX_ENDPOINTS[entry["provider_id"]]
+        return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
+    if (
+        tool_id == "gitlab-runner"
+        and upstream_key == GITLAB_RUNNER_UPSTREAM
+        and entry["provider_id"] in GITLAB_RUNNER_ENDPOINTS
+        and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
+    ):
+        endpoint = GITLAB_RUNNER_ENDPOINTS[entry["provider_id"]]
         return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
     if (
         tool_id == "flutter"
@@ -3638,6 +3659,45 @@ def runtime_properties(
             {"endpoint_role": "packages", "method": "head", "path": f"{root}/zabbix-agent2-7.4.14-release1.el9.{{architecture}}.rpm", "expected_status": [200]},
         ]
     elif (
+        tool_id == "gitlab-runner"
+        and upstream_key == GITLAB_RUNNER_UPSTREAM
+        and entry["provider_id"] in GITLAB_RUNNER_ENDPOINTS
+        and entry["raw_name"].endswith("-apt-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = GITLAB_RUNNER_APT_REPOSITORY_VERSIONS
+        delivery_mode = "mirror"
+        root = "/{family}"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{root}/dists/{{release}}/InRelease", "expected_status": [200], "contains": "Origin: packages.gitlab.com/runner/gitlab-runner"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/{{release}}/Release.gpg", "expected_status": [200]},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/{{release}}/main/binary-{{architecture}}/Packages.gz", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/pool/main/g/gitlab-runner/gitlab-runner_19.3.1-1_{{architecture}}.deb", "expected_status": [200]},
+        ]
+    elif (
+        tool_id == "gitlab-runner"
+        and upstream_key == GITLAB_RUNNER_UPSTREAM
+        and entry["provider_id"] in GITLAB_RUNNER_ENDPOINTS
+        and entry["raw_name"].endswith("-rpm-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = GITLAB_RUNNER_RPM_REPOSITORY_VERSIONS
+        delivery_mode = "mirror"
+        root = "/yum/el9-{architecture}"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{root}/repodata/repomd.xml", "expected_status": [200], "contains": "<repomd"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/repodata/repomd.xml", "expected_status": [200]},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/repodata/repomd.xml.asc", "expected_status": [200]},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/repodata/repomd.xml.key", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/Packages/g/gitlab-runner-19.3.1-1.{{architecture}}.rpm", "expected_status": [200]},
+        ]
+    elif (
         tool_id == "elasticstack"
         and upstream_key == ELASTICSTACK_UPSTREAM
         and entry["provider_id"] in ELASTICSTACK_ENDPOINTS
@@ -3896,6 +3956,13 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
             ):
                 for surface in ["apt", "rpm"]:
                     planned_entries.append({**entry, "raw_name": f"zabbix-{surface}-runtime"})
+            elif (
+                any(target["tool_id"] == "gitlab-runner" for target in targets)
+                and entry["provider_id"] in GITLAB_RUNNER_ENDPOINTS
+                and entry["raw_name"] == "gitlab-runner"
+            ):
+                for surface in ["apt", "rpm"]:
+                    planned_entries.append({**entry, "raw_name": f"gitlab-runner-{surface}-runtime"})
             elif entry["raw_name"] == "elpa":
                 for archive, (family, _) in ELPA_ARCHIVES.items():
                     root = entry["public_endpoints"][0]["url"].rstrip("/")
@@ -3975,6 +4042,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "flutter",
                         "go",
                         "ghcup",
+                        "gitlab-runner",
                         "grafana",
                         "rubygems",
                         "rustup",

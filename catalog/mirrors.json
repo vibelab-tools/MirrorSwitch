@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+cd2978d8d0ce",
-  "content_revision": 20260902103000,
-  "generated_at": "2026-09-02T10:30:00Z",
+  "content_version": "2026.08.28+2629ad933b1b",
+  "content_revision": 20260902110000,
+  "generated_at": "2026-09-02T11:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -638,12 +638,13 @@
       ]
     },
     {
-      "id": "gitlab-runner--static-files",
-      "family": "gitlab-runner",
-      "display_name": "gitlab-runner",
-      "content_kind": "static-files",
+      "id": "gitlab-runner-packages--repository-metadata",
+      "family": "gitlab-runner-packages",
+      "display_name": "gitlab-runner-packages",
+      "content_kind": "repository-metadata",
       "aliases": [
-        "gitlab-runner"
+        "gitlab-runner-apt-runtime",
+        "gitlab-runner-rpm-runtime"
       ]
     },
     {
@@ -1785,7 +1786,7 @@
       "id": "gitlab-runner",
       "adapter_key": "gitlab-runner",
       "display_name": "gitlab-runner",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/93",
       "supported_scopes": [
         "system"
@@ -9178,6 +9179,99 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "2f9fc50029696387ed48547a",
+      "provider_id": "tuna",
+      "upstream_id": "gitlab-runner-packages--repository-metadata",
+      "tool_id": "gitlab-runner",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gitlab-runner-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/gitlab-runner/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/gitlab-runner/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/gitlab-runner/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-19-x86_64",
+          "el-9-19-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/yum/el9-{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/el9-{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/el9-{architecture}/repodata/repomd.xml.asc",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/el9-{architecture}/repodata/repomd.xml.key",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/el9-{architecture}/Packages/g/gitlab-runner-19.3.1-1.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "2fa3c7cc266f493ac792cc0a",
       "provider_id": "huaweicloud",
       "upstream_id": "opensuse--repository-metadata",
@@ -10952,6 +11046,99 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "3ded12ea53681cdd1a706a90",
+      "provider_id": "nju",
+      "upstream_id": "gitlab-runner-packages--repository-metadata",
+      "tool_id": "gitlab-runner",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gitlab-runner-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/gitlab-runner/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/gitlab-runner/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/gitlab-runner/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-19-x86_64",
+          "el-9-19-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/yum/el9-{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/el9-{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/el9-{architecture}/repodata/repomd.xml.asc",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/el9-{architecture}/repodata/repomd.xml.key",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/el9-{architecture}/Packages/g/gitlab-runner-19.3.1-1.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -14458,36 +14645,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "590c225c61b31ee3c581f01d",
-      "provider_id": "tuna",
-      "upstream_id": "gitlab-runner--static-files",
-      "tool_id": "gitlab-runner",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "gitlab-runner"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/gitlab-runner/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "59359e1e1174af029fd700e8",
       "provider_id": "huaweicloud",
       "upstream_id": "centos-vault--repository-metadata",
@@ -17793,36 +17950,6 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "769ec8888a21fd79c0cba15a",
-      "provider_id": "nju",
-      "upstream_id": "gitlab-runner--static-files",
-      "tool_id": "gitlab-runner",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "gitlab-runner"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/gitlab-runner/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -29072,6 +29199,95 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "d1cf1548afc769a6f0799bb2",
+      "provider_id": "tuna",
+      "upstream_id": "gitlab-runner-packages--repository-metadata",
+      "tool_id": "gitlab-runner",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gitlab-runner-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/gitlab-runner/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/gitlab-runner/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/gitlab-runner/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-19-amd64",
+          "debian-bookworm-19-arm64",
+          "ubuntu-jammy-19-amd64",
+          "ubuntu-jammy-19-arm64",
+          "ubuntu-noble-19-amd64",
+          "ubuntu-noble-19-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/{family}/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: packages.gitlab.com/runner/gitlab-runner"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{family}/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{family}/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{family}/pool/main/g/gitlab-runner/gitlab-runner_19.3.1-1_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "d1d9bf9dc3f7d13b40f402c6",
       "provider_id": "ustc",
       "upstream_id": "gnu-elpa--language-registry",
@@ -33922,6 +34138,95 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "feeb1f6c0354aca4cab7972f",
+      "provider_id": "nju",
+      "upstream_id": "gitlab-runner-packages--repository-metadata",
+      "tool_id": "gitlab-runner",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gitlab-runner-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/gitlab-runner/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/gitlab-runner/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/gitlab-runner/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-19-amd64",
+          "debian-bookworm-19-arm64",
+          "ubuntu-jammy-19-amd64",
+          "ubuntu-jammy-19-arm64",
+          "ubuntu-noble-19-amd64",
+          "ubuntu-noble-19-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/{family}/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: packages.gitlab.com/runner/gitlab-runner"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{family}/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{family}/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{family}/pool/main/g/gitlab-runner/gitlab-runner_19.3.1-1_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

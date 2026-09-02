@@ -12,7 +12,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
     assert_eq!(catalog.providers.len(), 6);
     assert_eq!(catalog.tools.len(), 78);
-    assert_eq!(catalog.candidates.len(), 551);
+    assert_eq!(catalog.candidates.len(), 553);
     assert_eq!(
         catalog
             .tools
@@ -42,6 +42,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             "flutter",
             "fnm",
             "ghcup",
+            "gitlab-runner",
             "go",
             "gradle",
             "grafana",

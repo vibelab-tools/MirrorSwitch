@@ -19,6 +19,7 @@ mod flatpak;
 mod flutter;
 mod fnm;
 mod ghcup;
+mod gitlab_runner;
 mod go;
 mod gradle;
 mod grafana;
@@ -85,6 +86,7 @@ pub use flatpak::FlatpakAdapter;
 pub use flutter::FlutterAdapter;
 pub use fnm::FnmAdapter;
 pub use ghcup::GhcupAdapter;
+pub use gitlab_runner::GitLabRunnerAdapter;
 pub use go::GoAdapter;
 pub use gradle::GradleAdapter;
 pub use grafana::GrafanaAdapter;
@@ -150,6 +152,7 @@ static GO: GoAdapter = GoAdapter;
 static GRAFANA: GrafanaAdapter = GrafanaAdapter;
 static GRADLE: GradleAdapter = GradleAdapter;
 static GHCUP: GhcupAdapter = GhcupAdapter;
+static GITLAB_RUNNER: GitLabRunnerAdapter = GitLabRunnerAdapter;
 static GUIX: GuixAdapter = GuixAdapter;
 static INFLUXDB: InfluxDbAdapter = InfluxDbAdapter;
 static JULIA: JuliaAdapter = JuliaAdapter;
@@ -243,6 +246,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &LEININGEN,
         &STACK,
         &GHCUP,
+        &GITLAB_RUNNER,
         &TLMGR,
         &FLUTTER,
         &CPAN,
