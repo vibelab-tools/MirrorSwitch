@@ -1,6 +1,6 @@
 use std::{
     env,
-    io::{self, BufReader},
+    io::{self, BufReader, Write},
     path::{Path, PathBuf},
     process::ExitCode,
 };
@@ -39,6 +39,7 @@ Options:
   --scope TOOL=system|user      Override a detected tool scope
   --mirror TOOL:UPSTREAM=ID     Use one reviewed candidate ID
   --config PATH                 Read a version 1 JSON configuration
+  --wsl NAME                    Run this command inside one explicit WSL distribution
   --offline                     Use the embedded catalog without Raw update
   --json                        Emit stable JSON
   --yes                         Explicitly authorize apply/restore
@@ -66,7 +67,11 @@ fn main() -> ExitCode {
 }
 
 fn run() -> Result<u8, CliError> {
-    let parsed = parse_arguments(env::args().skip(1))?;
+    let raw_arguments = env::args().skip(1).collect::<Vec<_>>();
+    let parsed = parse_arguments(raw_arguments.clone().into_iter())?;
+    if let Some(distribution) = &parsed.wsl {
+        return run_in_wsl(&parsed, distribution, &raw_arguments);
+    }
     if parsed.help {
         print!("{HELP}");
         return Ok(0);
@@ -213,6 +218,56 @@ fn load_catalog(
     Ok((loaded.catalog, status))
 }
 
+fn run_in_wsl(
+    parsed: &Arguments,
+    distribution: &str,
+    raw_arguments: &[String],
+) -> Result<u8, CliError> {
+    let version =
+        mirrorswitch::wsl::run_distribution(distribution, "mirrorswitch", &["--version".into()])
+            .map_err(|error| cli(parsed, error))?;
+    let observed = String::from_utf8_lossy(&version.stdout).trim().to_owned();
+    let expected = format!("mirrorswitch {}", env!("CARGO_PKG_VERSION"));
+    if !version.status.success() || observed != expected {
+        return Err(CliError {
+            json: parsed.json,
+            message: format!(
+                "WSL distribution {distribution} requires {expected}; observed {}",
+                if observed.is_empty() {
+                    "an unavailable mirrorswitch command"
+                } else {
+                    &observed
+                }
+            ),
+        });
+    }
+
+    let mut child_arguments = Vec::new();
+    let mut index = 0;
+    while index < raw_arguments.len() {
+        if raw_arguments[index] == "--wsl" {
+            index += 2;
+        } else {
+            child_arguments.push(raw_arguments[index].clone());
+            index += 1;
+        }
+    }
+    let output =
+        mirrorswitch::wsl::run_distribution(distribution, "mirrorswitch", &child_arguments)
+            .map_err(|error| cli(parsed, error))?;
+    io::stdout()
+        .write_all(&output.stdout)
+        .map_err(|error| cli(parsed, error))?;
+    io::stderr()
+        .write_all(&output.stderr)
+        .map_err(|error| cli(parsed, error))?;
+    Ok(output
+        .status
+        .code()
+        .and_then(|code| u8::try_from(code).ok())
+        .unwrap_or(2))
+}
+
 fn restore(parsed: &Arguments) -> Result<u8, CliError> {
     if !parsed.yes {
         return Err(usage(parsed, "restore requires --yes"));
@@ -257,6 +312,7 @@ struct Arguments {
     positionals: Vec<String>,
     input: RequestInput,
     config: Option<PathBuf>,
+    wsl: Option<String>,
     offline: bool,
     json: bool,
     yes: bool,
@@ -279,7 +335,8 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                 parsed.input.all = true;
                 parsed.has_cli_selection = true;
             }
-            "--tool" | "--disable" | "--category" | "--scope" | "--mirror" | "--config" => {
+            "--tool" | "--disable" | "--category" | "--scope" | "--mirror" | "--config"
+            | "--wsl" => {
                 let item = values.next().ok_or_else(|| CliError {
                     json: parsed.json,
                     message: format!("{value} requires a value"),
@@ -317,6 +374,11 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                         parsed.has_cli_selection = true;
                     }
                     "--config" => parsed.config = Some(item.into()),
+                    "--wsl" => {
+                        if parsed.wsl.replace(item).is_some() {
+                            return Err(usage(&parsed, "--wsl may be specified only once"));
+                        }
+                    }
                     _ => unreachable!(),
                 }
             }

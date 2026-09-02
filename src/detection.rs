@@ -15,6 +15,7 @@ use crate::{
     plan::{CurrentConfiguration, DetectedTool},
     platform::compiled_os,
     transaction::TransactionEngine,
+    wsl::{WslDistribution, discover as discover_wsl},
 };
 
 #[derive(Clone, Debug)]
@@ -156,6 +157,8 @@ pub struct DetectionReport {
     pub related_tools: Vec<RelatedToolObservation>,
     pub tools: Vec<ToolDetection>,
     pub selections: Vec<TargetSelection>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub wsl_distributions: Vec<WslDistribution>,
     pub notices: Vec<DetectionNotice>,
 }
 
@@ -356,6 +359,7 @@ pub fn detect_linux(
         related_tools: detected.related_tools,
         tools: detected.tools,
         selections: detected.selections,
+        wsl_distributions: Vec::new(),
         notices,
     })
 }
@@ -406,6 +410,21 @@ pub fn detect_host(
         root: options.root.clone(),
     };
     let mut notices = Vec::new();
+    let wsl_distributions = if options.os == OperatingSystem::Windows {
+        match discover_wsl(&runtime) {
+            Ok(distributions) => distributions,
+            Err(error) => {
+                notices.push(DetectionNotice {
+                    subject: "wsl".into(),
+                    code: NoticeCode::AdapterDetectionFailed,
+                    message: format!("WSL inventory is unavailable: {error}"),
+                });
+                Vec::new()
+            }
+        }
+    } else {
+        Vec::new()
+    };
     let detected = detect_adapters(&context, &runtime, adapters, &mut notices);
     Ok(DetectionReport {
         context,
@@ -425,6 +444,7 @@ pub fn detect_host(
         related_tools: detected.related_tools,
         tools: detected.tools,
         selections: detected.selections,
+        wsl_distributions,
         notices,
     })
 }

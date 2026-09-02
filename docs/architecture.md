@@ -42,6 +42,12 @@ honors `PATHEXT` and invokes `.cmd`/`.bat` through `cmd.exe`; path comparisons i
 Windows case-insensitive semantics. Tool-specific locations remain inside adapters rather than the
 platform layer.
 
+Windows host detection may inventory WSL distributions, but never merges them into the host
+context or default selection. `--wsl NAME` delegates the entire command to a same-version native
+Linux binary inside exactly one distribution. Linux paths, users, permissions, caches, and
+transaction roots therefore remain owned by that distribution; the Windows process does not edit
+its virtual disk or translate adapter paths. See the [WSL boundary](wsl.md).
+
 The [native smoke workflow](../.github/workflows/platform-smoke.yml) builds and runs the same
 binary on macOS Intel, Apple Silicon, Windows x64, and Windows ARM64. Linux keeps its full existing
 workflow and adapter matrix.

@@ -1,0 +1,139 @@
+name: Windows and WSL isolation boundary
+
+on:
+  schedule:
+    - cron: "31 1 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: WSL isolation (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: windows-2025
+            linux_archive: mirrorswitch-0.1.0-linux-x86_64.tar.gz
+            linux_directory: mirrorswitch-0.1.0-linux-x86_64
+          - arch: arm64
+            runner: windows-11-arm
+            linux_archive: mirrorswitch-0.1.0-linux-arm64.tar.gz
+            linux_directory: mirrorswitch-0.1.0-linux-arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust toolchain
+        shell: pwsh
+        run: |
+          rustup toolchain install $env:RUST_TOOLCHAIN --profile minimal
+          rustup default $env:RUST_TOOLCHAIN
+      - name: Install Debian WSL
+        uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
+        with:
+          distribution: Debian-13
+          wsl-version: '2'
+          update: 'true'
+          wsl-conf: |
+            [user]
+            default=root
+      - name: Install Ubuntu WSL
+        uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
+        with:
+          distribution: Ubuntu-24.04
+          wsl-version: '2'
+          update: 'true'
+          set-as-default: 'false'
+          wsl-conf: |
+            [user]
+            default=root
+      - name: Install the matching Linux CLI in each distribution
+        shell: pwsh
+        env:
+          LINUX_ARCHIVE: ${{ matrix.linux_archive }}
+          LINUX_DIRECTORY: ${{ matrix.linux_directory }}
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP $env:LINUX_ARCHIVE
+          $extract = Join-Path $env:RUNNER_TEMP 'mirrorswitch-linux'
+          Invoke-WebRequest -UseBasicParsing `
+            -Uri "https://github.com/vibelab-tools/MirrorSwitch/releases/download/v0.1.0/$($env:LINUX_ARCHIVE)" `
+            -OutFile $archive
+          New-Item -ItemType Directory -Force -Path $extract | Out-Null
+          tar -xzf $archive -C $extract
+          $windowsBinary = Join-Path $extract "$($env:LINUX_DIRECTORY)/mirrorswitch"
+          foreach ($distribution in @('Debian-13', 'Ubuntu-24.04')) {
+            $linuxBinary = (& wsl.exe --distribution $distribution --exec wslpath -a $windowsBinary).Trim()
+            & wsl.exe --distribution $distribution --user root --exec install -m 0755 $linuxBinary /usr/local/bin/mirrorswitch
+            & wsl.exe --distribution $distribution --exec mirrorswitch --version
+          }
+      - name: Run deterministic WSL boundaries
+        run: cargo test --locked --test wsl_boundary --test transaction_boundary -- --test-threads=1
+      - name: Build native Windows release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Prove host defaults and independent distribution transactions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
+
+          (& $binary status --offline --json) | Set-Content -Encoding utf8 host-status.json
+          $host = Get-Content host-status.json -Raw | ConvertFrom-Json
+          if ($host.context.os -ne 'windows') { throw 'host context is not Windows' }
+          $wsl = @($host.wsl_distributions)
+          if (@($wsl | Where-Object { $_.name -in @('Debian-13', 'Ubuntu-24.04') }).Count -ne 2) { throw 'WSL inventory is incomplete' }
+          if (@($wsl | Where-Object selected).Count -ne 0) { throw 'WSL was selected implicitly' }
+
+          function Get-AptHash([string] $distribution) {
+            (& wsl.exe --distribution $distribution --exec sh -c "find /etc/apt -type f -exec sha256sum '{}' + | LC_ALL=C sort | sha256sum") -split ' ' | Select-Object -First 1
+          }
+          $debianBefore = Get-AptHash 'Debian-13'
+          $ubuntuBefore = Get-AptHash 'Ubuntu-24.04'
+
+          (& $binary plan --wsl Debian-13 --offline --tool apt --json) | Set-Content -Encoding utf8 debian-plan.json
+          (& $binary plan --wsl Ubuntu-24.04 --offline --tool apt --json) | Set-Content -Encoding utf8 ubuntu-plan.json
+          if (-not (Get-Content debian-plan.json -Raw | ConvertFrom-Json).ok) { throw 'Debian WSL plan failed' }
+          if (-not (Get-Content ubuntu-plan.json -Raw | ConvertFrom-Json).ok) { throw 'Ubuntu WSL plan failed' }
+
+          (& $binary apply --wsl Debian-13 --offline --tool apt --yes --json) | Set-Content -Encoding utf8 debian-apply.json
+          (& $binary apply --wsl Ubuntu-24.04 --offline --tool apt --yes --json) | Set-Content -Encoding utf8 ubuntu-apply.json
+          $debianApply = Get-Content debian-apply.json -Raw | ConvertFrom-Json
+          $ubuntuApply = Get-Content ubuntu-apply.json -Raw | ConvertFrom-Json
+          if (-not $debianApply.result.successful -or -not $ubuntuApply.result.successful) { throw 'WSL apply failed' }
+          $debianTransaction = @($debianApply.result.tools | Where-Object status -eq 'applied')[0].receipt.transaction_id
+          $ubuntuTransaction = @($ubuntuApply.result.tools | Where-Object status -eq 'applied')[0].receipt.transaction_id
+          $debianApplied = Get-AptHash 'Debian-13'
+          $ubuntuApplied = Get-AptHash 'Ubuntu-24.04'
+
+          (& $binary restore --wsl Debian-13 $debianTransaction --yes --json) | Set-Content -Encoding utf8 debian-restore.json
+          if ((Get-AptHash 'Debian-13') -ne $debianBefore) { throw 'Debian WSL was not restored' }
+          if ((Get-AptHash 'Ubuntu-24.04') -ne $ubuntuApplied) { throw 'Debian restore crossed into Ubuntu' }
+          (& $binary restore --wsl Ubuntu-24.04 $ubuntuTransaction --yes --json) | Set-Content -Encoding utf8 ubuntu-restore.json
+          if ((Get-AptHash 'Ubuntu-24.04') -ne $ubuntuBefore) { throw 'Ubuntu WSL was not restored' }
+
+          @('', 'n') | & $binary tui --wsl Debian-13 --offline --tool apt | Set-Content -Encoding utf8 wsl-tui.txt
+          if (-not ((Get-Content wsl-tui.txt) -match 'os=Linux')) { throw 'delegated WSL TUI did not show Linux' }
+          if ($debianApplied -eq $debianBefore -or $ubuntuApplied -eq $ubuntuBefore) { throw 'WSL apply did not change the independent apt trees' }
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: wsl-boundary-${{ matrix.arch }}-${{ github.run_id }}
+          path: |
+            host-status.json
+            debian-plan.json
+            ubuntu-plan.json
+            debian-apply.json
+            ubuntu-apply.json
+            debian-restore.json
+            ubuntu-restore.json
+            wsl-tui.txt
+          if-no-files-found: warn
+          retention-days: 7

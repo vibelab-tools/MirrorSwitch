@@ -208,6 +208,7 @@ fn binary_exposes_stable_read_only_commands_and_confirmation_gate() {
     for command in ["detect", "plan", "apply", "status", "restore", "tui"] {
         assert!(help.contains(command));
     }
+    assert!(help.contains("--wsl NAME"));
 
     let status = Command::new(binary)
         .args(["status", "--offline", "--json"])

@@ -16,6 +16,7 @@ pub mod platform;
 pub mod selection;
 pub mod transaction;
 pub mod tui;
+pub mod wsl;
 
 pub use adapter::{Adapter, AdapterError, Runtime};
 pub use catalog::MirrorCatalog;

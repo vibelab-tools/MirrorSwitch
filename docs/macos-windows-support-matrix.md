@@ -54,7 +54,7 @@ details.
 | Cygwin | Windows 10/11 x86_64 only | `setup.rc` last mirror; root/cache/package selection read-only | Huawei/TUNA current official candidates; Alibaba/NJU partial | signed `setup.xz` and download-only dash archive | [#104](https://github.com/vibelab-tools/MirrorSwitch/issues/104) |
 | PowerShell Gallery | Windows 10/11 x64/arm64 where PowerShell supports it | PowerShellGet/PSResourceGet user repository registrations | No compatible six-provider feed | repository list/find/save and module `.nupkg` | [#105](https://github.com/vibelab-tools/MirrorSwitch/issues/105) |
 | NuGet | Windows 10/11 x64/arm64 | User config mutable; additional/project/computer configs read-only unless explicit | Huawei v3 candidate | service index, registration, package hash and native restore | [#107](https://github.com/vibelab-tools/MirrorSwitch/issues/107) |
-| Host/WSL isolation | x64/arm64 host; each WSL distro separately | Separate roots, homes, executables and transaction stores | Not a mirror candidate | prove no cross-root plan/write/restore | [#106](https://github.com/vibelab-tools/MirrorSwitch/issues/106) |
+| Host/WSL isolation | x64/arm64 host; each WSL distro separately | Host default; one explicit `--wsl NAME` child with matching Linux CLI | Not a mirror candidate | inventory plus independent two-distro apply/restore | [#106](https://github.com/vibelab-tools/MirrorSwitch/issues/106) |
 
 ## Cross-platform adapter matrix
 

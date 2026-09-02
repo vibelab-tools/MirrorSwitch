@@ -37,6 +37,26 @@ pub fn select_tools(
         report.context.architecture,
         report.context.environment
     )?;
+    if !report.wsl_distributions.is_empty() {
+        writeln!(
+            output,
+            "WSL distributions (not selected; rerun with --wsl NAME):"
+        )?;
+        for distribution in &report.wsl_distributions {
+            writeln!(
+                output,
+                "  - [ ] {} wsl={} uid={} home={} mirrorswitch={}",
+                distribution.name,
+                distribution.wsl_version,
+                distribution.user_id,
+                distribution.home.display(),
+                distribution
+                    .mirrorswitch_version
+                    .as_deref()
+                    .unwrap_or("not-installed")
+            )?;
+        }
+    }
     writeln!(output, "Detected tools (defaults are checked):")?;
     for (index, item) in report.selections.iter().enumerate() {
         writeln!(
