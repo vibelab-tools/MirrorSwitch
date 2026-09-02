@@ -478,11 +478,11 @@ fn reviewed_version(version: &str) -> Result<(), AdapterError> {
         .next()
         .and_then(|value| value.parse::<u32>().ok())
         .ok_or_else(|| AdapterError::Unsupported(format!("unknown Homebrew version {version}")))?;
-    if matches!(major, 4 | 5) {
+    if matches!(major, 4 | 5 | 6) {
         Ok(())
     } else {
         Err(AdapterError::Unsupported(format!(
-            "Homebrew {version} is outside the reviewed 4.x/5.x API-mode range"
+            "Homebrew {version} is outside the reviewed 4.x-6.x API-mode range"
         )))
     }
 }

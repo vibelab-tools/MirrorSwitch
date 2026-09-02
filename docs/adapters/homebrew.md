@@ -1,6 +1,6 @@
 # Homebrew adapter
 
-The Homebrew adapter supports native macOS hosts running reviewed Homebrew 4.x or 5.x in the
+The Homebrew adapter supports native macOS hosts running reviewed Homebrew 4.x through 6.x in the
 standard prefix: `/usr/local` on Intel and `/opt/homebrew` on Apple Silicon. It is user-scoped and
 does not run in Linux, Windows, containers, custom prefixes, or a different user's home.
 

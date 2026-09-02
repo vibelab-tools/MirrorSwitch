@@ -1425,7 +1425,7 @@ def runtime_properties(
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["host"]
         compatibility["distributions"] = []
-        compatibility["repository_versions"] = ["4", "5"]
+        compatibility["repository_versions"] = ["4", "5", "6"]
         delivery_mode = "mirror"
         if upstream_key == HOMEBREW_GIT_UPSTREAM:
             probes = [

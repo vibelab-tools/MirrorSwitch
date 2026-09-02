@@ -41,7 +41,7 @@ fn runtime(root: &Path, architecture: Architecture, shell: &str, profile: &str) 
         root,
         "/bin/brew",
         &format!(
-            "#!/bin/sh\ncase \"$1\" in\n  --version) echo 'Homebrew 5.0.1' ;;\n  --prefix) echo '{prefix}' ;;\n  --repository) echo '{prefix}/Homebrew' ;;\n  *) exit 64 ;;\nesac\n"
+            "#!/bin/sh\ncase \"$1\" in\n  --version) echo 'Homebrew 6.0.18' ;;\n  --prefix) echo '{prefix}' ;;\n  --repository) echo '{prefix}/Homebrew' ;;\n  *) exit 64 ;;\nesac\n"
         ),
     );
     executable(
@@ -276,7 +276,7 @@ fn legacy_git_mode_unmanaged_policy_and_wrong_prefix_are_inert() {
     executable(
         directory.path(),
         "/bin/brew",
-        "#!/bin/sh\ncase \"$1\" in --version) echo 'Homebrew 5.0.1' ;; --prefix) echo '/custom' ;; --repository) echo '/custom/Homebrew' ;; esac\n",
+        "#!/bin/sh\ncase \"$1\" in --version) echo 'Homebrew 6.0.18' ;; --prefix) echo '/custom' ;; --repository) echo '/custom/Homebrew' ;; esac\n",
     );
     assert!(adapter.detect(&context, &runtime).is_err());
 }
