@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "65"
+CATALOG_FORMAT_REVISION = "66"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -599,6 +599,8 @@ CEPH_APT_REPOSITORY_VERSIONS = [
     for architecture in ["amd64", "arm64"]
 ]
 CEPH_RPM_REPOSITORY_VERSIONS = ["el-9-squid-x86_64", "el-9-squid-aarch64"]
+NGINX_UPSTREAM = "nginx-org--repository-metadata"
+NGINX_ENDPOINTS = {"nju": "https://mirrors.nju.edu.cn/nginx/"}
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -704,6 +706,8 @@ def runtime_upstream_identity(
         return "gitlab-runner-packages", "repository-metadata"
     if tool_id == "ceph" and entry["raw_name"].startswith("ceph"):
         return "ceph-release", "repository-metadata"
+    if tool_id == "nginx" and entry["raw_name"].startswith("nginx"):
+        return "nginx-org", "repository-metadata"
     if tool_id == "podman-registry" and entry["raw_name"] in {"gcr", "ghcr", "quay"}:
         return f"{entry['raw_name']}.io", "container-registry"
     return entry["normalized_upstream"], entry["content_type"]
@@ -1025,6 +1029,14 @@ def candidate_endpoints(
         and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
     ):
         endpoint = CEPH_ENDPOINTS[entry["provider_id"]]
+        return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
+    if (
+        tool_id == "nginx"
+        and upstream_key == NGINX_UPSTREAM
+        and entry["provider_id"] in NGINX_ENDPOINTS
+        and entry["raw_name"].endswith("-runtime")
+    ):
+        endpoint = NGINX_ENDPOINTS[entry["provider_id"]]
         return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
     if (
         tool_id == "flutter"
@@ -3758,6 +3770,44 @@ def runtime_properties(
             {"endpoint_role": "packages", "method": "head", "path": f"{root}/ceph-19.2.6-0.el9.{{architecture}}.rpm", "expected_status": [200]},
         ]
     elif (
+        tool_id == "nginx"
+        and upstream_key == NGINX_UPSTREAM
+        and entry["provider_id"] in NGINX_ENDPOINTS
+        and entry["raw_name"].endswith("-runtime")
+    ):
+        channel = "mainline" if "-mainline-" in entry["raw_name"] else "stable"
+        manager = "rpm" if "-rpm-" in entry["raw_name"] else "apt"
+        prefix = "/mainline" if channel == "mainline" else ""
+        version = "1.31.4" if channel == "mainline" else "1.30.4"
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        delivery_mode = "mirror"
+        if manager == "apt":
+            compatibility["repository_versions"] = [
+                f"{family}-{release}-{channel}-{architecture}"
+                for family, release in [("debian", "bookworm"), ("ubuntu", "jammy"), ("ubuntu", "noble")]
+                for architecture in ["amd64", "arm64"]
+            ]
+            root = f"{prefix}/{{family}}"
+            probes = [
+                {"endpoint_role": "index", "method": "get", "path": f"{root}/dists/{{release}}/InRelease", "expected_status": [200], "contains": "Origin: nginx"},
+                {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/{{release}}/Release.gpg", "expected_status": [200]},
+                {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/{{release}}/nginx/binary-{{architecture}}/Packages.gz", "expected_status": [200]},
+                {"endpoint_role": "packages", "method": "head", "path": f"{root}/pool/nginx/n/nginx/nginx_{version}-1~{{release}}_{{architecture}}.deb", "expected_status": [200]},
+            ]
+        else:
+            compatibility["repository_versions"] = [
+                f"el-9-{channel}-{architecture}" for architecture in ["x86_64", "aarch64"]
+            ]
+            root = f"{prefix}/rhel/9/{{architecture}}"
+            probes = [
+                {"endpoint_role": "index", "method": "get", "path": f"{root}/repodata/repomd.xml", "expected_status": [200], "contains": "<repomd"},
+                {"endpoint_role": "metadata", "method": "head", "path": f"{root}/repodata/repomd.xml", "expected_status": [200]},
+                {"endpoint_role": "packages", "method": "head", "path": f"{root}/RPMS/nginx-{version}-1.el9.ngx.{{architecture}}.rpm", "expected_status": [200]},
+            ]
+    elif (
         tool_id == "elasticstack"
         and upstream_key == ELASTICSTACK_UPSTREAM
         and entry["provider_id"] in ELASTICSTACK_ENDPOINTS
@@ -4030,6 +4080,14 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
             ):
                 for surface in ["apt", "rpm"]:
                     planned_entries.append({**entry, "raw_name": f"ceph-{surface}-runtime"})
+            elif (
+                any(target["tool_id"] == "nginx" for target in targets)
+                and entry["provider_id"] in NGINX_ENDPOINTS
+                and entry["raw_name"] == "nginx"
+            ):
+                for channel in ["stable", "mainline"]:
+                    for surface in ["apt", "rpm"]:
+                        planned_entries.append({**entry, "raw_name": f"nginx-{channel}-{surface}-runtime"})
             elif entry["raw_name"] == "elpa":
                 for archive, (family, _) in ELPA_ARCHIVES.items():
                     root = entry["public_endpoints"][0]["url"].rstrip("/")
@@ -4129,6 +4187,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "maven",
                         "mongodb",
                         "mysql",
+                        "nginx",
                         "nix",
                         "npm",
                         "nvm",

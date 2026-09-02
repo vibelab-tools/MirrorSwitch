@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+1eb7bd4da71d",
-  "content_revision": 20260902113000,
-  "generated_at": "2026-09-02T11:30:00Z",
+  "content_version": "2026.08.28+3bb3a419f9b9",
+  "content_revision": 20260902120000,
+  "generated_at": "2026-09-02T12:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1025,12 +1025,16 @@
       ]
     },
     {
-      "id": "nginx--static-files",
-      "family": "nginx",
-      "display_name": "nginx",
-      "content_kind": "static-files",
+      "id": "nginx-org--repository-metadata",
+      "family": "nginx-org",
+      "display_name": "nginx-org",
+      "content_kind": "repository-metadata",
       "aliases": [
-        "nginx"
+        "nginx",
+        "nginx-mainline-apt-runtime",
+        "nginx-mainline-rpm-runtime",
+        "nginx-stable-apt-runtime",
+        "nginx-stable-rpm-runtime"
       ]
     },
     {
@@ -2005,7 +2009,7 @@
       "id": "nginx",
       "adapter_key": "nginx",
       "display_name": "nginx",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/95",
       "supported_scopes": [
         "system"
@@ -10508,6 +10512,95 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "3a4c71d618bf45a333a716d0",
+      "provider_id": "nju",
+      "upstream_id": "nginx-org--repository-metadata",
+      "tool_id": "nginx",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nginx-stable-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nginx/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nginx/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nginx/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-stable-amd64",
+          "debian-bookworm-stable-arm64",
+          "ubuntu-jammy-stable-amd64",
+          "ubuntu-jammy-stable-arm64",
+          "ubuntu-noble-stable-amd64",
+          "ubuntu-noble-stable-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/{family}/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: nginx"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{family}/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{family}/dists/{release}/nginx/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{family}/pool/nginx/n/nginx/nginx_1.30.4-1~{release}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "3aa57f773be817e1ed19fb21",
       "provider_id": "tuna",
       "upstream_id": "anaconda--language-registry",
@@ -16822,6 +16915,36 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "6ec0b06a2a32b0d9fd86440d",
+      "provider_id": "huaweicloud",
+      "upstream_id": "nginx-org--repository-metadata",
+      "tool_id": "nginx",
+      "catalog_state": "partial",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "nginx"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/nginx/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [],
+        "architectures": [],
+        "environments": [],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "6f4513793da6e9c4ff2d3a24",
       "provider_id": "ustc",
       "upstream_id": "rubygems--language-registry",
@@ -22391,6 +22514,83 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "a086f89eb3990fa4be20a849",
+      "provider_id": "nju",
+      "upstream_id": "nginx-org--repository-metadata",
+      "tool_id": "nginx",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nginx-mainline-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nginx/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nginx/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nginx/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-mainline-x86_64",
+          "el-9-mainline-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/mainline/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mainline/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/mainline/rhel/9/{architecture}/RPMS/nginx-1.31.4-1.el9.ngx.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
@@ -30443,6 +30643,83 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "d5b6d67347c768c09ac487a7",
+      "provider_id": "nju",
+      "upstream_id": "nginx-org--repository-metadata",
+      "tool_id": "nginx",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nginx-stable-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nginx/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nginx/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nginx/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-stable-x86_64",
+          "el-9-stable-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/rhel/9/{architecture}/RPMS/nginx-1.30.4-1.el9.ngx.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "d611f8237c41b5ab6ffc9d63",
       "provider_id": "nju",
       "upstream_id": "rust-toolchain--release-artifacts",
@@ -31923,36 +32200,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "e5fae6e735819cf6b9b2cba1",
-      "provider_id": "nju",
-      "upstream_id": "nginx--static-files",
-      "tool_id": "nginx",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "nginx"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/nginx/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "e6bf6ac2010cbc8e2c58f43c",
       "provider_id": "sjtug",
       "upstream_id": "opam-cache--binary-cache",
@@ -33196,6 +33443,95 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "f0343691b46cba642c807435",
+      "provider_id": "nju",
+      "upstream_id": "nginx-org--repository-metadata",
+      "tool_id": "nginx",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nginx-mainline-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nginx/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nginx/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nginx/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-mainline-amd64",
+          "debian-bookworm-mainline-arm64",
+          "ubuntu-jammy-mainline-amd64",
+          "ubuntu-jammy-mainline-arm64",
+          "ubuntu-noble-mainline-amd64",
+          "ubuntu-noble-mainline-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/mainline/{family}/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: nginx"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mainline/{family}/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mainline/{family}/dists/{release}/nginx/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/mainline/{family}/pool/nginx/n/nginx/nginx_1.31.4-1~{release}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "f08aec3173a2a3e952412f10",
       "provider_id": "tuna",
       "upstream_id": "ros2--static-files",
@@ -33363,36 +33699,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "f265fbffe11cb02d45f93947",
-      "provider_id": "huaweicloud",
-      "upstream_id": "nginx--static-files",
-      "tool_id": "nginx",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "nginx"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/nginx/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

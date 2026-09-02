@@ -34,6 +34,7 @@ mod mariadb;
 mod maven;
 mod mongodb;
 mod mysql;
+mod nginx;
 mod nix;
 mod npm;
 mod nuget;
@@ -102,6 +103,7 @@ pub use mariadb::MariaDbAdapter;
 pub use maven::MavenAdapter;
 pub use mongodb::MongoDbAdapter;
 pub use mysql::MySqlAdapter;
+pub use nginx::NginxAdapter;
 pub use nix::NixAdapter;
 pub use npm::NpmAdapter;
 pub use nuget::NugetAdapter;
@@ -166,6 +168,7 @@ static MARIADB: MariaDbAdapter = MariaDbAdapter;
 static MAVEN: MavenAdapter = MavenAdapter;
 static MONGODB: MongoDbAdapter = MongoDbAdapter;
 static MYSQL: MySqlAdapter = MySqlAdapter;
+static NGINX: NginxAdapter = NginxAdapter;
 static NIX: NixAdapter = NixAdapter;
 static NVM: NvmAdapter = NvmAdapter;
 static NPM: NpmAdapter = NpmAdapter;
@@ -229,6 +232,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &MAVEN,
         &MONGODB,
         &MYSQL,
+        &NGINX,
         &NVM,
         &FNM,
         &GO,
