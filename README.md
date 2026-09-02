@@ -28,6 +28,7 @@ real-boundary checks have passed.
 - [Linux support matrix](docs/support-matrix.md)
 - [Six-provider inventory](docs/provider-inventory.md)
 - [Runtime catalog and safe updates](docs/catalog-updates.md)
+- [Testing and Docker matrix](docs/testing.md)
 - [Per-repository mirror selection](docs/mirror-selection.md)
 - [APT adapter](docs/adapters/apt.md)
 - [DNF adapter](docs/adapters/dnf.md)
