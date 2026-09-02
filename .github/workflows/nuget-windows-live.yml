@@ -1,0 +1,173 @@
+name: NuGet Windows live boundary
+
+on:
+  schedule:
+    - cron: "41 0 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: NuGet (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: windows-2025
+            nuget_cli: true
+          - arch: arm64
+            runner: windows-11-arm
+            nuget_cli: false
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust toolchain
+        shell: pwsh
+        run: |
+          rustup toolchain install $env:RUST_TOOLCHAIN --profile minimal
+          rustup default $env:RUST_TOOLCHAIN
+      - name: Prepare isolated Windows NuGet hierarchy
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:RUNNER_TEMP 'mirrorswitch-nuget-boundary'
+          $appData = Join-Path $root 'AppData/Roaming'
+          $localAppData = Join-Path $root 'AppData/Local'
+          $project = Join-Path $root 'project'
+          $userConfig = Join-Path $appData 'NuGet/NuGet.Config'
+          New-Item -ItemType Directory -Force (Split-Path $userConfig), $localAppData, $project | Out-Null
+
+          $userXml = @'
+          <?xml version="1.0" encoding="utf-16"?>
+          <configuration>
+            <!-- Preserve this comment, source order, credentials, disabled source and mapping. -->
+            <packageSources>
+              <add key="private" value="https://packages.invalid.example/v3/index.json" />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+            </packageSources>
+            <disabledPackageSources><add key="private" value="true" /></disabledPackageSources>
+            <packageSourceCredentials><private><add key="Username" value="fixture" /><add key="ClearTextPassword" value="fixture-only" /></private></packageSourceCredentials>
+            <packageSourceMapping>
+              <packageSource key="private"><package pattern="Private.*" /></packageSource>
+              <packageSource key="nuget.org"><package pattern="*" /></packageSource>
+            </packageSourceMapping>
+          </configuration>
+          '@ -replace "`n", "`r`n"
+          $utf16 = [System.Text.UnicodeEncoding]::new($false, $true)
+          [System.IO.File]::WriteAllText($userConfig, $userXml, $utf16)
+          @'
+          <configuration>
+            <packageSources><add key="project-private" value="https://project.invalid.example/v3/index.json" /></packageSources>
+            <disabledPackageSources><add key="project-private" value="true" /></disabledPackageSources>
+          </configuration>
+          '@ | Set-Content -Encoding utf8 (Join-Path $project 'NuGet.Config')
+
+          if ('${{ matrix.nuget_cli }}' -eq 'true') {
+            $nugetDirectory = Join-Path $root 'bin'
+            $nuget = Join-Path $nugetDirectory 'nuget.exe'
+            New-Item -ItemType Directory -Force $nugetDirectory | Out-Null
+            Invoke-WebRequest 'https://dist.nuget.org/win-x86-commandline/v7.0.0/nuget.exe' -OutFile $nuget
+            $digest = (Get-FileHash $nuget -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($digest -ne 'dc57ec6280ca531f9265a87446f4d2ddc657e0aa834b5ae0dc8100ac4c55d4d1') {
+              throw 'NuGet CLI digest mismatch'
+            }
+            $nugetDirectory | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          }
+
+          "APPDATA=$appData" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "LOCALAPPDATA=$localAppData" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MIRRORSWITCH_NUGET_PROJECT=$project" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MIRRORSWITCH_NUGET_USER_CONFIG=$userConfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Run deterministic NuGet and transaction boundaries
+        run: cargo test --locked --test nuget_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Apply, verify, and explicitly restore a real NuGet plan
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
+          $request = Join-Path $env:MIRRORSWITCH_NUGET_PROJECT 'request.json'
+          '{"version":1,"tools":[{"id":"nuget","scope":"user"}]}' | Set-Content -Encoding utf8 $request
+          $projectConfig = Join-Path $env:MIRRORSWITCH_NUGET_PROJECT 'NuGet.Config'
+          $userBefore = (Get-FileHash $env:MIRRORSWITCH_NUGET_USER_CONFIG -Algorithm SHA256).Hash
+          $projectBefore = (Get-FileHash $projectConfig -Algorithm SHA256).Hash
+          $aclBefore = (Get-Acl $env:MIRRORSWITCH_NUGET_USER_CONFIG).Sddl
+          $machineBefore = @(Get-ChildItem "${env:ProgramFiles(x86)}\NuGet\Config", "$env:ProgramData\NuGet\Config" -Filter '*.config' -File -ErrorAction SilentlyContinue | Sort-Object FullName | ForEach-Object {
+            "{0}={1}" -f $_.FullName, (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+          }) -join "`n"
+
+          Push-Location $env:MIRRORSWITCH_NUGET_PROJECT
+          try {
+            (& $binary status --offline --json) | Set-Content -Encoding utf8 status.json
+            $status = Get-Content status.json -Raw | ConvertFrom-Json
+            $tools = @($status.detected_tools | Where-Object adapter_key -eq 'nuget')
+            if ($tools.Count -ne 1) { throw 'NuGet adapter was not detected' }
+
+            (& $binary plan --offline --tool nuget --scope nuget=user --json) | Set-Content -Encoding utf8 plan-cli.json
+            (& $binary plan --offline --config $request --json) | Set-Content -Encoding utf8 plan-config.json
+            $cli = Get-Content plan-cli.json -Raw | ConvertFrom-Json
+            $config = Get-Content plan-config.json -Raw | ConvertFrom-Json
+            if (-not $cli.ok -or -not $config.ok) { throw 'NuGet plan was not actionable' }
+            $cliTool = @($cli.plan.tools)
+            $configTool = @($config.plan.tools)
+            if ($cliTool.Count -ne 1 -or $cliTool[0].adapter_key -ne 'nuget') { throw 'unexpected NuGet CLI plan' }
+            if (($cliTool[0].plan | ConvertTo-Json -Depth 100 -Compress) -ne ($configTool[0].plan | ConvertTo-Json -Depth 100 -Compress)) {
+              throw 'CLI and configuration frontends produced different NuGet plans'
+            }
+            @('', 'n') | & $binary tui --offline --tool nuget --scope nuget=user | Set-Content -Encoding utf8 tui.txt
+            if (-not ((Get-Content tui.txt) -match 'mirror=huaweicloud')) { throw 'NuGet TUI mirror missing' }
+
+            (& $binary apply --offline --config $request --yes --json) | Set-Content -Encoding utf8 apply.json
+            $apply = Get-Content apply.json -Raw | ConvertFrom-Json
+            if (-not $apply.result.successful) { throw 'NuGet apply or client verification failed' }
+            $applied = @($apply.result.tools | Where-Object status -eq 'applied')
+            if ($applied.Count -ne 1) { throw 'NuGet transaction was not applied' }
+            $transactionId = $applied[0].receipt.transaction_id
+
+            (& $binary apply --offline --config $request --yes --json) | Set-Content -Encoding utf8 idempotent.json
+            $idempotent = Get-Content idempotent.json -Raw | ConvertFrom-Json
+            if (-not $idempotent.result.successful -or @($idempotent.result.tools | Where-Object status -eq 'applied').Count -ne 0) {
+              throw 'second NuGet apply was not idempotent'
+            }
+
+            (& $binary restore $transactionId --yes --json) | Set-Content -Encoding utf8 restore.json
+            $restore = Get-Content restore.json -Raw | ConvertFrom-Json
+            if (-not $restore.receipt.verified -or $restore.adapter_key -ne 'nuget') { throw 'adapter-aware NuGet restore failed' }
+          } finally {
+            Pop-Location
+          }
+
+          $userAfter = (Get-FileHash $env:MIRRORSWITCH_NUGET_USER_CONFIG -Algorithm SHA256).Hash
+          $projectAfter = (Get-FileHash $projectConfig -Algorithm SHA256).Hash
+          $aclAfter = (Get-Acl $env:MIRRORSWITCH_NUGET_USER_CONFIG).Sddl
+          $machineAfter = @(Get-ChildItem "${env:ProgramFiles(x86)}\NuGet\Config", "$env:ProgramData\NuGet\Config" -Filter '*.config' -File -ErrorAction SilentlyContinue | Sort-Object FullName | ForEach-Object {
+            "{0}={1}" -f $_.FullName, (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+          }) -join "`n"
+          if ($userBefore -ne $userAfter) { throw 'UTF-16 user configuration was not restored exactly' }
+          if ($projectBefore -ne $projectAfter) { throw 'project configuration changed' }
+          if ($machineBefore -ne $machineAfter) { throw 'Visual Studio or machine configuration changed' }
+          if ($aclBefore -ne $aclAfter) { throw 'user configuration ACL changed' }
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-boundary-${{ matrix.arch }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/mirrorswitch-nuget-boundary/project/status.json
+            ${{ runner.temp }}/mirrorswitch-nuget-boundary/project/plan-cli.json
+            ${{ runner.temp }}/mirrorswitch-nuget-boundary/project/plan-config.json
+            ${{ runner.temp }}/mirrorswitch-nuget-boundary/project/apply.json
+            ${{ runner.temp }}/mirrorswitch-nuget-boundary/project/idempotent.json
+            ${{ runner.temp }}/mirrorswitch-nuget-boundary/project/restore.json
+            ${{ runner.temp }}/mirrorswitch-nuget-boundary/project/tui.txt
+          if-no-files-found: warn
+          retention-days: 7

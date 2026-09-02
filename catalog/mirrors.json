@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+6573746f284c",
-  "content_revision": 20260902202031,
-  "generated_at": "2026-09-02T20:20:31Z",
+  "content_version": "2026.08.28+4ca18d302e67",
+  "content_revision": 20260902210016,
+  "generated_at": "2026-09-02T21:00:16Z",
   "providers": [
     {
       "id": "aliyun",
@@ -4475,122 +4475,6 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "0fcffba4e0767b556b8e9469",
-      "provider_id": "huaweicloud",
-      "upstream_id": "nuget--language-registry",
-      "tool_id": "nuget",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "nuget"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/nuget/v3/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/artifactory/api/nuget/v3/nuget-remote/registration-semver2/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/artifactory/api/nuget/v3/nuget-remote/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": [
-          "v3"
-        ]
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/index.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "PackageBaseAddress/3.0.0"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/index.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "https://repo.huaweicloud.com/artifactory/api/nuget/v3/nuget-remote/registration-semver2/"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/nuget.versioning/index.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "registration-semver2/nuget.versioning/page/"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/nuget.versioning/page/6.0.5/7.9.0.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"version\":\"6.12.1\""
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/nuget.versioning/index.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"6.12.1\""
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/nuget.versioning/6.12.1/nuget.versioning.6.12.1.nupkg",
-          "expected_status": [
-            200,
-            206
-          ],
-          "sha256": "7ff7a30aecc20302ace0de0473ac9fd91a2fae1053d278f48510cffb4dff232e"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -22743,6 +22627,123 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "9cf130ee53d9dbb9ccf99f8f",
+      "provider_id": "huaweicloud",
+      "upstream_id": "nuget--language-registry",
+      "tool_id": "nuget",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "nuget"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/nuget/v3/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/artifactory/api/nuget/v3/nuget-remote/registration-semver2/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/artifactory/api/nuget/v3/nuget-remote/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "v3"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/index.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "PackageBaseAddress/3.0.0"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/index.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "https://repo.huaweicloud.com/artifactory/api/nuget/v3/nuget-remote/registration-semver2/"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/nuget.versioning/index.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "registration-semver2/nuget.versioning/page/"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/nuget.versioning/page/6.0.5/7.9.0.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"version\":\"6.12.1\""
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/nuget.versioning/index.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"6.12.1\""
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/nuget.versioning/6.12.1/nuget.versioning.6.12.1.nupkg",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "7ff7a30aecc20302ace0de0473ac9fd91a2fae1053d278f48510cffb4dff232e"
+        }
+      ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
       ],

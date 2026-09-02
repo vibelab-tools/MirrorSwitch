@@ -64,14 +64,14 @@ impl Adapter for NugetAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
-        let snapshot = nuget_snapshot(runtime)?;
+        require_supported_context(context)?;
+        let snapshot = nuget_snapshot(context, runtime)?;
         if snapshot.clients.is_empty() {
             return Ok(None);
         }
         let documents = read_configuration_documents(runtime, &snapshot)?;
         for client in &snapshot.clients {
-            analyze_client(&documents, client.kind)?;
+            analyze_client(&documents, client.config_kind)?;
         }
         let mut evidence = snapshot
             .clients
@@ -127,14 +127,14 @@ impl Adapter for NugetAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "nuget" {
             return Err(AdapterError::InvalidConfiguration(
                 "NuGet read received another tool's detection result".into(),
             ));
         }
-        let snapshot = nuget_snapshot(runtime)?;
+        let snapshot = nuget_snapshot(context, runtime)?;
         if snapshot.clients.is_empty() {
             return Err(AdapterError::Conflict(
                 "NuGet clients disappeared after detection".into(),
@@ -169,6 +169,7 @@ impl Adapter for NugetAdapter {
                 metadata: BTreeMap::from([
                     ("kind".into(), vec!["nuget-client".into()]),
                     ("client".into(), vec![client.kind.id().into()]),
+                    ("config_client".into(), vec![client.config_kind.id().into()]),
                     ("version".into(), vec![client.version.clone()]),
                 ]),
             });
@@ -213,7 +214,7 @@ impl Adapter for NugetAdapter {
         _detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_current_policy(current)?;
         Ok(SelectionRequest {
@@ -248,27 +249,31 @@ impl Adapter for NugetAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_current_policy(current)?;
         let endpoint = selected_service_index(selections)?;
         let clients = current_clients(current)?;
         let mut changes = Vec::new();
+        let mut planned_user_configs = BTreeSet::new();
         for client in &clients {
-            let analysis = analyze_client_current(current, client.kind)?;
+            let analysis = analyze_client_current(current, client.config_kind)?;
             let document = current
                 .documents
                 .iter()
-                .find(|document| document.format == client.kind.user_format())
+                .find(|document| document.format == client.config_kind.user_format())
                 .ok_or_else(|| {
                     AdapterError::InvalidConfiguration(format!(
                         "{} user NuGet.Config is missing from the current snapshot",
                         client.kind.display_name()
                     ))
                 })?;
-            let text = utf8(&document.path, &document.contents)?;
-            let rendered = rewrite_user_config(text, &analysis.target_key, endpoint)?;
-            if rendered.as_bytes() != document.contents {
+            let (text, encoding) = decode_config(&document.path, &document.contents)?;
+            let rendered = encode_config(
+                &rewrite_user_config(&text, &analysis.target_key, endpoint)?,
+                encoding,
+            );
+            if rendered != document.contents && planned_user_configs.insert(document.path.clone()) {
                 changes.push(PlannedFileChange {
                     target: rooted(&context.root, &document.path),
                     old_contents: current
@@ -276,7 +281,7 @@ impl Adapter for NugetAdapter {
                         .contains(&document.path)
                         .then(|| document.contents.clone()),
                     old_mode: None,
-                    new_contents: rendered.into_bytes(),
+                    new_contents: rendered,
                     new_mode: None,
                     summary: format!(
                         "retarget only NuGet.org v3 source key {} in {}; preserve private feeds, credentials, disabled sources, package source mappings and all read-only project/machine configs",
@@ -351,7 +356,7 @@ impl Adapter for NugetAdapter {
         receipt: &TransactionReceipt,
     ) -> Result<VerificationResult, AdapterError> {
         let result = (|| {
-            let snapshot = nuget_snapshot(runtime)?;
+            let snapshot = nuget_snapshot(context, runtime)?;
             if snapshot.clients.is_empty() {
                 return Err(AdapterError::Verification(
                     "NuGet clients disappeared before verification".into(),
@@ -541,6 +546,7 @@ impl ClientKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct ClientSnapshot {
     kind: ClientKind,
+    config_kind: ClientKind,
     version: String,
     user_config: PathBuf,
     additional_directory: PathBuf,
@@ -565,7 +571,7 @@ impl NugetSnapshot {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum ConfigKind {
     Machine,
     AdditionalUser(ClientKind),
@@ -652,20 +658,36 @@ struct EffectiveConfig {
     has_source_instruction: bool,
 }
 
-fn nuget_snapshot(runtime: &dyn Runtime) -> Result<NugetSnapshot, AdapterError> {
+fn nuget_snapshot(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+) -> Result<NugetSnapshot, AdapterError> {
     let home = runtime
         .home_dir()
         .ok_or_else(|| AdapterError::Unsupported("NuGet user home is unavailable".into()))?;
     validate_path(&home, "user home")?;
+    let windows = context.os == OperatingSystem::Windows;
+    let app_data = windows
+        .then(|| environment_path(runtime, "APPDATA", &home.join("AppData/Roaming")))
+        .transpose()?;
+    let shared_user_config = app_data
+        .as_ref()
+        .map(|path| path.join("NuGet/NuGet.Config"));
+    let shared_additional = app_data.as_ref().map(|path| path.join("NuGet/config"));
     let mut clients = Vec::new();
     if runtime.command_exists("dotnet") {
         let version = run_program(runtime, None, "dotnet", &["--version"], "dotnet --version")?;
         reviewed_dotnet_version(&version)?;
         clients.push(ClientSnapshot {
             kind: ClientKind::Dotnet,
+            config_kind: ClientKind::Dotnet,
             version,
-            user_config: home.join(".nuget/NuGet/NuGet.Config"),
-            additional_directory: home.join(".nuget/config"),
+            user_config: shared_user_config
+                .clone()
+                .unwrap_or_else(|| home.join(".nuget/NuGet/NuGet.Config")),
+            additional_directory: shared_additional
+                .clone()
+                .unwrap_or_else(|| home.join(".nuget/config")),
         });
     }
     if runtime.command_exists("nuget") {
@@ -674,10 +696,20 @@ fn nuget_snapshot(runtime: &dyn Runtime) -> Result<NugetSnapshot, AdapterError> 
         reviewed_nuget_cli_version(&version)?;
         clients.push(ClientSnapshot {
             kind: ClientKind::Nuget,
+            config_kind: ClientKind::Nuget,
             version,
-            user_config: home.join(".config/NuGet/NuGet.Config"),
-            additional_directory: home.join(".config/NuGet/config"),
+            user_config: shared_user_config
+                .clone()
+                .unwrap_or_else(|| home.join(".config/NuGet/NuGet.Config")),
+            additional_directory: shared_additional
+                .clone()
+                .unwrap_or_else(|| home.join(".config/NuGet/config")),
         });
+    }
+    if windows && let Some(config_kind) = clients.first().map(|client| client.kind) {
+        for client in &mut clients {
+            client.config_kind = config_kind;
+        }
     }
     let common = runtime
         .environment_variable("NUGET_COMMON_APPLICATION_DATA")
@@ -686,13 +718,38 @@ fn nuget_snapshot(runtime: &dyn Runtime) -> Result<NugetSnapshot, AdapterError> 
     if let Some(path) = &common {
         validate_path(path, "NUGET_COMMON_APPLICATION_DATA")?;
     }
-    let machine_directory = common.as_ref().map_or_else(
-        || PathBuf::from("/etc/opt/NuGet/Config"),
-        |path| path.join("NuGet/Config"),
-    );
-    let machine_configs = list_config_files(runtime, &machine_directory)?;
+    let mut machine_directories = Vec::new();
+    if let Some(common) = common {
+        machine_directories.push(common.join("NuGet/Config"));
+    } else if windows {
+        machine_directories.push(
+            environment_path(
+                runtime,
+                "ProgramFiles(x86)",
+                &PathBuf::from(r"C:\Program Files (x86)"),
+            )?
+            .join("NuGet/Config"),
+        );
+        machine_directories.push(
+            environment_path(runtime, "ProgramData", &PathBuf::from(r"C:\ProgramData"))?
+                .join("NuGet/Config"),
+        );
+    } else {
+        machine_directories.push(PathBuf::from("/etc/opt/NuGet/Config"));
+    }
+    let mut machine_configs = Vec::new();
+    for directory in machine_directories {
+        machine_configs.extend(list_config_files(runtime, &directory)?);
+    }
+    machine_configs.sort();
+    machine_configs.dedup();
     let project_configs = project_config_files(runtime)?;
-    let verification_directory = home.join(".nuget/mirrorswitch/verification");
+    let verification_directory = if windows {
+        environment_path(runtime, "LOCALAPPDATA", &home.join("AppData/Local"))?
+            .join("MirrorSwitch/NuGet/verification")
+    } else {
+        home.join(".nuget/mirrorswitch/verification")
+    };
     Ok(NugetSnapshot {
         clients,
         machine_configs,
@@ -755,25 +812,28 @@ fn read_configuration_documents(
     snapshot: &NugetSnapshot,
 ) -> Result<Vec<ConfigRecord>, AdapterError> {
     let mut records = Vec::new();
+    let mut seen = BTreeSet::new();
     for path in &snapshot.machine_configs {
-        records.push(read_record(runtime, path, ConfigKind::Machine)?);
+        if seen.insert((path.clone(), ConfigKind::Machine)) {
+            records.push(read_record(runtime, path, ConfigKind::Machine)?);
+        }
     }
     for client in &snapshot.clients {
         for path in list_config_files(runtime, &client.additional_directory)? {
-            records.push(read_record(
-                runtime,
-                &path,
-                ConfigKind::AdditionalUser(client.kind),
-            )?);
+            let kind = ConfigKind::AdditionalUser(client.config_kind);
+            if seen.insert((path.clone(), kind)) {
+                records.push(read_record(runtime, &path, kind)?);
+            }
         }
-        records.push(read_record(
-            runtime,
-            &client.user_config,
-            ConfigKind::User(client.kind),
-        )?);
+        let kind = ConfigKind::User(client.config_kind);
+        if seen.insert((client.user_config.clone(), kind)) {
+            records.push(read_record(runtime, &client.user_config, kind)?);
+        }
     }
     for path in &snapshot.project_configs {
-        records.push(read_record(runtime, path, ConfigKind::Project)?);
+        if seen.insert((path.clone(), ConfigKind::Project)) {
+            records.push(read_record(runtime, path, ConfigKind::Project)?);
+        }
     }
     Ok(records)
 }
@@ -839,8 +899,8 @@ fn parse_config(path: &Path, contents: &[u8]) -> Result<ParsedConfig, AdapterErr
             mapping_clear: false,
         });
     }
-    let text = utf8(path, contents)?;
-    let document = Document::parse(text).map_err(|error| {
+    let (text, _) = decode_config(path, contents)?;
+    let document = Document::parse(&text).map_err(|error| {
         AdapterError::InvalidConfiguration(format!(
             "NuGet.Config {} is invalid XML: {error}",
             path.display()
@@ -853,8 +913,8 @@ fn parse_config(path: &Path, contents: &[u8]) -> Result<ParsedConfig, AdapterErr
             path.display()
         )));
     }
-    reject_prefixed_node(text, root, "configuration")?;
-    let source_operations = parse_source_operations(text, root)?;
+    reject_prefixed_node(&text, root, "configuration")?;
+    let source_operations = parse_source_operations(&text, root)?;
     let disabled_operations = parse_disabled_operations(root)?;
     let credential_keys = direct_section(root, "packageSourceCredentials")?
         .map(|section| {
@@ -1304,7 +1364,7 @@ fn validate_current_policy(current: &CurrentConfiguration) -> Result<(), Adapter
         ));
     }
     for client in current_clients(current)? {
-        analyze_client_current(current, client.kind)?;
+        analyze_client_current(current, client.config_kind)?;
     }
     Ok(())
 }
@@ -1324,15 +1384,25 @@ fn current_clients(current: &CurrentConfiguration) -> Result<Vec<ClientSnapshot>
                 ));
             }
         };
+        let config_kind = match metadata(source, "config_client") {
+            Some("dotnet") => ClientKind::Dotnet,
+            Some("nuget-cli") => ClientKind::Nuget,
+            _ => {
+                return Err(AdapterError::InvalidConfiguration(
+                    "NuGet client configuration metadata is invalid".into(),
+                ));
+            }
+        };
         let document = current
             .documents
             .iter()
-            .find(|document| document.format == kind.user_format())
+            .find(|document| document.format == config_kind.user_format())
             .ok_or_else(|| {
                 AdapterError::InvalidConfiguration("NuGet user config document is missing".into())
             })?;
         clients.push(ClientSnapshot {
             kind,
+            config_kind,
             version: metadata(source, "version").unwrap_or_default().into(),
             user_config: document.path.clone(),
             additional_directory: PathBuf::new(),
@@ -1978,10 +2048,20 @@ fn policy_source(kind: &str, path: &Path) -> ConfiguredSource {
     }
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if !matches!(
+        context.os,
+        OperatingSystem::Linux | OperatingSystem::Windows
+    ) {
         return Err(AdapterError::Unsupported(
-            "NuGet adapter v0.1 only supports Linux".into(),
+            "NuGet adapter supports Linux and native Windows".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows
+        && context.environment != crate::context::ExecutionEnvironment::Host
+    {
+        return Err(AdapterError::Unsupported(
+            "NuGet Windows configuration requires a native host".into(),
         ));
     }
     if !matches!(
@@ -1995,10 +2075,24 @@ fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
     Ok(())
 }
 
+fn environment_path(
+    runtime: &dyn Runtime,
+    name: &str,
+    default: &Path,
+) -> Result<PathBuf, AdapterError> {
+    let path = runtime
+        .environment_variable(name)
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| default.to_path_buf());
+    validate_path(&path, name)?;
+    Ok(path)
+}
+
 fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
     if scope != ConfigurationScope::User {
         return Err(AdapterError::Unsupported(
-            "NuGet v0.1 changes user config only; project and machine configs are read-only".into(),
+            "NuGet changes user config only; project and machine configs are read-only".into(),
         ));
     }
     Ok(())
@@ -2015,12 +2109,9 @@ fn require_current(current: &CurrentConfiguration) -> Result<(), AdapterError> {
 
 fn validate_path(path: &Path, label: &str) -> Result<(), AdapterError> {
     if !path.is_absolute()
-        || path.components().any(|component| {
-            matches!(
-                component,
-                Component::ParentDir | Component::CurDir | Component::Prefix(_)
-            )
-        })
+        || path
+            .components()
+            .any(|component| matches!(component, Component::ParentDir | Component::CurDir))
     {
         return Err(AdapterError::InvalidConfiguration(format!(
             "NuGet {label} path {} is not absolute and normalized",
@@ -2034,6 +2125,84 @@ fn path_string(path: &Path) -> Result<String, AdapterError> {
     path.to_str()
         .map(str::to_owned)
         .ok_or_else(|| AdapterError::Unsupported(format!("path {} is not UTF-8", path.display())))
+}
+
+#[derive(Clone, Copy)]
+enum ConfigEncoding {
+    Utf8 { bom: bool },
+    Utf16Le,
+    Utf16Be,
+}
+
+fn decode_config(path: &Path, contents: &[u8]) -> Result<(String, ConfigEncoding), AdapterError> {
+    if let Some(bytes) = contents.strip_prefix(&[0xff, 0xfe]) {
+        return decode_utf16(path, bytes, ConfigEncoding::Utf16Le, u16::from_le_bytes);
+    }
+    if let Some(bytes) = contents.strip_prefix(&[0xfe, 0xff]) {
+        return decode_utf16(path, bytes, ConfigEncoding::Utf16Be, u16::from_be_bytes);
+    }
+    let (bytes, bom) = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .map_or((contents, false), |bytes| (bytes, true));
+    let text = std::str::from_utf8(bytes).map_err(|_| {
+        AdapterError::InvalidConfiguration(format!(
+            "NuGet configuration {} is not UTF-8 or BOM-marked UTF-16",
+            path.display()
+        ))
+    })?;
+    Ok((text.to_owned(), ConfigEncoding::Utf8 { bom }))
+}
+
+fn decode_utf16(
+    path: &Path,
+    bytes: &[u8],
+    encoding: ConfigEncoding,
+    decode: fn([u8; 2]) -> u16,
+) -> Result<(String, ConfigEncoding), AdapterError> {
+    if !bytes.len().is_multiple_of(2) {
+        return Err(AdapterError::InvalidConfiguration(format!(
+            "NuGet configuration {} has an incomplete UTF-16 code unit",
+            path.display()
+        )));
+    }
+    let units = bytes
+        .chunks_exact(2)
+        .map(|pair| decode([pair[0], pair[1]]))
+        .collect::<Vec<_>>();
+    let text = String::from_utf16(&units).map_err(|_| {
+        AdapterError::InvalidConfiguration(format!(
+            "NuGet configuration {} is not valid UTF-16",
+            path.display()
+        ))
+    })?;
+    Ok((text, encoding))
+}
+
+fn encode_config(text: &str, encoding: ConfigEncoding) -> Vec<u8> {
+    match encoding {
+        ConfigEncoding::Utf8 { bom } => {
+            let mut bytes = Vec::with_capacity(text.len() + usize::from(bom) * 3);
+            if bom {
+                bytes.extend_from_slice(&[0xef, 0xbb, 0xbf]);
+            }
+            bytes.extend_from_slice(text.as_bytes());
+            bytes
+        }
+        ConfigEncoding::Utf16Le => {
+            let mut bytes = vec![0xff, 0xfe];
+            for unit in text.encode_utf16() {
+                bytes.extend_from_slice(&unit.to_le_bytes());
+            }
+            bytes
+        }
+        ConfigEncoding::Utf16Be => {
+            let mut bytes = vec![0xfe, 0xff];
+            for unit in text.encode_utf16() {
+                bytes.extend_from_slice(&unit.to_be_bytes());
+            }
+            bytes
+        }
+    }
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {

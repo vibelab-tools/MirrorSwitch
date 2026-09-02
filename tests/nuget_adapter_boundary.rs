@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     cell::RefCell,
@@ -54,11 +54,45 @@ fn context(
     }
 }
 
+fn windows_context(root: &Path, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os: OperatingSystem::Windows,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: Some(Distribution {
+            id: "windows".into(),
+            version_id: Some("Microsoft Windows [Version 10.0.26100.1]".into()),
+            version_codename: None,
+            id_like: Vec::new(),
+        }),
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     fs::write(&path, contents).unwrap();
     path
+}
+
+fn utf16le(text: &str) -> Vec<u8> {
+    let mut bytes = vec![0xff, 0xfe];
+    for unit in text.encode_utf16() {
+        bytes.extend_from_slice(&unit.to_le_bytes());
+    }
+    bytes
+}
+
+fn decode_utf16le(bytes: &[u8]) -> String {
+    assert_eq!(&bytes[..2], &[0xff, 0xfe]);
+    String::from_utf16(
+        &bytes[2..]
+            .chunks_exact(2)
+            .map(|pair| u16::from_le_bytes([pair[0], pair[1]]))
+            .collect::<Vec<_>>(),
+    )
+    .unwrap()
 }
 
 fn executable(root: &Path, path: &str, contents: String) {
@@ -85,7 +119,7 @@ case "$*" in
       if [ "$previous" = config ]; then config=$argument; fi
       if [ "$argument" = --configfile ]; then previous=config; else previous=''; fi
     done
-    grep -q 'repo.huaweicloud.com/repository/nuget/v3/index.json' "$root$config" || exit 71
+    tr -d '\000' < "$root$config" | grep -q 'repo.huaweicloud.com/repository/nuget/v3/index.json' || exit 71
     printf '%s\n' 'E  mirrorswitch [https://repo.huaweicloud.com/repository/nuget/v3/index.json]'
     ;;
   "restore "*)
@@ -127,7 +161,7 @@ case "$*" in
       if [ "$previous" = config ]; then config=$argument; fi
       if [ "$argument" = -ConfigFile ]; then previous=config; else previous=''; fi
     done
-    grep -q 'repo.huaweicloud.com/repository/nuget/v3/index.json' "$root$config" || exit 81
+    tr -d '\000' < "$root$config" | grep -q 'repo.huaweicloud.com/repository/nuget/v3/index.json' || exit 81
     printf '%s\n' '1. mirrorswitch [Enabled]' '   https://repo.huaweicloud.com/repository/nuget/v3/index.json'
     ;;
   "install NuGet.Versioning "*)
@@ -155,6 +189,18 @@ fn runtime(root: &Path, project: Option<&str>) -> OsRuntime {
     let runtime = OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
         .with_home("/home/developer")
         .with_environment(BTreeMap::new());
+    project.map_or(runtime.clone(), |path| runtime.with_project_dir(path))
+}
+
+fn windows_runtime(root: &Path, project: Option<&str>) -> OsRuntime {
+    let runtime = OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home("/Users/test")
+        .with_environment(BTreeMap::from([
+            ("APPDATA".into(), "/Users/test/AppData/Roaming".into()),
+            ("LOCALAPPDATA".into(), "/Users/test/AppData/Local".into()),
+            ("ProgramFiles(x86)".into(), "/ProgramFilesX86".into()),
+            ("ProgramData".into(), "/ProgramData".into()),
+        ]));
     project.map_or(runtime.clone(), |path| runtime.with_project_dir(path))
 }
 
@@ -619,6 +665,151 @@ fn catalog_requires_service_index_registration_flat_container_and_sha_before_lat
 }
 
 #[test]
+fn windows_clients_share_one_user_config_and_preserve_machine_and_project_policy() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_dotnet(root, "10.0.100", 0);
+    install_nuget(root, "7.0.0", 0);
+    let machine = write(
+        root,
+        "/ProgramFilesX86/NuGet/Config/VisualStudio.Offline.config",
+        b"<configuration><packageSources><add key=\"vs-offline\" value=\"C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\\" /></packageSources></configuration>\r\n",
+    );
+    let program_data = write(
+        root,
+        "/ProgramData/NuGet/Config/enterprise.config",
+        b"<configuration><packageSources><add key=\"enterprise\" value=\"https://packages.corp.example/v3/index.json\" /></packageSources></configuration>\r\n",
+    );
+    let additional = write(
+        root,
+        "/Users/test/AppData/Roaming/NuGet/config/20-extra.Config",
+        b"<configuration><packageSources><add key=\"additional\" value=\"https://additional.corp.example/v3/index.json\" /></packageSources></configuration>\r\n",
+    );
+    let original = utf16le(concat!(
+        "<?xml version=\"1.0\" encoding=\"utf-16\"?>\r\n",
+        "<configuration>\r\n",
+        "  <!-- preserve Windows CRLF and source order -->\r\n",
+        "  <packageSources>\r\n",
+        "    <add key=\"private\" value=\"https://build:credential@private.example/v3/index.json\" />\r\n",
+        "    <add key=\"nuget.org\" value=\"https://api.nuget.org/v3/index.json\" protocolVersion=\"3\" />\r\n",
+        "  </packageSources>\r\n",
+        "  <disabledPackageSources><add key=\"private\" value=\"true\" /></disabledPackageSources>\r\n",
+        "  <packageSourceCredentials><private><add key=\"Username\" value=\"build\" /><add key=\"ClearTextPassword\" value=\"secret\" /></private></packageSourceCredentials>\r\n",
+        "  <packageSourceMapping>\r\n",
+        "    <packageSource key=\"private\"><package pattern=\"Corp.*\" /></packageSource>\r\n",
+        "    <packageSource key=\"nuget.org\"><package pattern=\"*\" /></packageSource>\r\n",
+        "  </packageSourceMapping>\r\n",
+        "</configuration>\r\n",
+    ));
+    let user = write(
+        root,
+        "/Users/test/AppData/Roaming/NuGet/NuGet.Config",
+        &original,
+    );
+    let project = write(
+        root,
+        "/work/NuGet.Config",
+        b"<configuration><packageSources><add key=\"project-private\" value=\"https://project.corp.example/v3/index.json\" /></packageSources></configuration>\r\n",
+    );
+    let immutable = [
+        (machine.clone(), fs::read(&machine).unwrap()),
+        (program_data.clone(), fs::read(&program_data).unwrap()),
+        (additional.clone(), fs::read(&additional).unwrap()),
+        (project.clone(), fs::read(&project).unwrap()),
+    ];
+    let context = windows_context(root, Architecture::Arm64);
+    let adapter = NugetAdapter;
+    let mut runtime = windows_runtime(root, Some("/work/app"));
+
+    let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+    assert_eq!(
+        detected.version.as_deref(),
+        Some("dotnet=10.0.100;nuget-cli=7.0.0")
+    );
+    assert!(
+        detected
+            .evidence
+            .iter()
+            .any(|line| line.contains("2 machine"))
+    );
+    let current = adapter
+        .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+        .unwrap();
+    assert_eq!(
+        current
+            .documents
+            .iter()
+            .filter(|document| document.format.starts_with("nuget-user-"))
+            .count(),
+        1
+    );
+    assert_eq!(
+        current
+            .sources
+            .iter()
+            .filter(|source| {
+                source
+                    .metadata
+                    .get("kind")
+                    .is_some_and(|values| values == &["nuget-client"])
+            })
+            .count(),
+        2
+    );
+    assert!(!format!("{current:?}").contains("build:credential@"));
+    let plan = adapter.plan(&context, &current, &[selection()]).unwrap();
+    assert_eq!(
+        plan.changes
+            .iter()
+            .filter(|change| change.target == user)
+            .count(),
+        1
+    );
+    assert_eq!(plan.changes.len(), 3);
+    let rendered = decode_utf16le(
+        &plan
+            .changes
+            .iter()
+            .find(|change| change.target == user)
+            .unwrap()
+            .new_contents,
+    );
+    assert!(rendered.contains(SERVICE_INDEX));
+    assert!(!rendered.replace("\r\n", "").contains('\n'));
+
+    let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+    else {
+        panic!("Windows NuGet plan should apply once per shared config")
+    };
+    assert!(
+        adapter
+            .verify(&context, &mut runtime, &receipt)
+            .unwrap()
+            .valid
+    );
+    let updated = adapter
+        .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+        .unwrap();
+    assert!(
+        adapter
+            .plan(&context, &updated, &[selection()])
+            .unwrap()
+            .changes
+            .is_empty()
+    );
+    assert!(
+        adapter
+            .restore(&context, &mut runtime, &receipt)
+            .unwrap()
+            .restored
+    );
+    assert_eq!(fs::read(&user).unwrap(), original);
+    for (path, contents) in immutable {
+        assert_eq!(fs::read(path).unwrap(), contents);
+    }
+}
+
+#[test]
 fn unsupported_platform_versions_and_missing_clients_are_inert() {
     let adapter = NugetAdapter;
     let directory = tempdir().unwrap();
@@ -651,18 +842,18 @@ fn unsupported_platform_versions_and_missing_clients_are_inert() {
     let directory = tempdir().unwrap();
     install_dotnet(directory.path(), "8.0.419", 0);
     let installed = runtime(directory.path(), None);
-    let mut windows = context(
+    let mut macos = context(
         directory.path(),
         Architecture::X86_64,
         ExecutionEnvironment::Host,
     );
-    windows.os = OperatingSystem::Windows;
+    macos.os = OperatingSystem::Macos;
     assert!(
         adapter
-            .detect(&windows, &installed)
+            .detect(&macos, &installed)
             .unwrap_err()
             .to_string()
-            .contains("Linux")
+            .contains("Linux and native Windows")
     );
 
     let empty = tempdir().unwrap();

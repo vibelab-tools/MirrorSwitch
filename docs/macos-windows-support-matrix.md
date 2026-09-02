@@ -53,7 +53,7 @@ details.
 | MSYS2 | Windows 10 1809+/11 x64; Windows 11 arm64 preliminary | Installation-local signed Pacman mirrorlists | All six verified for MSYS/UCRT64/CLANGARM64; 32-bit subsystems use their own probes | signed DB/package, `pacman -Syy`, query and `-Sw` | [#102](https://github.com/vibelab-tools/MirrorSwitch/issues/102) |
 | Cygwin | Windows 10/11 x86_64 only | `setup.rc` last mirror; root/cache/package selection read-only | Huawei/TUNA current official candidates; Alibaba/NJU partial | signed `setup.xz` and download-only dash archive | [#104](https://github.com/vibelab-tools/MirrorSwitch/issues/104) |
 | PowerShell Gallery | Windows 10/11 x64/arm64 where PowerShell supports it | PowerShellGet/PSResourceGet user repository registrations | No compatible six-provider feed | repository list/find/save and module `.nupkg` | [#105](https://github.com/vibelab-tools/MirrorSwitch/issues/105) |
-| NuGet | Windows 10/11 x64/arm64 | User config mutable; additional/project/computer configs read-only unless explicit | Huawei v3 candidate | service index, registration, package hash and native restore | [#107](https://github.com/vibelab-tools/MirrorSwitch/issues/107) |
+| NuGet | Windows 10/11 x64/arm64 | Shared `%APPDATA%` user config mutable; Visual Studio/additional/project/computer configs read-only | Huawei v3 candidate verified in the catalog | service index, registration, package hash, dotnet/nuget query, native restore and UTF-16/ACL preservation | [#107](https://github.com/vibelab-tools/MirrorSwitch/issues/107) |
 | Host/WSL isolation | x64/arm64 host; each WSL distro separately | Host default; one explicit `--wsl NAME` child with matching Linux CLI | Not a mirror candidate | inventory plus independent two-distro apply/restore | [#106](https://github.com/vibelab-tools/MirrorSwitch/issues/106) |
 
 ## Cross-platform adapter matrix
@@ -74,7 +74,7 @@ Every tool has an independent Issue listed in the
 | CRAN, Bioconductor | Planned on x86_64/arm64 | Planned on x64/arm64 | User | R/Bioconductor version and source/binary package type must match the platform. |
 | opam, GHCup, Cabal, Stack | Planned where upstream tool supports the native OS | Planned where upstream tool supports the native OS | User; project explicit | Toolchain/platform bindists must pass separately from package indexes. |
 | CPAN, tlmgr, ELPA | Planned on x86_64/arm64 | Planned on supported native architectures | User or install-specific system | Client-specific config, platform packages and native batch/query commands are required. |
-| NuGet | Planned through the existing adapter | Planned through Windows-specific extension | User; project/computer read-only | macOS #142 and Windows #107 use their real config hierarchies. |
+| NuGet | Planned through the existing adapter | Implemented through the existing adapter; native release gate required | User; project/computer read-only | macOS #142 and Windows #107 use their real config hierarchies. |
 
 ## Status terms
 

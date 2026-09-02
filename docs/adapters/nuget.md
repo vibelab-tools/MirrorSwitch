@@ -1,8 +1,9 @@
 # NuGet adapter
 
-Issue [#56](https://github.com/vibelab-tools/MirrorSwitch/issues/56) implements the
-Linux NuGet v3 boundary for `dotnet` SDK 6.x through 10.x and NuGet CLI 6.x/7.x
-on `x86_64` and `arm64`.
+Issues [#56](https://github.com/vibelab-tools/MirrorSwitch/issues/56) and
+[#107](https://github.com/vibelab-tools/MirrorSwitch/issues/107) implement the
+NuGet v3 boundary for `dotnet` SDK 6.x through 10.x and NuGet CLI 6.x/7.x on
+Linux and native Windows hosts using `x86_64` or `arm64`.
 
 The adapter distinguishes the user config used by dotnet
 (`~/.nuget/NuGet/NuGet.Config`) from the Mono/NuGet CLI path
@@ -11,6 +12,15 @@ configs, and every `NuGet.Config` from the filesystem root to the current
 project in precedence order. Only the installed client's main user config is
 writable. Project configs, project files, lock files, machine configs, and
 additional user configs remain read-only.
+
+On Windows, dotnet and `nuget.exe` share
+`%APPDATA%\NuGet\NuGet.Config`; MirrorSwitch therefore plans one write even when
+both clients are installed. It also reads `%APPDATA%\NuGet\config`,
+`%ProgramFiles(x86)%\NuGet\Config`, `%ProgramData%\NuGet\Config`, and each
+project hierarchy. Visual Studio offline and machine-wide sources remain
+read-only. The transaction preserves UTF-8 or BOM-marked UTF-16 encoding,
+CRLF, Windows file attributes, and the existing file security descriptor. UNC
+and drive-qualified paths stay native and are never converted to Linux paths.
 
 One effective NuGet.org v3 source key is retargeted without changing its key.
 This preserves package source mappings, disabled-source records, credentials,
@@ -36,9 +46,10 @@ found one complete candidate:
 - USTC, TUNA, SJTUG, and NJU do not list NuGet in their current public
   inventories; their guessed v3 service-index paths return 404.
 
-After apply, each installed client parses its user config through
-`dotnet nuget list source` or `nuget sources List`. An isolated managed config
-then drives a real `dotnet restore` or `nuget install` of the fixed package.
+After apply, each installed client parses the shared or client-specific user
+config through `dotnet nuget list source` or `nuget sources List`. An isolated
+managed config then drives a real `dotnet restore` or `nuget install` of the
+fixed package.
 MirrorSwitch checks that client metadata records the selected source and that
 the result is a package archive. The catalog gate independently enforces the
 reviewed nupkg SHA-256. Any verification failure restores the configuration;
