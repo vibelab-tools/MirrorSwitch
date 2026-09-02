@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "60"
+CATALOG_FORMAT_REVISION = "61"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -545,6 +545,17 @@ POSTGRESQL_APT_REPOSITORY_VERSIONS = [
     for architecture in ["amd64", "arm64"]
 ]
 POSTGRESQL_RPM_REPOSITORY_VERSIONS = ["el-9-17-x86_64", "el-9-17-aarch64"]
+ELASTICSTACK_UPSTREAM = "elastic-stack--repository-metadata"
+ELASTICSTACK_ENDPOINTS = {
+    "aliyun": "https://mirrors.aliyun.com/elasticstack/",
+    "nju": "https://mirrors.nju.edu.cn/elasticstack/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/elasticstack/",
+}
+ELASTICSTACK_APT_REPOSITORY_VERSIONS = ["apt-stable-9.x-amd64"]
+ELASTICSTACK_RPM_REPOSITORY_VERSIONS = [
+    "rpm-stable-9.x-x86_64",
+    "rpm-stable-9.x-aarch64",
+]
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -640,6 +651,8 @@ def runtime_upstream_identity(
         return "mariadb-packages", "repository-metadata"
     if tool_id == "postgresql" and entry["raw_name"].startswith("postgresql"):
         return "postgresql-pgdg", "repository-metadata"
+    if tool_id == "elasticstack" and entry["raw_name"].startswith("elasticstack"):
+        return "elastic-stack", "repository-metadata"
     if tool_id == "podman-registry" and entry["raw_name"] in {"gcr", "ghcr", "quay"}:
         return f"{entry['raw_name']}.io", "container-registry"
     return entry["normalized_upstream"], entry["content_type"]
@@ -921,6 +934,14 @@ def candidate_endpoints(
         and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
     ):
         endpoint = POSTGRESQL_ENDPOINTS[entry["provider_id"]]
+        return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
+    if (
+        tool_id == "elasticstack"
+        and upstream_key == ELASTICSTACK_UPSTREAM
+        and entry["provider_id"] in ELASTICSTACK_ENDPOINTS
+        and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
+    ):
+        endpoint = ELASTICSTACK_ENDPOINTS[entry["provider_id"]]
         return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
     if (
         tool_id == "flutter"
@@ -3495,6 +3516,49 @@ def runtime_properties(
             {"endpoint_role": "packages", "method": "head", "path": f"{root}/{package}", "expected_status": [200]},
         ]
     elif (
+        tool_id == "elasticstack"
+        and upstream_key == ELASTICSTACK_UPSTREAM
+        and entry["provider_id"] in ELASTICSTACK_ENDPOINTS
+        and entry["raw_name"].endswith("-apt-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ELASTICSTACK_APT_REPOSITORY_VERSIONS
+        delivery_mode = "mirror"
+        root = "/9.x/apt"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{root}/dists/stable/InRelease", "expected_status": [200], "contains": "Origin: elastic"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/stable/Release.gpg", "expected_status": [200]},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/stable/main/binary-amd64/Packages.gz", "expected_status": [200]},
+            *[
+                {"endpoint_role": "packages", "method": "head", "path": f"{root}/pool/main/{product[0]}/{product}/{product}-9.5.2-amd64.deb", "expected_status": [200]}
+                for product in ["elasticsearch", "kibana", "logstash", "filebeat"]
+            ],
+        ]
+    elif (
+        tool_id == "elasticstack"
+        and upstream_key == ELASTICSTACK_UPSTREAM
+        and entry["provider_id"] in ELASTICSTACK_ENDPOINTS
+        and entry["raw_name"].endswith("-rpm-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ELASTICSTACK_RPM_REPOSITORY_VERSIONS
+        delivery_mode = "mirror"
+        root = "/9.x/yum"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{root}/repodata/repomd.xml", "expected_status": [200], "contains": "<repomd"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/repodata/repomd.xml", "expected_status": [200]},
+            *[
+                {"endpoint_role": "packages", "method": "head", "path": f"{root}/9.5.2/{product}-9.5.2-{{architecture}}.rpm", "expected_status": [200]}
+                for product in ["elasticsearch", "kibana", "logstash", "filebeat"]
+            ],
+        ]
+    elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
@@ -3712,6 +3776,13 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                 surfaces = ["rpm"] if entry["provider_id"] == "huaweicloud" else ["apt", "rpm"]
                 for surface in surfaces:
                     planned_entries.append({**entry, "raw_name": f"postgresql-{surface}-runtime"})
+            elif (
+                any(target["tool_id"] == "elasticstack" for target in targets)
+                and entry["provider_id"] in ELASTICSTACK_ENDPOINTS
+                and entry["raw_name"] == "elasticstack"
+            ):
+                for surface in ["apt", "rpm"]:
+                    planned_entries.append({**entry, "raw_name": f"elasticstack-{surface}-runtime"})
             elif entry["raw_name"] == "elpa":
                 for archive, (family, _) in ELPA_ARCHIVES.items():
                     root = entry["public_endpoints"][0]["url"].rstrip("/")
@@ -3783,6 +3854,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "cran",
                         "dnf",
                         "docker-ce",
+                        "elasticstack",
                         "elpa",
                         "dart-pub",
                         "flatpak",

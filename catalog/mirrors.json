@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+8580b0c6b223",
-  "content_revision": 20260902090000,
-  "generated_at": "2026-09-02T09:00:00Z",
+  "content_version": "2026.08.28+20c9a06e7f9f",
+  "content_revision": 20260902093000,
+  "generated_at": "2026-09-02T09:30:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -426,12 +426,13 @@
       ]
     },
     {
-      "id": "elasticstack--static-files",
-      "family": "elasticstack",
-      "display_name": "elasticstack",
-      "content_kind": "static-files",
+      "id": "elastic-stack--repository-metadata",
+      "family": "elastic-stack",
+      "display_name": "elastic-stack",
+      "content_kind": "repository-metadata",
       "aliases": [
-        "elasticstack"
+        "elasticstack-apt-runtime",
+        "elasticstack-rpm-runtime"
       ]
     },
     {
@@ -1715,7 +1716,7 @@
       "id": "elasticstack",
       "adapter_key": "elasticstack",
       "display_name": "elasticstack",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/90",
       "supported_scopes": [
         "system"
@@ -4848,6 +4849,107 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "1168453f0af9726d78bc67c2",
+      "provider_id": "nju",
+      "upstream_id": "elastic-stack--repository-metadata",
+      "tool_id": "elasticstack",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elasticstack-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elasticstack/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elasticstack/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elasticstack/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "rpm-stable-9.x-x86_64",
+          "rpm-stable-9.x-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/9.x/yum/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/9.x/yum/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/yum/9.5.2/elasticsearch-9.5.2-{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/yum/9.5.2/kibana-9.5.2-{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/yum/9.5.2/logstash-9.5.2-{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/yum/9.5.2/filebeat-9.5.2-{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
@@ -9627,6 +9729,107 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "38480fb903971268d2414b19",
+      "provider_id": "tuna",
+      "upstream_id": "elastic-stack--repository-metadata",
+      "tool_id": "elasticstack",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elasticstack-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elasticstack/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elasticstack/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elasticstack/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "rpm-stable-9.x-x86_64",
+          "rpm-stable-9.x-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/9.x/yum/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/9.x/yum/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/yum/9.5.2/elasticsearch-9.5.2-{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/yum/9.5.2/kibana-9.5.2-{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/yum/9.5.2/logstash-9.5.2-{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/yum/9.5.2/filebeat-9.5.2-{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "387281ddd25c34772cecd2af",
       "provider_id": "sjtug",
       "upstream_id": "pypi--language-registry",
@@ -11000,32 +11203,109 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "4162235329da556e6bfb5c88",
-      "provider_id": "aliyun",
-      "upstream_id": "elasticstack--static-files",
+      "id": "419b1df4e332b121e9dc9ae4",
+      "provider_id": "tuna",
+      "upstream_id": "elastic-stack--repository-metadata",
       "tool_id": "elasticstack",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
       "raw_names": [
-        "elasticstack"
+        "elasticstack-apt-runtime"
       ],
       "endpoints": [
         {
-          "role": "artifacts",
+          "role": "index",
           "protocol": "https",
-          "url": "https://mirrors.aliyun.com/elasticstack/"
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elasticstack/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elasticstack/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elasticstack/"
         }
       ],
       "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
         "distributions": [],
-        "repository_versions": []
+        "repository_versions": [
+          "apt-stable-9.x-amd64"
+        ]
       },
-      "probes": [],
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/9.x/apt/dists/stable/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: elastic"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/9.x/apt/dists/stable/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/9.x/apt/dists/stable/main/binary-amd64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/apt/pool/main/e/elasticsearch/elasticsearch-9.5.2-amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/apt/pool/main/k/kibana/kibana-9.5.2-amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/apt/pool/main/l/logstash/logstash-9.5.2-amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/apt/pool/main/f/filebeat/filebeat-9.5.2-amd64.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
       "source_urls": [
-        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -18849,6 +19129,107 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "86b7cc0b4e40bb7594f7b813",
+      "provider_id": "aliyun",
+      "upstream_id": "elastic-stack--repository-metadata",
+      "tool_id": "elasticstack",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elasticstack-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/elasticstack/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/elasticstack/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/elasticstack/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "rpm-stable-9.x-x86_64",
+          "rpm-stable-9.x-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/9.x/yum/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/9.x/yum/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/yum/9.5.2/elasticsearch-9.5.2-{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/yum/9.5.2/kibana-9.5.2-{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/yum/9.5.2/logstash-9.5.2-{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/yum/9.5.2/filebeat-9.5.2-{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "86ddfe594f27f30b0cb45927",
       "provider_id": "huaweicloud",
       "upstream_id": "centos-altarch--repository-metadata",
@@ -23568,6 +23949,113 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "b1ea308b81a391ec597ace7e",
+      "provider_id": "nju",
+      "upstream_id": "elastic-stack--repository-metadata",
+      "tool_id": "elasticstack",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elasticstack-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elasticstack/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elasticstack/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elasticstack/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "apt-stable-9.x-amd64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/9.x/apt/dists/stable/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: elastic"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/9.x/apt/dists/stable/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/9.x/apt/dists/stable/main/binary-amd64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/apt/pool/main/e/elasticsearch/elasticsearch-9.5.2-amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/apt/pool/main/k/kibana/kibana-9.5.2-amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/apt/pool/main/l/logstash/logstash-9.5.2-amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/apt/pool/main/f/filebeat/filebeat-9.5.2-amd64.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "b255098500446c3c4659b919",
       "provider_id": "sjtug",
       "upstream_id": "fedora-secondary--repository-metadata",
@@ -25147,6 +25635,113 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "be1bc3e9d7b1bca468460977",
+      "provider_id": "aliyun",
+      "upstream_id": "elastic-stack--repository-metadata",
+      "tool_id": "elasticstack",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elasticstack-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/elasticstack/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/elasticstack/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/elasticstack/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "apt-stable-9.x-amd64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/9.x/apt/dists/stable/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: elastic"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/9.x/apt/dists/stable/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/9.x/apt/dists/stable/main/binary-amd64/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/apt/pool/main/e/elasticsearch/elasticsearch-9.5.2-amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/apt/pool/main/k/kibana/kibana-9.5.2-amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/apt/pool/main/l/logstash/logstash-9.5.2-amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/9.x/apt/pool/main/f/filebeat/filebeat-9.5.2-amd64.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -29256,36 +29851,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "dbf7d636436336def23d14c5",
-      "provider_id": "nju",
-      "upstream_id": "elasticstack--static-files",
-      "tool_id": "elasticstack",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "elasticstack"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/elasticstack/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "de268efd610dbbc87b652d81",
       "provider_id": "aliyun",
       "upstream_id": "crates.io-index--language-registry",
@@ -30686,36 +31251,6 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "e9ee21da58298800227a5396",
-      "provider_id": "tuna",
-      "upstream_id": "elasticstack--static-files",
-      "tool_id": "elasticstack",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "elasticstack"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/elasticstack/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

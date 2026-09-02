@@ -13,6 +13,7 @@ mod cran;
 mod dart_pub;
 mod dnf;
 mod docker_ce;
+mod elasticstack;
 mod elpa;
 mod flatpak;
 mod flutter;
@@ -76,6 +77,7 @@ pub use cran::CranAdapter;
 pub use dart_pub::DartPubAdapter;
 pub use dnf::DnfAdapter;
 pub use docker_ce::DockerCeAdapter;
+pub use elasticstack::ElasticStackAdapter;
 pub use elpa::ElpaAdapter;
 pub use flatpak::FlatpakAdapter;
 pub use flutter::FlutterAdapter;
@@ -135,6 +137,7 @@ static CRAN: CranAdapter = CranAdapter;
 static DNF: DnfAdapter = DnfAdapter;
 static DOCKER_CE: DockerCeAdapter = DockerCeAdapter;
 static ELPA: ElpaAdapter = ElpaAdapter;
+static ELASTICSTACK: ElasticStackAdapter = ElasticStackAdapter;
 static DART_PUB: DartPubAdapter = DartPubAdapter;
 static FLATPAK: FlatpakAdapter = FlatpakAdapter;
 static FNM: FnmAdapter = FnmAdapter;
@@ -185,6 +188,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &DNF,
         &DOCKER_CE,
         &ELPA,
+        &ELASTICSTACK,
         &YUM,
         &PACMAN,
         &ZYPPER,
