@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::BTreeMap,
@@ -35,6 +35,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
             version_codename: Some("bookworm".into()),
             id_like: Vec::new(),
         }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
         root: root.to_path_buf(),
     }
 }
@@ -478,6 +488,82 @@ fn versions_private_central_credentials_precedence_and_conflicts_are_rejected() 
 }
 
 #[test]
+fn macos_and_windows_preserve_native_user_settings_layout() {
+    for (os, architecture, bom, newline) in [
+        (OperatingSystem::Macos, Architecture::X86_64, false, "\n"),
+        (OperatingSystem::Windows, Architecture::Arm64, true, "\r\n"),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_maven(root, "3.9.11", HUAWEI, "mirrorswitch-central", 0);
+        let text = format!(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>{newline}<settings>{newline}  <!-- native settings -->{newline}  <servers><server><id>private</id><username>reader</username><password>secret</password></server></servers>{newline}  <proxies><proxy><id>office</id><host>proxy.invalid.example</host></proxy></proxies>{newline}</settings>{newline}"
+        );
+        let mut original = text.into_bytes();
+        if bom {
+            original.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let settings = write(root, "/home/developer/.m2/settings.xml", &original);
+        let project_contents = b"<project><modelVersion>4.0.0</modelVersion><groupId>test</groupId><artifactId>native</artifactId><version>1</version></project>\n";
+        let project = write(root, "/work/project/pom.xml", project_contents);
+        let context = native_context(root, os, architecture);
+        let adapter = MavenAdapter;
+        let mut runtime = runtime(root, BTreeMap::new());
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(!serde_json::to_string(&current).unwrap().contains("secret"));
+        let chosen = [selection(HUAWEI, HUAWEI)];
+        let plan = adapter.plan(&context, &current, &chosen).unwrap();
+        assert_eq!(plan, adapter.plan(&context, &current, &chosen).unwrap());
+        let change = plan
+            .changes
+            .iter()
+            .find(|change| change.target == settings)
+            .unwrap();
+        assert_eq!(change.new_contents.starts_with(&[0xef, 0xbb, 0xbf]), bom);
+        let rendered = std::str::from_utf8(
+            change
+                .new_contents
+                .strip_prefix(&[0xef, 0xbb, 0xbf])
+                .unwrap_or(&change.new_contents),
+        )
+        .unwrap();
+        assert!(rendered.contains("<id>private</id>"));
+        assert!(!rendered.replace(newline, "").contains('\n'));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+        else {
+            panic!("native Maven settings should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &chosen)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(settings).unwrap(), original);
+        assert_eq!(fs::read(project).unwrap(), project_contents);
+    }
+}
+
+#[test]
 fn embedded_catalog_has_three_complete_maven_candidates() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -493,7 +579,12 @@ fn embedded_catalog_has_three_complete_maven_candidates() {
     assert_eq!(candidates.len(), 3);
     assert!(candidates.iter().all(|candidate| {
         candidate.delivery_mode == DeliveryMode::Proxy
-            && candidate.compatibility.operating_systems == [OperatingSystem::Linux]
+            && candidate.compatibility.operating_systems
+                == [
+                    OperatingSystem::Linux,
+                    OperatingSystem::Macos,
+                    OperatingSystem::Windows,
+                ]
             && candidate.compatibility.architectures == [Architecture::X86_64, Architecture::Arm64]
             && candidate
                 .endpoints

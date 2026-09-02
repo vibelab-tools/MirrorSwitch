@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "84"
+CATALOG_FORMAT_REVISION = "85"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -3089,7 +3089,9 @@ def runtime_properties(
         and entry["raw_name"] == "maven"
         and entry["provider_id"] in MAVEN_REGISTRY_ENDPOINTS
     ):
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = (
+            ["linux", "macos", "windows"] if tool_id == "maven" else ["linux"]
+        )
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []

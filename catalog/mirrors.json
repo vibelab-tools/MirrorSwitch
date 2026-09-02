@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+f3089fe4d2b6",
-  "content_revision": 20260902222241,
-  "generated_at": "2026-09-02T22:22:41Z",
+  "content_version": "2026.08.28+755805992df3",
+  "content_revision": 20260902223333,
+  "generated_at": "2026-09-02T22:33:33Z",
   "providers": [
     {
       "id": "aliyun",
@@ -5196,89 +5196,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "148c47d64d3bbeb6a373dd12",
-      "provider_id": "nju",
-      "upstream_id": "maven--language-registry",
-      "tool_id": "maven",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "maven"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.nju.edu.cn/maven/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.nju.edu.cn/maven/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "<artifactId>commons-lang3</artifactId>"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "<artifactId>commons-lang3</artifactId>"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "15600d1453d3b8007a47ee70",
       "provider_id": "aliyun",
       "upstream_id": "grafana-packages--repository-metadata",
@@ -5368,6 +5285,91 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "15af711de719e2a507976a0b",
+      "provider_id": "nju",
+      "upstream_id": "maven--language-registry",
+      "tool_id": "maven",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "maven"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.nju.edu.cn/maven/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.nju.edu.cn/maven/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -7866,89 +7868,6 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "23c35a5275f5562e6a0c8e22",
-      "provider_id": "huaweicloud",
-      "upstream_id": "maven--language-registry",
-      "tool_id": "maven",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "maven"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/maven/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/maven/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "<artifactId>commons-lang3</artifactId>"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "<artifactId>commons-lang3</artifactId>"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -14394,89 +14313,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "5bdc52ecfc2fcfec8847b4ba",
-      "provider_id": "aliyun",
-      "upstream_id": "maven--language-registry",
-      "tool_id": "maven",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "maven"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://maven.aliyun.com/repository/public/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://maven.aliyun.com/repository/public/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "<artifactId>commons-lang3</artifactId>"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "<artifactId>commons-lang3</artifactId>"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae"
-        }
-      ],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -32060,6 +31896,91 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "db9b7a0fc0ae0fc71a804a32",
+      "provider_id": "huaweicloud",
+      "upstream_id": "maven--language-registry",
+      "tool_id": "maven",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "maven"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "dd5113b330c899b7ce4a701f",
       "provider_id": "nju",
       "upstream_id": "winget-source--static-files",
@@ -35301,6 +35222,91 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "f8d0499acc550cd08babbd76",
+      "provider_id": "aliyun",
+      "upstream_id": "maven--language-registry",
+      "tool_id": "maven",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "maven"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://maven.aliyun.com/repository/public/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://maven.aliyun.com/repository/public/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
