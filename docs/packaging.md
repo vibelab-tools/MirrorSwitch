@@ -19,3 +19,5 @@ installation does not change APT or DNF repository configuration.
 
 Tag builds use the same workflow graph, so a release job can consume the package artifacts created
 after these checks. It must not invoke Cargo or rebuild the binary.
+
+The artifact handoff and package gates are defined in [Linux CI](../.github/workflows/ci.yml).
