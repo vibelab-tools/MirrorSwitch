@@ -70,9 +70,13 @@ apt_tree_hash() {
 }
 
 run_cli() {
-  phase=cli-build
-  cargo build --locked --release --bin mirrorswitch
-  local binary="$repo_root/target/release/mirrorswitch" before after payload
+  local binary=${MIRRORSWITCH_BINARY:-$repo_root/target/release/mirrorswitch}
+  local before after payload
+  if [[ -z ${MIRRORSWITCH_BINARY:-} ]]; then
+    phase=cli-build
+    cargo build --locked --release --bin mirrorswitch
+  fi
+  [[ -x "$binary" ]]
   phase=cli-version
   "$binary" --version | grep -F "mirrorswitch " >/dev/null
   phase=cli-help

@@ -3,6 +3,7 @@ name: Linux CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -38,27 +39,36 @@ jobs:
         include:
           - arch: x86_64
             runner: ubuntu-24.04
+            rust_target: x86_64-unknown-linux-musl
           - arch: arm64
             runner: ubuntu-24.04-arm
+            rust_target: aarch64-unknown-linux-musl
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Install Rust toolchain
-        run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal && rustup default "$RUST_TOOLCHAIN"
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustup target add "${{ matrix.rust_target }}"
+          sudo apt-get update
+          sudo apt-get install --yes musl-tools
       - name: Build and exercise read-only terminal commands
-        run: bash scripts/test.sh cli
+        run: |
+          cargo build --locked --release --target "${{ matrix.rust_target }}" --bin mirrorswitch
+          MIRRORSWITCH_BINARY="$PWD/target/${{ matrix.rust_target }}/release/mirrorswitch" bash scripts/test.sh cli
       - name: Exercise native Debian and APT boundary
         run: bash scripts/test.sh distro debian
       - name: Record verified binary checksum
-        run: cd target/release && sha256sum mirrorswitch > mirrorswitch.sha256
+        run: cd "target/${{ matrix.rust_target }}/release" && sha256sum mirrorswitch > mirrorswitch.sha256
       - name: Save binary for packaging
         uses: actions/upload-artifact@v7
         with:
           name: mirrorswitch-linux-${{ matrix.arch }}
           path: |
-            target/release/mirrorswitch
-            target/release/mirrorswitch.sha256
+            target/${{ matrix.rust_target }}/release/mirrorswitch
+            target/${{ matrix.rust_target }}/release/mirrorswitch.sha256
           if-no-files-found: error
           retention-days: 14
 
@@ -73,3 +83,69 @@ jobs:
         run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal && rustup default "$RUST_TOOLCHAIN"
       - name: Run real package-manager boundaries
         run: bash scripts/test.sh docker
+
+  packages:
+    name: Linux packages (${{ matrix.arch }})
+    needs: [terminal-binaries, distribution-matrix]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+            docker_platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            docker_platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Read package version
+        id: metadata
+        run: echo "version=$(sed -n 's/^version = \"\([^\"]*\)\"/\1/p' Cargo.toml | sed -n '1p')" >> "$GITHUB_OUTPUT"
+      - name: Download the tested binary
+        uses: actions/download-artifact@v8
+        with:
+          name: mirrorswitch-linux-${{ matrix.arch }}
+          path: input
+      - name: Verify the binary handoff
+        run: cd input && sha256sum -c mirrorswitch.sha256 && chmod 0755 mirrorswitch
+      - name: Install RPM build tooling
+        run: sudo apt-get update && sudo apt-get install --yes rpm
+      - name: Build archive, deb, and rpm from the tested binary
+        run: scripts/package-linux.sh input/mirrorswitch "${{ matrix.arch }}" dist
+      - name: Test archive and deb installation
+        run: |
+          docker run --rm --network none --platform "${{ matrix.docker_platform }}" \
+            -e MIRRORSWITCH_PACKAGE_ARCH="${{ matrix.arch }}" \
+            -e MIRRORSWITCH_PACKAGE_FORMAT=archive \
+            -e MIRRORSWITCH_VERSION="${{ steps.metadata.outputs.version }}" \
+            -v "$PWD/dist:/packages:ro" \
+            -v "$PWD/tests/docker/install-package.sh:/test-package.sh:ro" \
+            debian:12.11-slim /bin/sh /test-package.sh
+          docker run --rm --network none --platform "${{ matrix.docker_platform }}" \
+            -e MIRRORSWITCH_PACKAGE_ARCH="${{ matrix.arch }}" \
+            -e MIRRORSWITCH_PACKAGE_FORMAT=deb \
+            -e MIRRORSWITCH_VERSION="${{ steps.metadata.outputs.version }}" \
+            -v "$PWD/dist:/packages:ro" \
+            -v "$PWD/tests/docker/install-package.sh:/test-package.sh:ro" \
+            debian:12.11-slim /bin/sh /test-package.sh
+      - name: Test rpm installation
+        run: |
+          docker run --rm --network none --platform "${{ matrix.docker_platform }}" \
+            -e MIRRORSWITCH_PACKAGE_ARCH="${{ matrix.arch }}" \
+            -e MIRRORSWITCH_PACKAGE_FORMAT=rpm \
+            -e MIRRORSWITCH_VERSION="${{ steps.metadata.outputs.version }}" \
+            -v "$PWD/dist:/packages:ro" \
+            -v "$PWD/tests/docker/install-package.sh:/test-package.sh:ro" \
+            fedora:42 /bin/sh /test-package.sh
+      - name: Verify package checksums
+        run: cd dist && sha256sum -c SHA256SUMS
+      - name: Save packages for release
+        uses: actions/upload-artifact@v7
+        with:
+          name: mirrorswitch-packages-linux-${{ matrix.arch }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14

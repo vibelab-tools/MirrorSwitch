@@ -32,6 +32,7 @@ real-boundary checks have passed.
 - [Runtime catalog and safe updates](docs/catalog-updates.md)
 - [Linux CLI, configuration, and TUI](docs/cli.md)
 - [Testing and Docker matrix](docs/testing.md)
+- [Linux packaging](docs/packaging.md)
 - [Per-repository mirror selection](docs/mirror-selection.md)
 - [APT adapter](docs/adapters/apt.md)
 - [DNF adapter](docs/adapters/dnf.md)
