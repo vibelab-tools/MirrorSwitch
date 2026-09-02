@@ -32,6 +32,7 @@ content remain unchanged and are reported.
 | `macports` | system | Paired signed ports tree and binary archive; Darwin/architecture-specific `archivefetch` ([details](adapters/macports.md)) |
 | `msys2` | system | Installation-local signed MSYS/MinGW databases and package download; never Arch Linux paths ([details](adapters/msys2.md)) |
 | `winget` | system | Signed pre-indexed source plus architecture-specific hash-checked download; msstore/custom sources preserved ([details](adapters/winget.md)) |
+| `cygwin` | system | x86_64 signed setup metadata and download-only package verification; Windows ARM64 rejected ([details](adapters/cygwin.md)) |
 
 ## Language, build, and editor tools
 

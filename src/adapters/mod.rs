@@ -12,6 +12,7 @@ mod conda;
 mod containerd;
 mod cpan;
 mod cran;
+mod cygwin;
 mod dart_pub;
 mod dnf;
 mod docker_ce;
@@ -87,6 +88,7 @@ pub use conda::CondaAdapter;
 pub use containerd::ContainerdAdapter;
 pub use cpan::CpanAdapter;
 pub use cran::CranAdapter;
+pub use cygwin::CygwinAdapter;
 pub use dart_pub::DartPubAdapter;
 pub use dnf::DnfAdapter;
 pub use docker_ce::DockerCeAdapter;
@@ -158,6 +160,7 @@ static CONTAINERD: ContainerdAdapter = ContainerdAdapter;
 static COCOAPODS: CocoaPodsAdapter = CocoaPodsAdapter;
 static CPAN: CpanAdapter = CpanAdapter;
 static CRAN: CranAdapter = CranAdapter;
+static CYGWIN: CygwinAdapter = CygwinAdapter;
 static DNF: DnfAdapter = DnfAdapter;
 static DOCKER_CE: DockerCeAdapter = DockerCeAdapter;
 static ELPA: ElpaAdapter = ElpaAdapter;
@@ -285,6 +288,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &FLUTTER,
         &CPAN,
         &CRAN,
+        &CYGWIN,
         &PYENV,
         &BAZEL,
         &OPAM,

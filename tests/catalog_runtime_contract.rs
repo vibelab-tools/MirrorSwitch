@@ -35,6 +35,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             "containerd",
             "cpan",
             "cran",
+            "cygwin",
             "dart-pub",
             "dnf",
             "docker-ce",

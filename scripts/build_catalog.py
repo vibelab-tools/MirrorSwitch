@@ -16,6 +16,7 @@ SYSTEM_TOOLS = {
     "apt",
     "ceph",
     "containerd",
+    "cygwin",
     "dnf",
     "docker-ce",
     "docker-registry",
@@ -73,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "74"
+CATALOG_FORMAT_REVISION = "75"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -677,6 +678,10 @@ WINGET_ROOTS = {
     "nju": "https://mirrors.nju.edu.cn/winget-source",
     "ustc": "https://mirrors.ustc.edu.cn/winget-source",
 }
+CYGWIN_ROOTS = {
+    "huaweicloud": "https://repo.huaweicloud.com/cygwin",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/sourceware/cygwin",
+}
 
 
 def utc_now() -> str:
@@ -861,6 +866,12 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if tool_id == "cygwin" and entry["provider_id"] in CYGWIN_ROOTS:
+        endpoint = CYGWIN_ROOTS[entry["provider_id"]]
+        return [
+            {"role": "metadata", "protocol": "https", "url": endpoint},
+            {"role": "artifacts", "protocol": "https", "url": endpoint},
+        ]
     if tool_id == "winget" and entry["provider_id"] in WINGET_ROOTS:
         endpoint = WINGET_ROOTS[entry["provider_id"]]
         return [
@@ -1506,7 +1517,48 @@ def runtime_properties(
         else "unknown"
     )
     probes = candidate_probe(entry)
-    if tool_id == "winget" and entry["provider_id"] in WINGET_ROOTS:
+    if tool_id == "cygwin":
+        compatibility["operating_systems"] = []
+        compatibility["architectures"] = []
+        compatibility["environments"] = []
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "unknown"
+        probes = []
+        if entry["provider_id"] in CYGWIN_ROOTS:
+            compatibility["operating_systems"] = ["windows"]
+            compatibility["architectures"] = ["x86_64"]
+            compatibility["environments"] = ["host"]
+            delivery_mode = "mirror"
+            probes = [
+                {
+                    "endpoint_role": "metadata",
+                    "method": "head",
+                    "path": "/x86_64/setup.xz",
+                    "expected_status": [200],
+                },
+                {
+                    "endpoint_role": "metadata",
+                    "method": "head",
+                    "path": "/x86_64/setup.xz.sig",
+                    "expected_status": [200],
+                },
+                {
+                    "endpoint_role": "metadata",
+                    "method": "head",
+                    "path": "/x86_64/setup.ini",
+                    "expected_status": [200],
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/x86_64/release/dash/dash-0.5.12-5.tar.xz",
+                    "expected_status": [200, 206],
+                    "expected_content_type": "application/octet-stream",
+                    "sha256": "41a50947c79757b1bb5f49007c61c4dad4dd66bf814e9e054a48487acefb891e",
+                },
+            ]
+    elif tool_id == "winget" and entry["provider_id"] in WINGET_ROOTS:
         compatibility["operating_systems"] = ["windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["host"]
@@ -4586,6 +4638,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "containerd",
                         "cpan",
                         "cran",
+                        "cygwin",
                         "dnf",
                         "docker-ce",
                         "elasticstack",

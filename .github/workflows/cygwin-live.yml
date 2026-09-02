@@ -1,0 +1,91 @@
+name: Cygwin Windows live boundary
+
+on:
+  schedule:
+    - cron: "59 0 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+  CYGWIN_ROOT: C:\cygwin64
+  CYGWIN_SETUP: C:\cygwin-setup\setup-x86_64.exe
+
+jobs:
+  native:
+    name: Cygwin x86_64
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust toolchain
+        shell: pwsh
+        run: |
+          rustup toolchain install $env:RUST_TOOLCHAIN --profile minimal
+          rustup default $env:RUST_TOOLCHAIN
+      - name: Install a controlled Cygwin x86_64 fixture
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path (Split-Path $env:CYGWIN_SETUP), 'C:\cygwin-cache' | Out-Null
+          Invoke-WebRequest -UseBasicParsing -Uri https://cygwin.com/setup-x86_64.exe -OutFile $env:CYGWIN_SETUP
+          $signature = Get-AuthenticodeSignature -FilePath $env:CYGWIN_SETUP
+          if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Cygwin') { throw 'Cygwin setup signature is invalid' }
+          & $env:CYGWIN_SETUP --quiet-mode --wait --no-admin --no-shortcuts --no-desktop --no-startmenu `
+            --root $env:CYGWIN_ROOT --local-package-dir C:\cygwin-cache `
+            --site https://mirrors.kernel.org/sourceware/cygwin --packages dash
+          if ($LASTEXITCODE -ne 0) { throw "Cygwin setup failed: $LASTEXITCODE" }
+      - name: Run deterministic Cygwin adapter boundary
+        run: cargo test --locked --test cygwin_adapter_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Apply, verify, and restore a real Cygwin plan
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
+          $setupRc = Join-Path $env:CYGWIN_ROOT 'etc/setup/setup.rc'
+          $installedDb = Join-Path $env:CYGWIN_ROOT 'etc/setup/installed.db'
+          $setupBefore = (Get-FileHash $setupRc -Algorithm SHA256).Hash
+          $installedBefore = (Get-FileHash $installedDb -Algorithm SHA256).Hash
+
+          (& $binary status --offline --json) | Set-Content -Encoding utf8 status.json
+          $status = Get-Content status.json -Raw | ConvertFrom-Json
+          if (@($status.detected_tools | Where-Object adapter_key -eq 'cygwin').Count -ne 1) { throw 'Cygwin adapter was not detected' }
+
+          (& $binary plan --offline --tool cygwin --scope cygwin=system --json) | Set-Content -Encoding utf8 plan.json
+          $plan = Get-Content plan.json -Raw | ConvertFrom-Json
+          if (-not $plan.ok) { throw 'Cygwin plan was not actionable' }
+          $planned = @($plan.plan.tools)
+          if ($planned.Count -ne 1 -or @($planned[0].plan.changes).Count -ne 1) { throw 'unexpected Cygwin plan' }
+
+          (& $binary apply --offline --tool cygwin --scope cygwin=system --yes --json) | Set-Content -Encoding utf8 apply.json
+          $apply = Get-Content apply.json -Raw | ConvertFrom-Json
+          if (-not $apply.result.successful) { throw 'Cygwin apply failed' }
+          $applied = @($apply.result.tools | Where-Object status -eq 'applied')
+          if ($applied.Count -ne 1) { throw 'Cygwin transaction was not applied' }
+          $transactionId = $applied[0].receipt.transaction_id
+
+          @('', 'n') | & $binary tui --offline --tool cygwin --scope cygwin=system | Set-Content -Encoding utf8 tui.txt
+          if (-not ((Get-Content tui.txt) -match 'mirror=(huaweicloud|tuna)')) { throw 'Cygwin TUI mirror missing' }
+          (& $binary restore $transactionId --yes --json) | Set-Content -Encoding utf8 restore.json
+          $restore = Get-Content restore.json -Raw | ConvertFrom-Json
+          if (-not $restore.receipt.verified) { throw 'Cygwin restore failed' }
+
+          if ((Get-FileHash $setupRc -Algorithm SHA256).Hash -ne $setupBefore) { throw 'setup.rc was not restored' }
+          if ((Get-FileHash $installedDb -Algorithm SHA256).Hash -ne $installedBefore) { throw 'installed package selection changed' }
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cygwin-boundary-x86_64-${{ github.run_id }}
+          path: |
+            plan.json
+            apply.json
+            status.json
+            restore.json
+            tui.txt
+          if-no-files-found: warn
+          retention-days: 7

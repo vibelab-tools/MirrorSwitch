@@ -49,6 +49,7 @@ Windows are tracked by [v0.2.0](https://github.com/vibelab-tools/MirrorSwitch/mi
 - [Scoop adapter](docs/adapters/scoop.md)
 - [MSYS2 adapter](docs/adapters/msys2.md)
 - [WinGet adapter](docs/adapters/winget.md)
+- [Cygwin adapter](docs/adapters/cygwin.md)
 - [Per-repository mirror selection](docs/mirror-selection.md)
 - [APT adapter](docs/adapters/apt.md)
 - [DNF adapter](docs/adapters/dnf.md)
