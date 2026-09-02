@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+bda0b1a9e9e3",
-  "content_revision": 20260902173317,
-  "generated_at": "2026-09-02T17:33:17Z",
+  "content_version": "2026.08.28+c47934a77391",
+  "content_revision": 20260902175122,
+  "generated_at": "2026-09-02T17:51:22Z",
   "providers": [
     {
       "id": "aliyun",
@@ -18599,15 +18599,6 @@
         {
           "endpoint_role": "artifacts",
           "method": "get",
-          "path": "/{narinfo_hash}.narinfo",
-          "expected_status": [
-            200
-          ],
-          "contains": "Sig: cache.nixos.org-1:"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
           "path": "/{darwin_probe_hash}.narinfo",
           "expected_status": [
             200
@@ -22486,15 +22477,6 @@
             200
           ],
           "contains": "StoreDir: /nix/store"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/{narinfo_hash}.narinfo",
-          "expected_status": [
-            200
-          ],
-          "contains": "Sig: cache.nixos.org-1:"
         },
         {
           "endpoint_role": "artifacts",

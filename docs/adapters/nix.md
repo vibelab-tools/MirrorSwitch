@@ -31,11 +31,12 @@ SJTUG, TUNA, and USTC. For macOS, only NJU and TUNA are actionable: both passed 
 `x86_64-darwin` and `aarch64-darwin` narinfo and NAR checks. SJTUG and USTC remain partial and
 cannot enter latency ranking until the same Darwin evidence passes.
 
-Every candidate must return a valid `/nix/store` cache descriptor and a signed narinfo for a store
-path discovered from the installed system. A macOS candidate must additionally return the exact
-architecture-specific `hello` store path from the 25.11 Darwin channel, its
-`cache.nixos.org-1` signature, and its NAR with the reviewed SHA-256. Missing dynamic content
-excludes only that candidate and allows another verified cache to win.
+Every Linux candidate must return a valid `/nix/store` cache descriptor and a signed narinfo for a
+store path discovered from the installed system. A macOS candidate instead uses the exact
+architecture-specific `hello` store path from the 25.11 Darwin channel: its narinfo must identify
+that path and carry the `cache.nixos.org-1` signature, and its complete NAR must match the reviewed
+SHA-256. This avoids requiring a channel mirror to retain unrelated closure objects from the Nix
+installer itself.
 
 Planning preserves comments, trusted keys, the official fallback, custom caches and their relative
 order. Existing reviewed mirror URLs are consolidated to the selected endpoint, and a missing base
@@ -43,8 +44,8 @@ setting is created without changing channel or flake state. Includes and ambiguo
 assignments are rejected instead of guessed. Repeated planning is idempotent.
 
 Verification asks Nix to reload the effective configuration, checks the signature policy again,
-pings the selected store, and queries the discovered current-system store path from that store.
-On macOS it also uses `nix store ls --long --recursive` against the reviewed Darwin store path so
+pings the selected store, and queries a matching store path from that store. On macOS it also uses
+`nix store ls --long --recursive` against the reviewed Darwin store path so
 Nix validates the signed NAR through the selected cache.
 
 A macOS system-scope apply restarts the detected launchd daemon with `launchctl kickstart -k`

@@ -70,7 +70,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "68"
+CATALOG_FORMAT_REVISION = "69"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -2171,13 +2171,6 @@ def runtime_properties(
                     "path": "/nix-cache-info",
                     "expected_status": [200],
                     "contains": "StoreDir: /nix/store",
-                },
-                {
-                    "endpoint_role": "artifacts",
-                    "method": "get",
-                    "path": "/{narinfo_hash}.narinfo",
-                    "expected_status": [200],
-                    "contains": "Sig: cache.nixos.org-1:",
                 },
                 {
                     "endpoint_role": "artifacts",

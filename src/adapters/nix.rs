@@ -427,16 +427,20 @@ impl Adapter for NixBackend {
             );
         }
         let endpoint = mirrors.into_iter().next().unwrap();
-        let store_path = match discover_store_path(runtime) {
-            Ok(path) => path,
-            Err(error) => {
-                return verification_failure(
-                    self,
-                    context,
-                    runtime,
-                    receipt,
-                    format!("Nix store path discovery failed: {error}"),
-                );
+        let store_path = if context.os == OperatingSystem::Macos {
+            darwin_probe(context.architecture).store_path.into()
+        } else {
+            match discover_store_path(runtime) {
+                Ok(path) => path,
+                Err(error) => {
+                    return verification_failure(
+                        self,
+                        context,
+                        runtime,
+                        receipt,
+                        format!("Nix store path discovery failed: {error}"),
+                    );
+                }
             }
         };
         for arguments in [

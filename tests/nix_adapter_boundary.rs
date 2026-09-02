@@ -653,9 +653,8 @@ fn embedded_catalog_has_four_signed_arch_specific_cache_candidates() {
     assert!(darwin.iter().all(|candidate| {
         candidate.compatibility.operating_systems == [OperatingSystem::Macos]
             && candidate.compatibility.architectures == [Architecture::X86_64, Architecture::Arm64]
-            && candidate.probes.len() == 5
-            && candidate.probes[1].path == "/{narinfo_hash}.narinfo"
-            && candidate.probes[2].path == "/{darwin_probe_hash}.narinfo"
-            && candidate.probes[4].path == "/nar/{darwin_nar_file}"
+            && candidate.probes.len() == 4
+            && candidate.probes[1].path == "/{darwin_probe_hash}.narinfo"
+            && candidate.probes[3].path == "/nar/{darwin_nar_file}"
     }));
 }
