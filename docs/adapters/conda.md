@@ -1,9 +1,11 @@
 # Conda/Mamba adapter
 
-The adapter supports Linux `x86_64` and `arm64`. It probes `conda`, `mamba`, and `micromamba`
-independently, reports each installed client and version, and produces one shared user-scope plan
-because all three clients consume the same `.condarc` model. The presence of one client never
-implies that either of the others is installed.
+The adapter supports Linux `x86_64`/`arm64`, macOS `osx-64`/`osx-arm64`, and native Windows
+`win-64`. It probes `conda`, `mamba`, and `micromamba` independently, reports each installed client
+and version, and produces one shared user-scope plan because all three clients consume the same
+home-directory `.condarc` model. The presence of one client never implies that either of the others
+is installed. Windows arm64 is explicitly unsupported because the providers expose no native
+`win-arm64` repository; x64 emulation is not treated as native proof.
 
 Configuration discovery uses `conda config --show-sources --json` for Conda and `config sources`
 for Mamba and Micromamba. All reported sources are read in addition to `~/.condarc`. The adapter
@@ -19,13 +21,13 @@ remain unchanged. A private `conda-forge` mapping is not overwritten. Single-pro
 keeps Conda's strict and flexible priority semantics intact instead of mixing independently ranked
 repositories.
 
-Candidates must pass `noarch` plus `linux-64` or `linux-aarch64` repodata checks for the default and
-conda-forge trees, followed by an architecture-specific representative package download, before
-latency ranking. USTC, TUNA, and NJU currently satisfy the complete contract. SJTUG remains in the
-catalog but is non-actionable because its published paths return an access-denied response to the
-required probes.
+Candidates must pass `noarch` plus the native `linux-64`, `linux-aarch64`, `osx-64`, `osx-arm64`,
+or `win-64` repodata checks for the default and conda-forge trees, followed by a platform-specific
+representative package download, before latency ranking. USTC, TUNA, and NJU currently satisfy the
+complete contract. SJTUG remains non-actionable because its published paths return an access-denied
+response to the required probes.
 
 Applying uses the shared atomic transaction engine. Verification re-reads the effective settings
 through every installed client, then runs a real Python 3.12 repodata query with `conda search` or
 `mamba`/`micromamba repoquery search`. Failure restores the previous file, and repeated planning is
-idempotent.
+idempotent. UTF-8 BOM and LF/CRLF layout are preserved; other reported client sources stay read-only.

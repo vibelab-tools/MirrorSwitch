@@ -45,7 +45,7 @@ content remain unchanged and are reported.
 | `npm` | system/user/project | Registry metadata and tarball plus client query; scopes/auth preserved ([details](adapters/npm.md)) |
 | `pnpm` | user | Registry metadata/tarball and `pnpm view`; project/auth/TLS overrides block changes ([details](adapters/pnpm.md)) |
 | `yarn` | user/project | Classic/Berry-specific query; generations and configuration formats never cross ([details](adapters/yarn.md)) |
-| `conda` | user | Conda/Mamba/Micromamba search; channel/subdir/architecture completeness required ([details](adapters/conda.md)) |
+| `conda` | user | Linux/macOS/Windows Conda/Mamba/Micromamba search; native channel/subdir completeness required ([details](adapters/conda.md)) |
 | `pyenv` | user | Exact Python release/archive query; custom definitions and runtime overrides preserved ([#69](https://github.com/vibelab-tools/MirrorSwitch/issues/69)) |
 | `maven` | user | Fixed Maven dependency resolution; private mirrors/servers/proxies preserved ([details](adapters/maven.md)) |
 | `gradle` | user/project | Dependency and Wrapper distribution verification; project scope explicit ([details](adapters/gradle.md)) |

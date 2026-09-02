@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+8b00ddb36834",
-  "content_revision": 20260902214315,
-  "generated_at": "2026-09-02T21:43:15Z",
+  "content_version": "2026.08.28+11880c0b7821",
+  "content_revision": 20260902215357,
+  "generated_at": "2026-09-02T21:53:57Z",
   "providers": [
     {
       "id": "aliyun",
@@ -3590,6 +3590,97 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "084681f8070bfa4ea3036e82",
+      "provider_id": "tuna",
+      "upstream_id": "anaconda--language-registry",
+      "tool_id": "conda",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "anaconda"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/anaconda/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/pkgs/main/noarch/repodata.json.zst",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/pkgs/main/{subdir}/repodata.json.zst",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/cloud/conda-forge/noarch/repodata.json.zst",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/cloud/conda-forge/{subdir}/repodata.json.zst",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/pkgs/main/{subdir}/{representative_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -10244,95 +10335,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "3aa57f773be817e1ed19fb21",
-      "provider_id": "tuna",
-      "upstream_id": "anaconda--language-registry",
-      "tool_id": "conda",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "anaconda"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/anaconda/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/pkgs/main/noarch/repodata.json.zst",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/pkgs/main/{subdir}/repodata.json.zst",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/cloud/conda-forge/noarch/repodata.json.zst",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/cloud/conda-forge/{subdir}/repodata.json.zst",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/pkgs/main/{subdir}/{representative_package}",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        }
-      ],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "3bdae37a28ef61f53e862c24",
       "provider_id": "tuna",
       "upstream_id": "nix-channels--binary-cache",
@@ -12064,95 +12066,6 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "4b4980966e57199aa46bcbd9",
-      "provider_id": "ustc",
-      "upstream_id": "anaconda--language-registry",
-      "tool_id": "conda",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "anaconda"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/anaconda/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/pkgs/main/noarch/repodata.json.zst",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/pkgs/main/{subdir}/repodata.json.zst",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/cloud/conda-forge/noarch/repodata.json.zst",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/cloud/conda-forge/{subdir}/repodata.json.zst",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/pkgs/main/{subdir}/{representative_package}",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/anaconda.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -15167,6 +15080,97 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "610dc8408106c71ec5f2dc1d",
+      "provider_id": "ustc",
+      "upstream_id": "anaconda--language-registry",
+      "tool_id": "conda",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "anaconda"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/anaconda/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/pkgs/main/noarch/repodata.json.zst",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/pkgs/main/{subdir}/repodata.json.zst",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/cloud/conda-forge/noarch/repodata.json.zst",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/cloud/conda-forge/{subdir}/repodata.json.zst",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/pkgs/main/{subdir}/{representative_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/anaconda.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -18203,95 +18207,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "7a303c4783f10f800b5e5b73",
-      "provider_id": "nju",
-      "upstream_id": "anaconda--language-registry",
-      "tool_id": "conda",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "anaconda"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/anaconda/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/pkgs/main/noarch/repodata.json.zst",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/pkgs/main/{subdir}/repodata.json.zst",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/cloud/conda-forge/noarch/repodata.json.zst",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/cloud/conda-forge/{subdir}/repodata.json.zst",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/pkgs/main/{subdir}/{representative_package}",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "7a87a681c2cae1ad81838261",
       "provider_id": "nju",
       "upstream_id": "nix-channels--binary-cache",
@@ -20618,6 +20533,97 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/ceph.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "8c51b856c30434b219230dd5",
+      "provider_id": "nju",
+      "upstream_id": "anaconda--language-registry",
+      "tool_id": "conda",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "anaconda"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/anaconda/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/pkgs/main/noarch/repodata.json.zst",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/pkgs/main/{subdir}/repodata.json.zst",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/cloud/conda-forge/noarch/repodata.json.zst",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/cloud/conda-forge/{subdir}/repodata.json.zst",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/pkgs/main/{subdir}/{representative_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

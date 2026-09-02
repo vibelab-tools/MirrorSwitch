@@ -7,7 +7,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{Architecture, OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -53,7 +53,7 @@ impl Adapter for CondaAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         let mut evidence = Vec::new();
         let mut versions = Vec::new();
         let mut executable = None;
@@ -88,7 +88,7 @@ impl Adapter for CondaAdapter {
         _detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         let home = runtime.home_dir().ok_or_else(|| {
             AdapterError::Unsupported("Conda user scope requires a home directory".into())
@@ -114,7 +114,7 @@ impl Adapter for CondaAdapter {
             }
             let origin = if path == selected {
                 OriginScope::User
-            } else if is_system_source(&path) {
+            } else if is_system_source(context, runtime, &path) {
                 OriginScope::System
             } else {
                 OriginScope::Environment
@@ -145,11 +145,25 @@ impl Adapter for CondaAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
-        let (subdir, package) = match context.architecture {
-            Architecture::X86_64 => ("linux-64", "python-3.12.9-h5148396_0.conda"),
-            Architecture::Arm64 => ("linux-aarch64", "python-3.12.9-h8edadfe_0.conda"),
+        let (subdir, package) = match (context.os, context.architecture) {
+            (OperatingSystem::Linux, Architecture::X86_64) => {
+                ("linux-64", "python-3.12.9-h5148396_0.conda")
+            }
+            (OperatingSystem::Linux, Architecture::Arm64) => {
+                ("linux-aarch64", "python-3.12.9-h8edadfe_0.conda")
+            }
+            (OperatingSystem::Macos, Architecture::X86_64) => {
+                ("osx-64", "python-3.12.9-hcd54a6c_0.conda")
+            }
+            (OperatingSystem::Macos, Architecture::Arm64) => {
+                ("osx-arm64", "python-3.12.13-hd7e0f33_1.conda")
+            }
+            (OperatingSystem::Windows, Architecture::X86_64) => {
+                ("win-64", "python-3.12.13-h63b1a2d_1.conda")
+            }
+            (OperatingSystem::Windows, Architecture::Arm64) => unreachable!("rejected context"),
         };
         Ok(SelectionRequest {
             tool_id: "conda".into(),
@@ -185,7 +199,7 @@ impl Adapter for CondaAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let endpoint = selected_endpoint(selections)?;
         validate_precedence(current)?;
@@ -197,8 +211,11 @@ impl Adapter for CondaAdapter {
             .ok_or_else(|| {
                 AdapterError::InvalidConfiguration("selected .condarc document is missing".into())
             })?;
-        let new_contents =
+        let mut new_contents =
             rewrite_condarc(utf8(&document.path, &document.contents)?, endpoint)?.into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            new_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let existed = current.files.contains(&document.path);
         let changes = (new_contents != document.contents)
             .then(|| PlannedFileChange {
@@ -349,10 +366,24 @@ struct ValueEntry {
     quote: Option<char>,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "Conda adapter requires Linux".into(),
+            "Conda on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "Conda adapter requires x86_64 or arm64".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "Conda has no native win-arm64 repository subdir; x64 emulation is not native support"
+                .into(),
         ));
     }
     Ok(())
@@ -361,7 +392,7 @@ fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
 fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
     if scope != ConfigurationScope::User {
         return Err(AdapterError::Unsupported(
-            "Conda shared .condarc supports user scope in the Linux MVP".into(),
+            "Conda shared .condarc supports user scope".into(),
         ));
     }
     Ok(())
@@ -423,8 +454,8 @@ fn client_sources(runtime: &dyn Runtime, client: &str) -> Result<Vec<PathBuf>, A
             .as_object()
             .into_iter()
             .flat_map(|object| object.keys())
-            .filter(|key| key.starts_with('/'))
             .map(PathBuf::from)
+            .filter(|path| path.is_absolute())
             .collect());
     }
     let output = run_text(
@@ -437,8 +468,9 @@ fn client_sources(runtime: &dyn Runtime, client: &str) -> Result<Vec<PathBuf>, A
         .lines()
         .map(str::trim)
         .filter_map(|line| {
-            if line.starts_with('/') {
-                Some(PathBuf::from(line))
+            let path = PathBuf::from(line);
+            if path.is_absolute() {
+                Some(path)
             } else {
                 line.strip_prefix("~/")
                     .and_then(|relative| runtime.home_dir().map(|home| home.join(relative)))
@@ -461,8 +493,18 @@ fn validate_path(path: &Path) -> Result<(), AdapterError> {
     Ok(())
 }
 
-fn is_system_source(path: &Path) -> bool {
-    path.starts_with("/etc") || path.starts_with("/opt") || path.starts_with("/usr")
+fn is_system_source(context: &SystemContext, runtime: &dyn Runtime, path: &Path) -> bool {
+    match context.os {
+        OperatingSystem::Linux => {
+            path.starts_with("/etc") || path.starts_with("/opt") || path.starts_with("/usr")
+        }
+        OperatingSystem::Macos => path.starts_with("/Library") || path.starts_with("/etc"),
+        OperatingSystem::Windows => ["ProgramData", "ProgramFiles", "ProgramFiles(x86)"]
+            .into_iter()
+            .filter_map(|name| runtime.environment_variable(name))
+            .map(PathBuf::from)
+            .any(|root| path.starts_with(root)),
+    }
 }
 
 fn sections(text: &str) -> Result<Vec<Section>, AdapterError> {
@@ -984,6 +1026,9 @@ fn verification_failure<T>(
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "Conda configuration {} is not UTF-8",

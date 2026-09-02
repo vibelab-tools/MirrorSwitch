@@ -1,6 +1,7 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
+    collections::BTreeMap,
     fs,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
@@ -37,6 +38,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -59,7 +70,28 @@ fn install_client(
     query_exit: i32,
     sources: &[&str],
 ) {
-    let user = root.join("home/developer/.condarc");
+    install_client_at(
+        root,
+        client,
+        version,
+        selected,
+        query_exit,
+        sources,
+        "/home/developer/.condarc",
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn install_client_at(
+    root: &Path,
+    client: &str,
+    version: &str,
+    selected: &str,
+    query_exit: i32,
+    sources: &[&str],
+    user_path: &str,
+) {
+    let user = root.join(user_path.trim_start_matches('/'));
     let source_json = sources
         .iter()
         .map(|path| format!("\"{path}\":{{}}"))
@@ -79,6 +111,12 @@ fn install_client(
 
 fn runtime(root: &Path) -> OsRuntime {
     OsRuntime::new(root, vec![PathBuf::from("/usr/bin")]).with_home("/home/developer")
+}
+
+fn native_runtime(root: &Path, environment: BTreeMap<String, String>) -> OsRuntime {
+    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home("/Users/test")
+        .with_environment(environment)
 }
 
 fn selection(url: &str) -> MirrorSelection {
@@ -320,6 +358,133 @@ fn environment_override_tls_private_only_and_complex_shapes_are_not_rewritten() 
 }
 
 #[test]
+fn macos_and_windows_select_native_subdirs_and_preserve_shared_condarc() {
+    for (os, architecture, subdir, package, system, environment, bom, newline) in [
+        (
+            OperatingSystem::Macos,
+            Architecture::X86_64,
+            "osx-64",
+            "python-3.12.9-hcd54a6c_0.conda",
+            "/Library/Conda/.condarc",
+            BTreeMap::new(),
+            false,
+            "\n",
+        ),
+        (
+            OperatingSystem::Macos,
+            Architecture::Arm64,
+            "osx-arm64",
+            "python-3.12.13-hd7e0f33_1.conda",
+            "/Library/Conda/.condarc",
+            BTreeMap::new(),
+            false,
+            "\n",
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::X86_64,
+            "win-64",
+            "python-3.12.13-h63b1a2d_1.conda",
+            "/ProgramData/Conda/.condarc",
+            BTreeMap::from([
+                ("ProgramData".into(), "/ProgramData".into()),
+                ("ProgramFiles".into(), "/ProgramFiles".into()),
+            ]),
+            true,
+            "\r\n",
+        ),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        let user_path = "/Users/test/.condarc";
+        install_client_at(
+            root,
+            "conda",
+            "26.7.1",
+            USTC,
+            0,
+            &[system, user_path],
+            user_path,
+        );
+        let system_contents = b"channels:\n  - https://private.invalid.example/channel\n";
+        let system_file = write(root, system, system_contents);
+        let text = format!(
+            "channels:{newline}  - defaults{newline}  - conda-forge{newline}default_channels:{newline}  - https://repo.anaconda.com/pkgs/main{newline}  - https://repo.anaconda.com/pkgs/r{newline}custom_channels:{newline}  conda-forge: https://conda.anaconda.org{newline}channel_priority: strict{newline}ssl_verify: true{newline}unknown_setting: keep{newline}"
+        );
+        let mut original = text.into_bytes();
+        if bom {
+            original.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let user = write(root, user_path, &original);
+        let context = native_context(root, os, architecture);
+        let adapter = CondaAdapter;
+        let mut runtime = native_runtime(root, environment);
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let request = adapter
+            .selection_request(&context, &detected, &current)
+            .unwrap();
+        assert_eq!(request.probe_contexts[UPSTREAM][0]["subdir"], subdir);
+        assert_eq!(
+            request.probe_contexts[UPSTREAM][0]["representative_package"],
+            package
+        );
+        let chosen = [selection(USTC)];
+        let plan = adapter.plan(&context, &current, &chosen).unwrap();
+        assert_eq!(plan, adapter.plan(&context, &current, &chosen).unwrap());
+        assert_eq!(
+            plan.changes[0]
+                .new_contents
+                .starts_with(&[0xef, 0xbb, 0xbf]),
+            bom
+        );
+        let rendered = std::str::from_utf8(
+            plan.changes[0]
+                .new_contents
+                .strip_prefix(&[0xef, 0xbb, 0xbf])
+                .unwrap_or(&plan.changes[0].new_contents),
+        )
+        .unwrap();
+        assert!(rendered.contains("unknown_setting: keep"));
+        assert!(!rendered.replace(newline, "").contains('\n'));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+        else {
+            panic!("native Conda config should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(user).unwrap(), original);
+        assert_eq!(fs::read(system_file).unwrap(), system_contents);
+    }
+
+    let directory = tempdir().unwrap();
+    let context = native_context(
+        directory.path(),
+        OperatingSystem::Windows,
+        Architecture::Arm64,
+    );
+    assert!(
+        CondaAdapter
+            .detect(&context, &native_runtime(directory.path(), BTreeMap::new()))
+            .unwrap_err()
+            .to_string()
+            .contains("win-arm64")
+    );
+}
+
+#[test]
 fn embedded_catalog_has_three_arch_complete_conda_candidates() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -332,7 +497,12 @@ fn embedded_catalog_has_three_arch_complete_conda_candidates() {
     assert!(candidates.iter().all(|candidate| {
         candidate.upstream_id == UPSTREAM
             && candidate.delivery_mode == DeliveryMode::Mirror
-            && candidate.compatibility.operating_systems == [OperatingSystem::Linux]
+            && candidate.compatibility.operating_systems
+                == [
+                    OperatingSystem::Linux,
+                    OperatingSystem::Macos,
+                    OperatingSystem::Windows,
+                ]
             && candidate.compatibility.architectures == [Architecture::X86_64, Architecture::Arm64]
             && candidate.probes.len() == 5
             && candidate
