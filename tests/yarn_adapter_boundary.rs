@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     fs,
@@ -32,6 +32,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
             version_codename: Some("bookworm".into()),
             id_like: Vec::new(),
         }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
         root: root.to_path_buf(),
     }
 }
@@ -386,6 +396,86 @@ fn generation_formats_tls_and_auth_policies_never_cross() {
 }
 
 #[test]
+fn berry_preserves_native_macos_and_windows_user_configuration_layout() {
+    for (os, architecture, bom, newline) in [
+        (OperatingSystem::Macos, Architecture::X86_64, false, "\n"),
+        (OperatingSystem::Windows, Architecture::Arm64, true, "\r\n"),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_yarn(root, "4.9.2", HUAWEI, 0, None);
+        write(root, "/work/project/package.json", b"{}\n");
+        write(
+            root,
+            "/work/project/.yarnrc.yml",
+            b"nodeLinker: node-modules\n",
+        );
+        let text = format!(
+            "# native Yarn config{newline}npmRegistryServer: \"https://registry.yarnpkg.com/\"{newline}enableGlobalCache: true{newline}unknownSetting: keep{newline}"
+        );
+        let mut original = text.into_bytes();
+        if bom {
+            original.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let user = write(root, "/home/developer/.yarnrc.yml", &original);
+        let context = native_context(root, os, architecture);
+        let adapter = YarnAdapter;
+        let mut runtime = runtime(root);
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let selected = [selection()];
+        let plan = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(plan, adapter.plan(&context, &current, &selected).unwrap());
+        assert_eq!(
+            plan.changes[0]
+                .new_contents
+                .starts_with(&[0xef, 0xbb, 0xbf]),
+            bom
+        );
+        let rendered = std::str::from_utf8(
+            plan.changes[0]
+                .new_contents
+                .strip_prefix(&[0xef, 0xbb, 0xbf])
+                .unwrap_or(&plan.changes[0].new_contents),
+        )
+        .unwrap();
+        assert!(rendered.contains("unknownSetting: keep"));
+        assert!(!rendered.replace(newline, "").contains('\n'));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+        else {
+            panic!("native Yarn config should change")
+        };
+        if !bom {
+            assert!(
+                adapter
+                    .verify(&context, &mut runtime, &receipt)
+                    .unwrap()
+                    .valid
+            );
+        }
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &selected)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(user).unwrap(), original);
+    }
+}
+
+#[test]
 fn embedded_catalog_has_one_complete_yarn_registry_candidate() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -401,7 +491,11 @@ fn embedded_catalog_has_one_complete_yarn_registry_candidate() {
     assert_eq!(candidate.delivery_mode, DeliveryMode::Proxy);
     assert_eq!(
         candidate.compatibility.operating_systems,
-        [OperatingSystem::Linux]
+        [
+            OperatingSystem::Linux,
+            OperatingSystem::Macos,
+            OperatingSystem::Windows
+        ]
     );
     assert_eq!(
         candidate.compatibility.architectures,

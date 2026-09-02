@@ -1,0 +1,159 @@
+name: Yarn macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "43 3 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: Yarn ${{ matrix.generation }} (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { generation: classic, name: macOS x86_64, runner: macos-15-intel, node_arch: x64 }
+          - { generation: classic, name: macOS arm64, runner: macos-15, node_arch: arm64 }
+          - { generation: classic, name: Windows x86_64, runner: windows-2025, node_arch: x64 }
+          - { generation: classic, name: Windows arm64, runner: windows-11-arm, node_arch: arm64 }
+          - { generation: berry, name: macOS x86_64, runner: macos-15-intel, node_arch: x64 }
+          - { generation: berry, name: macOS arm64, runner: macos-15, node_arch: arm64 }
+          - { generation: berry, name: Windows x86_64, runner: windows-2025, node_arch: x64 }
+          - { generation: berry, name: Windows arm64, runner: windows-11-arm, node_arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          architecture: ${{ matrix.node_arch }}
+      - name: Install Yarn generation and Rust
+        shell: bash
+        run: |
+          if [ '${{ matrix.generation }}' = classic ]; then
+            npm install --global yarn@1.22.22
+          else
+            npm install --global corepack@0.34.0
+            corepack enable
+            corepack prepare yarn@4.9.2 --activate
+          fi
+          yarn --version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic Yarn boundary
+        run: cargo test --locked --test yarn_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS generation and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"
+          boundary="$RUNNER_TEMP/mirrorswitch-yarn-${{ matrix.generation }}"
+          export HOME="$boundary/home"
+          unset YARN_REGISTRY YARN_NPM_REGISTRY_SERVER YARN_NPM_AUTH_TOKEN npm_config_registry NPM_CONFIG_REGISTRY
+          project="$HOME/project"
+          mkdir -p "$project"
+          if [ '${{ matrix.generation }}' = classic ]; then
+            user_config="$HOME/.yarnrc"
+            project_config="$project/.yarnrc"
+            printf 'registry "https://registry.yarnpkg.com/"\n' > "$user_config"
+            printf -- '--install.check-files true\n' > "$project_config"
+            printf '{"name":"native-probe","version":"1.0.0"}\n' > "$project/package.json"
+          else
+            user_config="$HOME/.yarnrc.yml"
+            project_config="$project/.yarnrc.yml"
+            printf 'npmRegistryServer: "https://registry.yarnpkg.com/"\nenableGlobalCache: true\n' > "$user_config"
+            printf 'nodeLinker: node-modules\n' > "$project_config"
+            printf '{"name":"native-probe","version":"1.0.0","packageManager":"yarn@4.9.2"}\n' > "$project/package.json"
+          fi
+          chmod 0600 "$user_config"
+          printf '{"version":1,"tools":[{"id":"yarn","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$user_config" | awk '{print $1}')
+          project_before=$(shasum -a 256 "$project_config" | awk '{print $1}')
+          mode_before=$(stat -f '%Lp' "$user_config")
+          cd "$project"
+          "$binary" status --offline --json > status.json
+          "$binary" plan --offline --tool yarn --scope yarn=user --json > plan-cli.json
+          "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - <<'PY'
+          import json
+          status=json.load(open('status.json'))
+          assert [t['adapter_key'] for t in status['detected_tools'] if t['adapter_key']=='yarn']==['yarn']
+          cli=json.load(open('plan-cli.json')); config=json.load(open('plan-config.json'))
+          assert cli['ok'] and config['ok'] and cli['plan']['tools'][0]['plan']==config['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n' | "$binary" tui --offline --tool yarn --scope yarn=user > tui.txt
+          grep -F 'mirror=huaweicloud' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          transaction_id=$(python3 - <<'PY'
+          import json
+          report=json.load(open('apply.json'))['result']; assert report['successful']
+          applied=[t for t in report['tools'] if t['status']=='applied']; assert len(applied)==1
+          print(applied[0]['receipt']['transaction_id'])
+          PY
+          )
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json
+          "$binary" restore "$transaction_id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          again=json.load(open('idempotent.json'))['result']; restore=json.load(open('restore.json'))
+          assert again['successful'] and not [t for t in again['tools'] if t['status']=='applied']
+          assert restore['adapter_key']=='yarn' and restore['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$user_config" | awk '{print $1}')"
+          test "$project_before" = "$(shasum -a 256 "$project_config" | awk '{print $1}')"
+          test "$mode_before" = "$(stat -f '%Lp' "$user_config")"
+      - name: Exercise Windows generation and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'
+          $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-yarn-${{ matrix.generation }}'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'
+          Remove-Item Env:YARN_REGISTRY,Env:YARN_NPM_REGISTRY_SERVER,Env:YARN_NPM_AUTH_TOKEN,Env:npm_config_registry,Env:NPM_CONFIG_REGISTRY -ErrorAction SilentlyContinue
+          $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $project,$env:APPDATA,$env:LOCALAPPDATA|Out-Null
+          if('${{ matrix.generation }}' -eq 'classic'){
+            $user=Join-Path $env:USERPROFILE '.yarnrc'; $projectConfig=Join-Path $project '.yarnrc'
+            [IO.File]::WriteAllText($user,"# native Classic`r`nregistry `"https://registry.yarnpkg.com/`"`r`n",[Text.UTF8Encoding]::new($true))
+            '--install.check-files true'|Set-Content -Encoding utf8 $projectConfig
+            '{"name":"native-probe","version":"1.0.0"}'|Set-Content -Encoding utf8 (Join-Path $project 'package.json')
+          }else{
+            $user=Join-Path $env:USERPROFILE '.yarnrc.yml'; $projectConfig=Join-Path $project '.yarnrc.yml'
+            [IO.File]::WriteAllText($user,"# native Berry`r`nnpmRegistryServer: `"https://registry.yarnpkg.com/`"`r`nenableGlobalCache: true`r`n",[Text.UTF8Encoding]::new($true))
+            'nodeLinker: node-modules'|Set-Content -Encoding utf8 $projectConfig
+            '{"name":"native-probe","version":"1.0.0","packageManager":"yarn@4.9.2"}'|Set-Content -Encoding utf8 (Join-Path $project 'package.json')
+          }
+          '{"version":1,"tools":[{"id":"yarn","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          $before=(Get-FileHash $user -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash $projectConfig -Algorithm SHA256).Hash; $acl=(Get-Acl $user).Sddl
+          Push-Location $project
+          try{
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json
+            (& $binary plan --offline --tool yarn --scope yarn=user --json)|Set-Content -Encoding utf8 plan-cli.json
+            (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; if(@($s.detected_tools|Where-Object adapter_key -eq 'yarn').Count -ne 1){throw 'Yarn not detected'}
+            $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)){throw 'frontend plans differ'}
+            @('','n')|& $binary tui --offline --tool yarn --scope yarn=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=huaweicloud')){throw 'Yarn mirror missing'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Yarn apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
+            (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'yarn'){throw 'restore failed'}
+          }finally{Pop-Location}
+          if($before -ne (Get-FileHash $user -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash $projectConfig -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $user).Sddl){throw 'Yarn config not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: yarn-native-${{ matrix.generation }}-${{ runner.os }}-${{ matrix.node_arch }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-yarn-${{ matrix.generation }}/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

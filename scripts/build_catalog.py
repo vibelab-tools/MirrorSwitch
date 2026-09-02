@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "83"
+CATALOG_FORMAT_REVISION = "84"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -4347,9 +4347,7 @@ def runtime_properties(
         and entry["raw_name"] in NPM_RUNTIME_ENTRY_NAMES
         and entry["provider_id"] in NPM_ACTIONABLE_PROVIDERS
     ):
-        compatibility["operating_systems"] = (
-            ["linux", "macos", "windows"] if tool_id in {"npm", "pnpm"} else ["linux"]
-        )
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []

@@ -1,9 +1,10 @@
 # Yarn adapter
 
-The Yarn adapter supports Linux `x86_64` and `arm64` and selects its configuration model from the
-invoked Yarn major version. Yarn 1 is Classic and uses `registry` in `.yarnrc`; Yarn 2 and newer are
-Berry and use `npmRegistryServer` in `.yarnrc.yml`. The two parsers and renderers are separate, so a
-Classic command can never rewrite Berry YAML or vice versa.
+The Yarn adapter supports Linux, macOS, and native Windows hosts on `x86_64` and `arm64`, and
+selects its configuration model from the invoked Yarn major version. Yarn 1 is Classic and uses
+`registry` in `.yarnrc`; Yarn 2 and newer are Berry and use `npmRegistryServer` in `.yarnrc.yml`.
+The two parsers and renderers are separate, so a Classic command can never rewrite Berry YAML or
+vice versa.
 
 User scope is the automatic default and project scope is explicit. Classic reads discovered system,
 home and project `.yarnrc` files plus user/project `.npmrc` scope and authentication settings, but
@@ -12,6 +13,11 @@ only changes the selected `.yarnrc`. Berry reads home and project `.yarnrc.yml` 
 change requires a detected project context because the real `yarn npm info` verification command is
 project-bound; without one, planning reports the limitation instead of producing an unverifiable
 change. A project registry override similarly blocks a lower-precedence user plan.
+
+Yarn reports Classic configuration paths through its own verbose config command. Berry uses the
+home and project hierarchy on every supported OS; the home file affects a project only when it is
+in that project's parent chain. Existing UTF-8 BOM and LF/CRLF layout are preserved, including
+Windows drive-qualified project paths.
 
 Private default registries are not overwritten. Unscoped credentials, credentials that would be
 sent to the selected public mirror, disabled TLS certificate verification, environment overrides,
