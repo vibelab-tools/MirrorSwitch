@@ -51,7 +51,7 @@ jobs:
       - name: Exercise native Debian and APT boundary
         run: bash scripts/test.sh distro debian
       - name: Record verified binary checksum
-        run: sha256sum target/release/mirrorswitch > target/release/mirrorswitch.sha256
+        run: cd target/release && sha256sum mirrorswitch > mirrorswitch.sha256
       - name: Save binary for packaging
         uses: actions/upload-artifact@v7
         with:
