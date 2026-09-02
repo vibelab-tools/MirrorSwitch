@@ -19,6 +19,11 @@ use crate::{
 };
 
 const SYSTEM_CONFIG: &str = "/etc/nix/nix.conf";
+const NIXOS_DAEMON_PLIST: &str = "/Library/LaunchDaemons/org.nixos.nix-daemon.plist";
+const DETERMINATE_DAEMON_PLIST: &str =
+    "/Library/LaunchDaemons/systems.determinate.nix-daemon.plist";
+const NIXOS_DAEMON_LABEL: &str = "org.nixos.nix-daemon";
+const DETERMINATE_DAEMON_LABEL: &str = "systems.determinate.nix-daemon";
 const CACHE_UPSTREAM: &str = "nix-channels--binary-cache";
 const OFFICIAL_CACHE: &str = "https://cache.nixos.org";
 const OFFICIAL_CACHE_KEY: &str = "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=";
@@ -28,17 +33,66 @@ const CACHE_MIRRORS: &[&str] = &[
     "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store",
     "https://mirrors.ustc.edu.cn/nix-channels/store",
 ];
+const DARWIN_CACHE_MIRRORS: &[&str] = &[
+    "https://mirrors.nju.edu.cn/nix-channels/store",
+    "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store",
+];
+
+#[derive(Clone, Copy, Debug)]
+struct DarwinProbe {
+    store_hash: &'static str,
+    store_name: &'static str,
+    store_path: &'static str,
+    nar_file: &'static str,
+    nar_sha256: &'static str,
+}
+
+const DARWIN_X86_64_PROBE: DarwinProbe = DarwinProbe {
+    store_hash: "4sv8vd71y21gic34irbqr4pp1xgdhqck",
+    store_name: "hello-2.12.2",
+    store_path: "/nix/store/4sv8vd71y21gic34irbqr4pp1xgdhqck-hello-2.12.2",
+    nar_file: "1yhq10d543mxsmsjn3kf2lv7pakw9401as6vp9si6sljimp1f7cd.nar.xz",
+    nar_sha256: "8d1d176e8d926a1375badb681500497caa7b36156e0e2b75d5bd0e521a0818fa",
+};
+const DARWIN_ARM64_PROBE: DarwinProbe = DarwinProbe {
+    store_hash: "mxawknsavjm2cfw3imi3g58497nkfiky",
+    store_name: "hello-2.12.2",
+    store_path: "/nix/store/mxawknsavjm2cfw3imi3g58497nkfiky-hello-2.12.2",
+    nar_file: "0mf6jiwbrgiimzjp63bbh5d73x848ynbx79ijbxhxqs42bp5nkbv.nar.xz",
+    nar_sha256: "7b4d5bee1244e30efb92319dbeac4704f5715a816b0d73e5af31bebc7894c655",
+};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct NixAdapter;
 
-impl Adapter for NixAdapter {
+#[derive(Clone, Copy, Debug, Default)]
+pub struct NixMacosAdapter;
+
+#[derive(Clone, Copy, Debug)]
+struct NixBackend {
+    adapter_key: &'static str,
+    tool_id: &'static str,
+    operating_system: OperatingSystem,
+}
+
+const LINUX_BACKEND: NixBackend = NixBackend {
+    adapter_key: "nix",
+    tool_id: "nix",
+    operating_system: OperatingSystem::Linux,
+};
+const MACOS_BACKEND: NixBackend = NixBackend {
+    adapter_key: "nix-macos",
+    tool_id: "nix-macos",
+    operating_system: OperatingSystem::Macos,
+};
+
+impl Adapter for NixBackend {
     fn key(&self) -> &'static str {
-        "nix"
+        self.adapter_key
     }
 
     fn tool_id(&self) -> &'static str {
-        "nix"
+        self.tool_id
     }
 
     fn supported_scopes(&self) -> &'static [ConfigurationScope] {
@@ -55,8 +109,8 @@ impl Adapter for NixAdapter {
         runtime: &dyn Runtime,
         _detected: &DetectedTool,
     ) -> Result<ConfigurationScope, AdapterError> {
-        require_supported_context(context)?;
-        Ok(if is_multi_user(runtime)? {
+        require_supported_context(context, self.operating_system)?;
+        Ok(if is_multi_user(context, runtime)? {
             ConfigurationScope::System
         } else {
             ConfigurationScope::User
@@ -72,14 +126,13 @@ impl Adapter for NixAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_supported_context(context)?;
+        require_supported_context(context, self.operating_system)?;
         let has_nix = runtime.command_exists("nix");
         let system_config = runtime.read(Path::new(SYSTEM_CONFIG))?.is_some();
-        let user_config = user_config_path(runtime)
-            .map(|path| runtime.read(&path))
-            .transpose()?
-            .flatten()
-            .is_some();
+        let user_config = match user_config_path(runtime)? {
+            Some(path) => runtime.read(&path)?.is_some(),
+            None => false,
+        };
         if !has_nix && !system_config && !user_config {
             return Ok(None);
         }
@@ -98,8 +151,19 @@ impl Adapter for NixAdapter {
             version = (!observed.is_empty()).then_some(observed.clone());
             evidence.push(format!("Nix command {observed}"));
         }
-        evidence.push(if is_multi_user(runtime)? {
-            "Nix multi-user daemon installation".into()
+        evidence.push(if is_multi_user(context, runtime)? {
+            if context.os == OperatingSystem::Macos {
+                format!(
+                    "Nix multi-user launchd installation ({})",
+                    darwin_daemon_label(runtime)?.ok_or_else(|| {
+                        AdapterError::Unsupported(
+                            "macOS Nix daemon has no supported launchd service".into(),
+                        )
+                    })?
+                )
+            } else {
+                "Nix multi-user daemon installation".into()
+            }
         } else {
             "Nix single-user local-store installation".into()
         });
@@ -110,8 +174,8 @@ impl Adapter for NixAdapter {
             evidence.push("Nix user configuration under the detected home directory".into());
         }
         Ok(Some(DetectedTool {
-            tool_id: "nix".into(),
-            executable: has_nix.then(|| PathBuf::from("/usr/bin/nix")),
+            tool_id: self.tool_id.into(),
+            executable: has_nix.then(|| PathBuf::from("nix")),
             version,
             evidence,
         }))
@@ -124,7 +188,8 @@ impl Adapter for NixAdapter {
         _detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_supported_context(context)?;
+        require_supported_context(context, self.operating_system)?;
+        validate_scope(context, runtime, scope)?;
         let path = configuration_path(runtime, scope)?;
         if scope == ConfigurationScope::System
             && context
@@ -142,6 +207,7 @@ impl Adapter for NixAdapter {
         let text = utf8(&path, &contents)?;
         parse_configuration(text)?;
 
+        validate_environment_policy(runtime, scope)?;
         let effective = read_effective_config(runtime)?;
         validate_effective_config(context, &effective)?;
         let store_path = discover_store_path(runtime)?;
@@ -153,13 +219,7 @@ impl Adapter for NixAdapter {
                 upstream_id: is_official_or_mirror(url).then(|| CACHE_UPSTREAM.into()),
                 url: url.clone(),
                 enabled: true,
-                metadata: BTreeMap::from([
-                    ("configuration_surface".into(), vec!["binary-cache".into()]),
-                    ("nix_system".into(), vec![effective.system.clone()]),
-                    ("narinfo_hash".into(), vec![narinfo_hash.clone()]),
-                    ("store_path".into(), vec![store_path.clone()]),
-                    ("signature_key".into(), vec![OFFICIAL_CACHE_KEY.into()]),
-                ]),
+                metadata: cache_metadata(context, &effective, &narinfo_hash, &store_path),
             })
             .collect::<Vec<_>>();
         sources.extend(channel_sources(runtime)?);
@@ -178,7 +238,7 @@ impl Adapter for NixAdapter {
         }
 
         Ok(CurrentConfiguration {
-            tool_id: "nix".into(),
+            tool_id: self.tool_id.into(),
             scope,
             files: existing
                 .is_some()
@@ -205,8 +265,8 @@ impl Adapter for NixAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_supported_context(context)?;
-        if current.tool_id != "nix"
+        require_supported_context(context, self.operating_system)?;
+        if current.tool_id != self.tool_id
             || !matches!(
                 current.scope,
                 ConfigurationScope::System | ConfigurationScope::User
@@ -220,12 +280,7 @@ impl Adapter for NixAdapter {
             .sources
             .iter()
             .filter(|source| source.upstream_id.as_deref() == Some(CACHE_UPSTREAM))
-            .map(|source| {
-                Ok(BTreeMap::from([(
-                    "narinfo_hash".into(),
-                    single_metadata(source, "narinfo_hash")?.to_owned(),
-                )]))
-            })
+            .map(|source| probe_context(context, source))
             .collect::<Result<Vec<_>, AdapterError>>()?;
         contexts.sort();
         contexts.dedup();
@@ -235,8 +290,8 @@ impl Adapter for NixAdapter {
             ));
         }
         Ok(SelectionRequest {
-            tool_id: "nix".into(),
-            adapter_key: "nix".into(),
+            tool_id: self.tool_id.into(),
+            adapter_key: self.adapter_key.into(),
             context: context.clone(),
             tool_version: detected.version.clone(),
             required_upstreams: vec![CACHE_UPSTREAM.into()],
@@ -262,8 +317,8 @@ impl Adapter for NixAdapter {
         current: &CurrentConfiguration,
         selection: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_supported_context(context)?;
-        if current.tool_id != "nix"
+        require_supported_context(context, self.operating_system)?;
+        if current.tool_id != self.tool_id
             || !matches!(
                 current.scope,
                 ConfigurationScope::System | ConfigurationScope::User
@@ -274,7 +329,7 @@ impl Adapter for NixAdapter {
                 "Nix plan requires exactly one system or user nix.conf document".into(),
             ));
         }
-        let endpoint = selected_endpoint(selection)?;
+        let endpoint = selected_endpoint(selection, self.tool_id)?;
         let document = &current.documents[0];
         let text = utf8(&document.path, &document.contents)?;
         let new_contents = rewrite_configuration(text, endpoint)?.into_bytes();
@@ -292,8 +347,8 @@ impl Adapter for NixAdapter {
             .into_iter()
             .collect();
         Ok(ChangePlan {
-            adapter_key: "nix".into(),
-            tool_id: "nix".into(),
+            adapter_key: self.adapter_key.into(),
+            tool_id: self.tool_id.into(),
             scope: current.scope,
             changes,
             requires_elevation: current.scope == ConfigurationScope::System,
@@ -307,11 +362,33 @@ impl Adapter for NixAdapter {
 
     fn apply(
         &self,
-        _context: &SystemContext,
+        context: &SystemContext,
         runtime: &mut dyn Runtime,
         plan: &ChangePlan,
     ) -> Result<ApplyOutcome, AdapterError> {
-        runtime.apply_plan(plan)
+        require_supported_context(context, self.operating_system)?;
+        if plan.adapter_key != self.adapter_key || plan.tool_id != self.tool_id {
+            return Err(AdapterError::InvalidConfiguration(
+                "Nix apply received another adapter's plan".into(),
+            ));
+        }
+        let outcome = runtime.apply_plan(plan)?;
+        if context.os == OperatingSystem::Macos
+            && plan.scope == ConfigurationScope::System
+            && matches!(outcome, ApplyOutcome::Applied(_))
+        {
+            let ApplyOutcome::Applied(receipt) = &outcome else {
+                unreachable!()
+            };
+            if let Err(error) = reload_darwin_daemon(runtime) {
+                let restored = runtime.restore_transaction(&receipt.transaction_id).is_ok();
+                let reloaded = restored && reload_darwin_daemon(runtime).is_ok();
+                return Err(AdapterError::Runtime(format!(
+                    "could not reload the macOS Nix daemon: {error}; configuration restored: {restored}; restored daemon reloaded: {reloaded}"
+                )));
+            }
+        }
+        Ok(outcome)
     }
 
     fn verify(
@@ -324,6 +401,8 @@ impl Adapter for NixAdapter {
             Ok(effective) => effective,
             Err(error) => {
                 return verification_failure(
+                    self,
+                    context,
                     runtime,
                     receipt,
                     format!("Nix could not read applied config: {error}"),
@@ -331,15 +410,17 @@ impl Adapter for NixAdapter {
             }
         };
         if let Err(error) = validate_effective_config(context, &effective) {
-            return verification_failure(runtime, receipt, error.to_string());
+            return verification_failure(self, context, runtime, receipt, error.to_string());
         }
         let mirrors = effective
             .substituters
             .iter()
-            .filter(|url| is_known_mirror(url))
+            .filter(|url| is_supported_mirror(url, self.tool_id))
             .collect::<BTreeSet<_>>();
         if mirrors.len() != 1 {
             return verification_failure(
+                self,
+                context,
                 runtime,
                 receipt,
                 "effective Nix configuration does not contain exactly one selected mirror".into(),
@@ -350,6 +431,8 @@ impl Adapter for NixAdapter {
             Ok(path) => path,
             Err(error) => {
                 return verification_failure(
+                    self,
+                    context,
                     runtime,
                     receipt,
                     format!("Nix store path discovery failed: {error}"),
@@ -378,6 +461,8 @@ impl Adapter for NixAdapter {
                 Ok(output) => output,
                 Err(error) => {
                     return verification_failure(
+                        self,
+                        context,
                         runtime,
                         receipt,
                         format!("nix remote cache query could not run: {error}"),
@@ -386,6 +471,8 @@ impl Adapter for NixAdapter {
             };
             if !output.status.success() {
                 return verification_failure(
+                    self,
+                    context,
                     runtime,
                     receipt,
                     format!(
@@ -395,21 +482,70 @@ impl Adapter for NixAdapter {
                 );
             }
         }
+        if context.os == OperatingSystem::Macos {
+            let probe = darwin_probe(context.architecture);
+            let output = match runtime.run(
+                "nix",
+                &[
+                    "--extra-experimental-features".into(),
+                    "nix-command".into(),
+                    "store".into(),
+                    "ls".into(),
+                    "--store".into(),
+                    endpoint.clone(),
+                    "--long".into(),
+                    "--recursive".into(),
+                    probe.store_path.into(),
+                ],
+            ) {
+                Ok(output) => output,
+                Err(error) => {
+                    return verification_failure(
+                        self,
+                        context,
+                        runtime,
+                        receipt,
+                        format!(
+                            "Nix could not read the Darwin NAR from the selected cache: {error}"
+                        ),
+                    );
+                }
+            };
+            if !output.status.success() {
+                return verification_failure(
+                    self,
+                    context,
+                    runtime,
+                    receipt,
+                    format!(
+                        "Nix could not validate the Darwin NAR from the selected cache: status {}",
+                        output.status
+                    ),
+                );
+            }
+        }
         Ok(VerificationResult {
             valid: true,
-            summary:
+            summary: if context.os == OperatingSystem::Macos {
+                "Nix reloaded the signed cache configuration, queried a current-system store path, and validated a Darwin NAR"
+                    .into()
+            } else {
                 "Nix read the signed cache configuration and queried a current-system store path"
-                    .into(),
+                    .into()
+            },
         })
     }
 
     fn restore(
         &self,
-        _context: &SystemContext,
+        context: &SystemContext,
         runtime: &mut dyn Runtime,
         receipt: &TransactionReceipt,
     ) -> Result<RestoreResult, AdapterError> {
         let restored = runtime.restore_transaction(&receipt.transaction_id)?;
+        if context.os == OperatingSystem::Macos && is_multi_user(context, runtime)? {
+            reload_darwin_daemon(runtime)?;
+        }
         Ok(RestoreResult {
             restored: restored.verified,
             summary: format!(
@@ -419,6 +555,107 @@ impl Adapter for NixAdapter {
         })
     }
 }
+
+macro_rules! delegate_nix_adapter {
+    ($adapter:ty, $backend:expr) => {
+        impl Adapter for $adapter {
+            fn key(&self) -> &'static str {
+                $backend.key()
+            }
+
+            fn tool_id(&self) -> &'static str {
+                $backend.tool_id()
+            }
+
+            fn supported_scopes(&self) -> &'static [ConfigurationScope] {
+                $backend.supported_scopes()
+            }
+
+            fn default_scope(&self) -> ConfigurationScope {
+                $backend.default_scope()
+            }
+
+            fn default_scope_for(
+                &self,
+                context: &SystemContext,
+                runtime: &dyn Runtime,
+                detected: &DetectedTool,
+            ) -> Result<ConfigurationScope, AdapterError> {
+                $backend.default_scope_for(context, runtime, detected)
+            }
+
+            fn composition_policy(&self) -> CompositionPolicy {
+                $backend.composition_policy()
+            }
+
+            fn detect(
+                &self,
+                context: &SystemContext,
+                runtime: &dyn Runtime,
+            ) -> Result<Option<DetectedTool>, AdapterError> {
+                $backend.detect(context, runtime)
+            }
+
+            fn read_current(
+                &self,
+                context: &SystemContext,
+                runtime: &dyn Runtime,
+                detected: &DetectedTool,
+                scope: ConfigurationScope,
+            ) -> Result<CurrentConfiguration, AdapterError> {
+                $backend.read_current(context, runtime, detected, scope)
+            }
+
+            fn selection_request(
+                &self,
+                context: &SystemContext,
+                detected: &DetectedTool,
+                current: &CurrentConfiguration,
+            ) -> Result<SelectionRequest, AdapterError> {
+                $backend.selection_request(context, detected, current)
+            }
+
+            fn plan(
+                &self,
+                context: &SystemContext,
+                current: &CurrentConfiguration,
+                selection: &[MirrorSelection],
+            ) -> Result<ChangePlan, AdapterError> {
+                $backend.plan(context, current, selection)
+            }
+
+            fn apply(
+                &self,
+                context: &SystemContext,
+                runtime: &mut dyn Runtime,
+                plan: &ChangePlan,
+            ) -> Result<ApplyOutcome, AdapterError> {
+                $backend.apply(context, runtime, plan)
+            }
+
+            fn verify(
+                &self,
+                context: &SystemContext,
+                runtime: &mut dyn Runtime,
+                receipt: &TransactionReceipt,
+            ) -> Result<VerificationResult, AdapterError> {
+                $backend.verify(context, runtime, receipt)
+            }
+
+            fn restore(
+                &self,
+                context: &SystemContext,
+                runtime: &mut dyn Runtime,
+                receipt: &TransactionReceipt,
+            ) -> Result<RestoreResult, AdapterError> {
+                $backend.restore(context, runtime, receipt)
+            }
+        }
+    };
+}
+
+delegate_nix_adapter!(NixAdapter, LINUX_BACKEND);
+delegate_nix_adapter!(NixMacosAdapter, MACOS_BACKEND);
 
 #[derive(Clone, Debug)]
 struct EffectiveConfig {
@@ -441,11 +678,49 @@ struct ParsedConfiguration {
     extra: Option<SettingLine>,
 }
 
-fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux {
+fn require_supported_context(
+    context: &SystemContext,
+    operating_system: OperatingSystem,
+) -> Result<(), AdapterError> {
+    if context.os != operating_system {
+        return Err(AdapterError::Unsupported(format!(
+            "Nix adapter requires {operating_system:?}"
+        )));
+    }
+    if operating_system == OperatingSystem::Macos
+        && context.environment != crate::context::ExecutionEnvironment::Host
+    {
         return Err(AdapterError::Unsupported(
-            "Nix adapter requires Linux".into(),
+            "macOS Nix adapter requires a native host".into(),
         ));
+    }
+    Ok(())
+}
+
+fn validate_scope(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+    scope: ConfigurationScope,
+) -> Result<(), AdapterError> {
+    if !matches!(scope, ConfigurationScope::System | ConfigurationScope::User) {
+        return Err(AdapterError::Unsupported(
+            "Nix supports only system and user nix.conf scopes".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Macos && scope == ConfigurationScope::System {
+        if !is_multi_user(context, runtime)? {
+            return Err(AdapterError::Unsupported(
+                "macOS system scope requires a multi-user Nix installation".into(),
+            ));
+        }
+        darwin_daemon_label(runtime)?.ok_or_else(|| {
+            AdapterError::Unsupported("macOS Nix daemon has no supported launchd service".into())
+        })?;
+        if !runtime.command_exists("launchctl") {
+            return Err(AdapterError::Unsupported(
+                "macOS system scope requires launchctl to reload the Nix daemon".into(),
+            ));
+        }
     }
     Ok(())
 }
@@ -456,7 +731,7 @@ fn configuration_path(
 ) -> Result<PathBuf, AdapterError> {
     match scope {
         ConfigurationScope::System => Ok(PathBuf::from(SYSTEM_CONFIG)),
-        ConfigurationScope::User => user_config_path(runtime).ok_or_else(|| {
+        ConfigurationScope::User => user_config_path(runtime)?.ok_or_else(|| {
             AdapterError::Unsupported("Nix user scope requires a detected home directory".into())
         }),
         _ => Err(AdapterError::Unsupported(
@@ -465,13 +740,55 @@ fn configuration_path(
     }
 }
 
-fn user_config_path(runtime: &dyn Runtime) -> Option<PathBuf> {
-    runtime
-        .home_dir()
-        .map(|home| home.join(".config/nix/nix.conf"))
+fn user_config_path(runtime: &dyn Runtime) -> Result<Option<PathBuf>, AdapterError> {
+    let Some(home) = runtime.home_dir() else {
+        return Ok(None);
+    };
+    let config_home = runtime
+        .environment_variable("XDG_CONFIG_HOME")
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home.join(".config"));
+    if !config_home.is_absolute() {
+        return Err(AdapterError::InvalidConfiguration(
+            "XDG_CONFIG_HOME must be an absolute path for Nix user scope".into(),
+        ));
+    }
+    Ok(Some(config_home.join("nix/nix.conf")))
 }
 
-fn is_multi_user(runtime: &dyn Runtime) -> Result<bool, AdapterError> {
+fn validate_environment_policy(
+    runtime: &dyn Runtime,
+    scope: ConfigurationScope,
+) -> Result<(), AdapterError> {
+    if nonempty_environment(runtime, "NIX_CONFIG").is_some() {
+        return Err(AdapterError::Unsupported(
+            "NIX_CONFIG overrides file-backed Nix settings and must be handled explicitly".into(),
+        ));
+    }
+    let override_name = match scope {
+        ConfigurationScope::System => "NIX_CONF_DIR",
+        ConfigurationScope::User => "NIX_USER_CONF_FILES",
+        _ => unreachable!("Nix scope was validated before environment policy"),
+    };
+    if nonempty_environment(runtime, override_name).is_some() {
+        return Err(AdapterError::Unsupported(format!(
+            "{override_name} selects an alternate Nix configuration layout"
+        )));
+    }
+    Ok(())
+}
+
+fn nonempty_environment(runtime: &dyn Runtime, name: &str) -> Option<String> {
+    runtime
+        .environment_variable(name)
+        .filter(|value| !value.trim().is_empty())
+}
+
+fn is_multi_user(context: &SystemContext, runtime: &dyn Runtime) -> Result<bool, AdapterError> {
+    if context.os == OperatingSystem::Macos && darwin_daemon_label(runtime)?.is_some() {
+        return Ok(true);
+    }
     let daemon_socket = runtime
         .list_files(Path::new("/nix/var/nix/daemon-socket"))?
         .into_iter()
@@ -482,6 +799,41 @@ fn is_multi_user(runtime: &dyn Runtime) -> Result<bool, AdapterError> {
         ))?
         .is_some();
     Ok(daemon_socket || daemon_profile)
+}
+
+fn darwin_daemon_label(runtime: &dyn Runtime) -> Result<Option<&'static str>, AdapterError> {
+    let nixos = runtime.read(Path::new(NIXOS_DAEMON_PLIST))?.is_some();
+    let determinate = runtime.read(Path::new(DETERMINATE_DAEMON_PLIST))?.is_some();
+    match (nixos, determinate) {
+        (true, false) => Ok(Some(NIXOS_DAEMON_LABEL)),
+        (false, true) => Ok(Some(DETERMINATE_DAEMON_LABEL)),
+        (false, false) => Ok(None),
+        (true, true) => Err(AdapterError::InvalidConfiguration(
+            "both upstream and Determinate Nix launchd services are installed".into(),
+        )),
+    }
+}
+
+fn reload_darwin_daemon(runtime: &dyn Runtime) -> Result<(), AdapterError> {
+    let label = darwin_daemon_label(runtime)?.ok_or_else(|| {
+        AdapterError::Unsupported("macOS Nix daemon has no supported launchd service".into())
+    })?;
+    if !runtime.command_exists("launchctl") {
+        return Err(AdapterError::Unsupported(
+            "launchctl is required to reload the macOS Nix daemon".into(),
+        ));
+    }
+    let output = runtime.run(
+        "launchctl",
+        &["kickstart".into(), "-k".into(), format!("system/{label}")],
+    )?;
+    if !output.status.success() {
+        return Err(AdapterError::Runtime(format!(
+            "launchctl kickstart failed with status {}",
+            output.status
+        )));
+    }
+    Ok(())
 }
 
 fn read_effective_config(runtime: &dyn Runtime) -> Result<EffectiveConfig, AdapterError> {
@@ -584,9 +936,16 @@ fn validate_effective_config(
     context: &SystemContext,
     effective: &EffectiveConfig,
 ) -> Result<(), AdapterError> {
-    let expected = match context.architecture {
-        Architecture::X86_64 => "x86_64-linux",
-        Architecture::Arm64 => "aarch64-linux",
+    let expected = match (context.os, context.architecture) {
+        (OperatingSystem::Linux, Architecture::X86_64) => "x86_64-linux",
+        (OperatingSystem::Linux, Architecture::Arm64) => "aarch64-linux",
+        (OperatingSystem::Macos, Architecture::X86_64) => "x86_64-darwin",
+        (OperatingSystem::Macos, Architecture::Arm64) => "aarch64-darwin",
+        (OperatingSystem::Windows, _) => {
+            return Err(AdapterError::Unsupported(
+                "Nix effective configuration is not supported on Windows".into(),
+            ));
+        }
     };
     if effective.system != expected {
         return Err(AdapterError::InvalidConfiguration(format!(
@@ -609,6 +968,59 @@ fn validate_effective_config(
         ));
     }
     Ok(())
+}
+
+fn cache_metadata(
+    context: &SystemContext,
+    effective: &EffectiveConfig,
+    narinfo_hash: &str,
+    store_path: &str,
+) -> BTreeMap<String, Vec<String>> {
+    let mut metadata = BTreeMap::from([
+        ("configuration_surface".into(), vec!["binary-cache".into()]),
+        ("nix_system".into(), vec![effective.system.clone()]),
+        ("narinfo_hash".into(), vec![narinfo_hash.into()]),
+        ("store_path".into(), vec![store_path.into()]),
+        ("signature_key".into(), vec![OFFICIAL_CACHE_KEY.into()]),
+    ]);
+    if context.os == OperatingSystem::Macos {
+        let probe = darwin_probe(context.architecture);
+        metadata.extend([
+            ("darwin_probe_hash".into(), vec![probe.store_hash.into()]),
+            ("darwin_probe_name".into(), vec![probe.store_name.into()]),
+            ("darwin_nar_file".into(), vec![probe.nar_file.into()]),
+            ("darwin_nar_digest".into(), vec![probe.nar_sha256.into()]),
+        ]);
+    }
+    metadata
+}
+
+fn probe_context(
+    context: &SystemContext,
+    source: &ConfiguredSource,
+) -> Result<BTreeMap<String, String>, AdapterError> {
+    let mut values = BTreeMap::from([(
+        "narinfo_hash".into(),
+        single_metadata(source, "narinfo_hash")?.to_owned(),
+    )]);
+    if context.os == OperatingSystem::Macos {
+        for key in [
+            "darwin_probe_hash",
+            "darwin_probe_name",
+            "darwin_nar_file",
+            "darwin_nar_digest",
+        ] {
+            values.insert(key.into(), single_metadata(source, key)?.to_owned());
+        }
+    }
+    Ok(values)
+}
+
+fn darwin_probe(architecture: Architecture) -> DarwinProbe {
+    match architecture {
+        Architecture::X86_64 => DARWIN_X86_64_PROBE,
+        Architecture::Arm64 => DARWIN_ARM64_PROBE,
+    }
 }
 
 fn discover_store_path(runtime: &dyn Runtime) -> Result<String, AdapterError> {
@@ -800,10 +1212,13 @@ fn rewrite_cache_values(values: &[String], endpoint: &str, ensure_mirror: bool) 
     output
 }
 
-fn selected_endpoint(selections: &[MirrorSelection]) -> Result<&str, AdapterError> {
+fn selected_endpoint<'a>(
+    selections: &'a [MirrorSelection],
+    tool_id: &str,
+) -> Result<&'a str, AdapterError> {
     let matching = selections
         .iter()
-        .filter(|selection| selection.tool_id == "nix" && selection.upstream_id == CACHE_UPSTREAM)
+        .filter(|selection| selection.tool_id == tool_id && selection.upstream_id == CACHE_UPSTREAM)
         .collect::<Vec<_>>();
     if matching.len() != 1 {
         return Err(AdapterError::InvalidConfiguration(
@@ -821,7 +1236,7 @@ fn selected_endpoint(selections: &[MirrorSelection]) -> Result<&str, AdapterErro
                 "Nix selection has no HTTPS artifacts endpoint".into(),
             )
         })?;
-    if !is_known_mirror(&endpoint.url) {
+    if !is_supported_mirror(&endpoint.url, tool_id) {
         return Err(AdapterError::InvalidConfiguration(
             "Nix selection is not a reviewed signed nixpkgs cache endpoint".into(),
         ));
@@ -842,6 +1257,15 @@ fn is_known_mirror(url: &str) -> bool {
     CACHE_MIRRORS.contains(&normalized)
 }
 
+fn is_supported_mirror(url: &str, tool_id: &str) -> bool {
+    let normalized = url.trim_end_matches('/');
+    if tool_id == "nix-macos" {
+        DARWIN_CACHE_MIRRORS.contains(&normalized)
+    } else {
+        CACHE_MIRRORS.contains(&normalized)
+    }
+}
+
 fn single_metadata<'a>(source: &'a ConfiguredSource, key: &str) -> Result<&'a str, AdapterError> {
     let values = source.metadata.get(key).ok_or_else(|| {
         AdapterError::InvalidConfiguration(format!("Nix source is missing {key} metadata"))
@@ -855,13 +1279,23 @@ fn single_metadata<'a>(source: &'a ConfiguredSource, key: &str) -> Result<&'a st
 }
 
 fn verification_failure<T>(
+    backend: &NixBackend,
+    context: &SystemContext,
     runtime: &mut dyn Runtime,
     receipt: &TransactionReceipt,
     reason: String,
 ) -> Result<T, AdapterError> {
     let restored = runtime.restore_transaction(&receipt.transaction_id).is_ok();
+    let daemon_reloaded = if restored
+        && backend.operating_system == OperatingSystem::Macos
+        && is_multi_user(context, runtime).unwrap_or(false)
+    {
+        reload_darwin_daemon(runtime).is_ok()
+    } else {
+        true
+    };
     Err(AdapterError::Verification(format!(
-        "{reason}; configuration restored: {restored}"
+        "{reason}; configuration restored: {restored}; restored daemon reloaded: {daemon_reloaded}"
     )))
 }
 

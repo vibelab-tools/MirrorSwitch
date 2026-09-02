@@ -339,11 +339,7 @@ impl MirrorCatalog {
                             != "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
                     })
                     || probe.sha256.as_ref().is_some_and(|digest| {
-                        probe.method != HttpMethod::Get
-                            || digest.len() != 64
-                            || !digest
-                                .bytes()
-                                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+                        probe.method != HttpMethod::Get || !valid_probe_sha256(digest)
                     })
                     || !candidate.endpoints.iter().any(|endpoint| {
                         endpoint.role == probe.endpoint_role
@@ -359,6 +355,23 @@ impl MirrorCatalog {
         }
         Ok(())
     }
+}
+
+fn valid_probe_sha256(value: &str) -> bool {
+    let fixed = value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte));
+    let placeholder = value
+        .strip_prefix('{')
+        .and_then(|value| value.strip_suffix('}'))
+        .is_some_and(|key| {
+            !key.is_empty()
+                && key
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte == b'_')
+        });
+    fixed || placeholder
 }
 
 fn unique_ids<'a>(

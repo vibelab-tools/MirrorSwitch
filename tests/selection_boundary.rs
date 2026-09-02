@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
     io::{Read, Write},
     net::TcpListener,
     path::PathBuf,
@@ -461,6 +461,50 @@ fn probe_content_marker_expands_safe_runtime_context() {
 
     assert!(outcome.actionable);
     assert_eq!(outcome.selections[0].candidate_id, "tie");
+}
+
+#[test]
+fn probe_sha256_expands_a_safe_runtime_digest() {
+    let mut catalog = catalog();
+    catalog.candidates.retain(|candidate| candidate.id == "tie");
+    catalog.candidates[0].probes[0].sha256 = Some("{artifact_digest}".into());
+    catalog
+        .validate(&HashSet::from(["npm".into(), "pip".into()]))
+        .unwrap();
+    let mut request = request();
+    request
+        .probe_contexts
+        .get_mut("pypi--language-registry")
+        .unwrap()[0]
+        .insert(
+            "artifact_digest".into(),
+            "4bae9bea24b5dc632b1e0c9201ef8f428be2ee2059d39724d9affc77e36a081d".into(),
+        );
+    let selector = MirrorSelector::with_prober(
+        &catalog,
+        DeterministicProber::standard(),
+        ProbeLimits::default(),
+    );
+
+    let outcome = selector.select_at(&request, 14).unwrap();
+
+    assert!(outcome.actionable);
+    assert_eq!(outcome.selections[0].candidate_id, "tie");
+
+    request
+        .probe_contexts
+        .get_mut("pypi--language-registry")
+        .unwrap()[0]
+        .insert(
+            "artifact_digest".into(),
+            "0000000000000000000000000000000000000000000000000000000000000000".into(),
+        );
+    let rejected = selector.select_at(&request, 15).unwrap();
+    assert!(!rejected.actionable);
+    assert!(matches!(
+        rejected.repositories[0].candidates[0].evaluation,
+        CandidateEvaluation::ProbeFailed { .. }
+    ));
 }
 
 #[test]

@@ -51,7 +51,6 @@ USER_ONLY_TOOLS = {
     "fnm",
     "go",
     "homebrew",
-    "nix-macos",
     "nvm",
     "pyenv",
     "rustup",
@@ -71,7 +70,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "67"
+CATALOG_FORMAT_REVISION = "68"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -133,6 +132,7 @@ PORTAGE_RUNTIME_UPSTREAMS = {
 APK_RUNTIME_UPSTREAM = "alpine--repository-metadata"
 XBPS_RUNTIME_UPSTREAM = "void--repository-metadata"
 NIX_RUNTIME_UPSTREAM = "nix-channels--binary-cache"
+NIX_MACOS_ACTIONABLE_PROVIDERS = {"nju", "tuna"}
 GUIX_RUNTIME_UPSTREAMS = {
     "guix--static-files": "Signature: 1;berlin.guix.gnu.org;",
     "guix-bordeaux--static-files": "Signature: 1;bayfront;",
@@ -731,7 +731,7 @@ def tool_scopes(tool_id: str) -> list[str]:
         "rustup",
     }:
         return ["user"]
-    if tool_id in {"flatpak", "nix"}:
+    if tool_id in {"flatpak", "nix", "nix-macos"}:
         return ["system", "user"]
     if tool_id == "pip":
         return ["system", "user", "site"]
@@ -1362,7 +1362,7 @@ def candidate_endpoints(
     endpoints = []
     for item in entry["public_endpoints"]:
         url = item["url"]
-        if tool_id == "nix" and upstream_key == NIX_RUNTIME_UPSTREAM:
+        if tool_id in {"nix", "nix-macos"} and upstream_key == NIX_RUNTIME_UPSTREAM:
             url = url.replace("nix-channels%2Fstore", "nix-channels/store")
             if not url.rstrip("/").endswith("/store"):
                 url = url.rstrip("/") + "/store/"
@@ -2151,6 +2151,57 @@ def runtime_properties(
                 "contains": "Sig: cache.nixos.org-1:",
             },
         ]
+    elif tool_id == "nix-macos" and upstream_key == NIX_RUNTIME_UPSTREAM:
+        compatibility["operating_systems"] = []
+        compatibility["architectures"] = []
+        compatibility["environments"] = []
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "unknown"
+        probes = []
+        if entry["provider_id"] in NIX_MACOS_ACTIONABLE_PROVIDERS:
+            compatibility["operating_systems"] = ["macos"]
+            compatibility["architectures"] = ["x86_64", "arm64"]
+            compatibility["environments"] = ["host"]
+            delivery_mode = "mirror"
+            probes = [
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/nix-cache-info",
+                    "expected_status": [200],
+                    "contains": "StoreDir: /nix/store",
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/{narinfo_hash}.narinfo",
+                    "expected_status": [200],
+                    "contains": "Sig: cache.nixos.org-1:",
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/{darwin_probe_hash}.narinfo",
+                    "expected_status": [200],
+                    "contains": "StorePath: /nix/store/{darwin_probe_hash}-{darwin_probe_name}",
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/{darwin_probe_hash}.narinfo",
+                    "expected_status": [200],
+                    "contains": "Sig: cache.nixos.org-1:",
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/nar/{darwin_nar_file}",
+                    "expected_status": [200, 206],
+                    "expected_content_type": "application/octet-stream",
+                    "sha256": "{darwin_nar_digest}",
+                },
+            ]
     elif tool_id == "guix" and upstream_key in GUIX_RUNTIME_UPSTREAMS:
         compatibility["operating_systems"] = ["linux"]
         compatibility["architectures"] = ["x86_64", "arm64"]
@@ -4261,6 +4312,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "mysql",
                         "nginx",
                         "nix",
+                        "nix-macos",
                         "npm",
                         "nvm",
                         "nuget",

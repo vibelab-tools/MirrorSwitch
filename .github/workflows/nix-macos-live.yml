@@ -1,0 +1,97 @@
+name: Nix macOS live boundary
+
+on:
+  schedule:
+    - cron: "17 21 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: Nix macOS (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: macos-15-intel
+          - arch: arm64
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust toolchain
+        run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal && rustup default "$RUST_TOOLCHAIN"
+      - name: Install multi-user Nix
+        uses: cachix/install-nix-action@v31.11.1
+      - name: Run deterministic Nix adapter boundary
+        run: cargo test --locked --test nix_adapter_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Apply, verify, and restore a real Nix daemon plan
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"
+          config=/etc/nix/nix.conf
+          config_before=$(shasum -a 256 "$config" | awk '{print $1}')
+
+          unset NIX_CONFIG NIX_CONF_DIR NIX_USER_CONF_FILES
+          "$binary" status --offline --json > status.json
+          python3 - <<'PY'
+          import json
+          status = json.load(open("status.json"))
+          assert [item["adapter_key"] for item in status["detected_tools"] if item["adapter_key"] == "nix-macos"] == ["nix-macos"]
+          PY
+          "$binary" plan --offline --tool nix-macos --scope nix-macos=system --json > plan.json
+          python3 - <<'PY'
+          import json
+          plan = json.load(open("plan.json"))
+          assert plan["ok"] is True
+          tools = plan["plan"]["tools"]
+          assert [item["adapter_key"] for item in tools] == ["nix-macos"]
+          assert {item["provider_id"] for item in tools[0]["selection"]["selections"]} <= {"nju", "tuna"}
+          assert tools[0]["plan"]["requires_elevation"] is True
+          PY
+
+          sudo env HOME="$HOME" PATH="$PATH" NIX_REMOTE=daemon \
+            "$binary" apply --offline --tool nix-macos --scope nix-macos=system --yes --json > apply.json
+          transaction_id=$(python3 - <<'PY'
+          import json
+          result = json.load(open("apply.json"))["result"]
+          assert result["successful"] is True
+          applied = [item for item in result["tools"] if item["status"] == "applied"]
+          assert len(applied) == 1
+          print(applied[0]["receipt"]["transaction_id"])
+          PY
+          )
+          printf '\nn\n' | "$binary" tui --offline --tool nix-macos --scope nix-macos=system > tui.txt
+          grep -E 'mirror=(nju|tuna)' tui.txt
+          sudo env HOME="$HOME" PATH="$PATH" NIX_REMOTE=daemon \
+            "$binary" restore "$transaction_id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          assert json.load(open("restore.json"))["receipt"]["verified"] is True
+          PY
+
+          test "$config_before" = "$(shasum -a 256 "$config" | awk '{print $1}')"
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nix-macos-boundary-${{ matrix.arch }}-${{ github.run_id }}
+          path: |
+            plan.json
+            apply.json
+            status.json
+            restore.json
+            tui.txt
+          if-no-files-found: warn
+          retention-days: 7

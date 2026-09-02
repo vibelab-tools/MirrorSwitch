@@ -1,8 +1,8 @@
 # Supported adapter reference
 
-This index is the v0.1.0 operator contract for all 64 catalog entries currently marked
-`supported`. The checked-in catalog remains authoritative for exact versions, distributions,
-architectures, upstreams, candidates, and content probes.
+This index is the operator contract for catalog entries currently marked `supported`. The
+checked-in catalog remains authoritative for exact versions, distributions, architectures,
+upstreams, candidates, and content probes.
 
 All rows use the same lifecycle: detect and plan are read-only; compatible candidates must pass
 hard filters and content probes before latency ordering; apply writes through a private atomic
@@ -25,6 +25,7 @@ content remain unchanged and are reported.
 | `portage` | system | Portage/emerge read-only validation; distfiles and repository sync are independent ([details](adapters/portage.md)) |
 | `xbps` | system | XBPS index refresh/query; glibc/musl and override order preserved ([details](adapters/xbps.md)) |
 | `nix` | system/user | Nix store query; daemon/single-user mode and cache signatures must match ([details](adapters/nix.md)) |
+| `nix-macos` | system/user | Darwin NAR/signature validation; launchd daemon state is reloaded and restored transactionally ([details](adapters/nix.md)) |
 | `guix` | system | `guix weather`; daemon substitutes only, channels/keys remain read-only ([details](adapters/guix.md)) |
 | `flatpak` | system/user | Architecture-specific `remote-ls`; existing mapped Flathub remote only ([details](adapters/flatpak.md)) |
 | `opkg` | system | Feed signature/update/query; exact release/target/subtarget/package architecture ([details](adapters/opkg.md)) |

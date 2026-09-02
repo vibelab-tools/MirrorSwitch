@@ -392,7 +392,12 @@ impl<'a, P: CandidateProber> MirrorSelector<'a, P> {
                     .as_deref()
                     .map(|marker| expand_probe_marker(marker, context))
                     .transpose()?;
-                validate_observation(probe, marker.as_deref(), &observation)?;
+                let sha256 = probe
+                    .sha256
+                    .as_deref()
+                    .map(|digest| expand_probe_marker(digest, context))
+                    .transpose()?;
+                validate_observation(probe, marker.as_deref(), sha256.as_deref(), &observation)?;
                 total_latency = total_latency.saturating_add(observation.latency_ms);
             }
         }
@@ -661,6 +666,7 @@ fn probe_url(endpoint: &Endpoint, probe_path: &str) -> Result<String, String> {
 fn validate_observation(
     probe: &ProbeSpec,
     marker: Option<&str>,
+    sha256: Option<&str>,
     observation: &ProbeObservation,
 ) -> Result<(), String> {
     if !probe.expected_status.contains(&observation.status) {
@@ -692,9 +698,9 @@ fn validate_observation(
             return Err("required repository metadata marker is missing".into());
         }
     }
-    if let Some(expected) = &probe.sha256 {
+    if let Some(expected) = sha256 {
         let actual = format!("{:x}", Sha256::digest(&observation.body));
-        if &actual != expected {
+        if actual != expected {
             return Err("downloaded artifact SHA-256 does not match the catalog".into());
         }
     }

@@ -1,10 +1,16 @@
-# Nix adapter
+# Nix adapters
 
-The Nix adapter supports standalone Nix installations on Linux for `x86_64-linux` and
-`aarch64-linux`. It detects the daemon profile/socket to choose system scope for a multi-user
-installation and user scope for a single-user installation. System configuration is
-`/etc/nix/nix.conf`; user configuration is the detected home directory's
-`.config/nix/nix.conf`.
+MirrorSwitch exposes `nix` for standalone Linux installations and `nix-macos` for native macOS
+hosts. Both support Intel and ARM systems. The Linux adapter recognizes `x86_64-linux` and
+`aarch64-linux`; the macOS adapter requires `x86_64-darwin` or `aarch64-darwin` and never treats a
+Linux cache object as Darwin evidence.
+
+The adapters detect the daemon profile and socket to distinguish multi-user from single-user
+installations. On macOS, the multi-user path also requires exactly one known launchd service:
+`org.nixos.nix-daemon` for the upstream installer or `systems.determinate.nix-daemon` for the
+Determinate installer. Finding both is an invalid installation state. System configuration is
+`/etc/nix/nix.conf`; user configuration follows `XDG_CONFIG_HOME/nix/nix.conf`, with
+`~/.config/nix/nix.conf` as the default.
 
 The adapter reads effective settings with Nix itself and requires `require-sigs = true`, the
 canonical `cache.nixos.org-1` public key, and a `system` value matching the detected architecture.
@@ -16,11 +22,20 @@ are reported as distinct read-only sources. Nix release archives, nixpkgs Git mi
 architecture-specific third-party caches are not treated as substituters. NixOS-generated
 `nix.conf` is also not edited; NixOS must retain ownership through `nix.settings`.
 
-The runtime catalog exposes the verified `nix-channels/store` endpoints from NJU, SJTUG, TUNA and
-USTC. Before latency ranking, a candidate must return a valid `/nix/store` cache descriptor and a
-narinfo for the current system whose signature is identified as `cache.nixos.org-1`. Missing
-dynamic-cache content therefore excludes only that candidate and allows another verified cache to
-win.
+`NIX_CONFIG`, `NIX_CONF_DIR`, and `NIX_USER_CONF_FILES` can change precedence or move the effective
+configuration outside the one file represented by a plan. The adapter rejects the applicable
+override instead of editing a file that may have no effect.
+
+For Linux, the runtime catalog exposes the verified `nix-channels/store` endpoints from NJU,
+SJTUG, TUNA, and USTC. For macOS, only NJU and TUNA are actionable: both passed fixed
+`x86_64-darwin` and `aarch64-darwin` narinfo and NAR checks. SJTUG and USTC remain partial and
+cannot enter latency ranking until the same Darwin evidence passes.
+
+Every candidate must return a valid `/nix/store` cache descriptor and a signed narinfo for a store
+path discovered from the installed system. A macOS candidate must additionally return the exact
+architecture-specific `hello` store path from the 25.11 Darwin channel, its
+`cache.nixos.org-1` signature, and its NAR with the reviewed SHA-256. Missing dynamic content
+excludes only that candidate and allows another verified cache to win.
 
 Planning preserves comments, trusted keys, the official fallback, custom caches and their relative
 order. Existing reviewed mirror URLs are consolidated to the selected endpoint, and a missing base
@@ -28,6 +43,12 @@ setting is created without changing channel or flake state. Includes and ambiguo
 assignments are rejected instead of guessed. Repeated planning is idempotent.
 
 Verification asks Nix to reload the effective configuration, checks the signature policy again,
-pings the selected store and queries the discovered current-system store path from that store.
-Failure restores the transaction immediately. Multi-user system changes report that a daemon
-restart is required; MirrorSwitch does not restart it implicitly.
+pings the selected store, and queries the discovered current-system store path from that store.
+On macOS it also uses `nix store ls --long --recursive` against the reviewed Darwin store path so
+Nix validates the signed NAR through the selected cache.
+
+A macOS system-scope apply restarts the detected launchd daemon with `launchctl kickstart -k`
+before verification. If the restart or verification fails, MirrorSwitch restores `nix.conf` and
+restarts the daemon against the restored configuration. Explicit restore does the same. Linux
+keeps its existing behavior and reports the daemon restart as required rather than controlling a
+distribution-specific service manager.

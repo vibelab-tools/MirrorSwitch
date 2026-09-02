@@ -8,6 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
+SHARED_BOUNDARY_TESTS = {"nix-macos": "nix_adapter_boundary.rs"}
 
 
 def main() -> int:
@@ -16,7 +17,11 @@ def main() -> int:
     for tool in catalog["tools"]:
         if tool["state"] != "supported":
             continue
-        test = ROOT / "tests" / f"{tool['adapter_key'].replace('-', '_')}_adapter_boundary.rs"
+        filename = SHARED_BOUNDARY_TESTS.get(
+            tool["adapter_key"],
+            f"{tool['adapter_key'].replace('-', '_')}_adapter_boundary.rs",
+        )
+        test = ROOT / "tests" / filename
         if not test.is_file():
             missing.append(f"{tool['id']}: {test.relative_to(ROOT)}")
     if missing:

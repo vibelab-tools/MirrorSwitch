@@ -106,7 +106,7 @@ pub use maven::MavenAdapter;
 pub use mongodb::MongoDbAdapter;
 pub use mysql::MySqlAdapter;
 pub use nginx::NginxAdapter;
-pub use nix::NixAdapter;
+pub use nix::{NixAdapter, NixMacosAdapter};
 pub use npm::NpmAdapter;
 pub use nuget::NugetAdapter;
 pub use nvm::NvmAdapter;
@@ -173,6 +173,7 @@ static MONGODB: MongoDbAdapter = MongoDbAdapter;
 static MYSQL: MySqlAdapter = MySqlAdapter;
 static NGINX: NginxAdapter = NginxAdapter;
 static NIX: NixAdapter = NixAdapter;
+static NIX_MACOS: NixMacosAdapter = NixMacosAdapter;
 static NVM: NvmAdapter = NvmAdapter;
 static NPM: NpmAdapter = NpmAdapter;
 static NUGET: NugetAdapter = NugetAdapter;
@@ -215,6 +216,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &APK,
         &XBPS,
         &NIX,
+        &NIX_MACOS,
         &GUIX,
         &HOMEBREW,
         &INFLUXDB,

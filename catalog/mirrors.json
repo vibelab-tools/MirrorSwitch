@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+46b44b6aef09",
-  "content_revision": 20260902164456,
-  "generated_at": "2026-09-02T16:44:56Z",
+  "content_version": "2026.08.28+bda0b1a9e9e3",
+  "content_revision": 20260902173317,
+  "generated_at": "2026-09-02T17:33:17Z",
   "providers": [
     {
       "id": "aliyun",
@@ -2031,11 +2031,11 @@
       "id": "nix-macos",
       "adapter_key": "nix-macos",
       "display_name": "nix-macos",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/97",
       "supported_scopes": [
-        "user",
-        "environment"
+        "system",
+        "user"
       ],
       "composition": "single"
     },
@@ -7487,41 +7487,6 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "21ac2f0363b258b6822b8d73",
-      "provider_id": "ustc",
-      "upstream_id": "nix-channels--binary-cache",
-      "tool_id": "nix-macos",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "nix-channels"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/nix-channels/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/nix-channels.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17094,41 +17059,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "6fb4f7b3e44056dd9211ec0c",
-      "provider_id": "tuna",
-      "upstream_id": "nix-channels--binary-cache",
-      "tool_id": "nix-macos",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "nix-channels"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "702167cc9cda1b1c3aa2fb5d",
       "provider_id": "huaweicloud",
       "upstream_id": "maven--language-registry",
@@ -17564,41 +17494,6 @@
           ]
         }
       ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "720633f4c0f7737507a69cd4",
-      "provider_id": "nju",
-      "upstream_id": "nix-channels--binary-cache",
-      "tool_id": "nix-macos",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "nix-channels"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/nix-channels/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
@@ -18657,6 +18552,91 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "7a87a681c2cae1ad81838261",
+      "provider_id": "nju",
+      "upstream_id": "nix-channels--binary-cache",
+      "tool_id": "nix-macos",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nix-channels"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nix-channels/store/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/nix-cache-info",
+          "expected_status": [
+            200
+          ],
+          "contains": "StoreDir: /nix/store"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{narinfo_hash}.narinfo",
+          "expected_status": [
+            200
+          ],
+          "contains": "Sig: cache.nixos.org-1:"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{darwin_probe_hash}.narinfo",
+          "expected_status": [
+            200
+          ],
+          "contains": "StorePath: /nix/store/{darwin_probe_hash}-{darwin_probe_name}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{darwin_probe_hash}.narinfo",
+          "expected_status": [
+            200
+          ],
+          "contains": "Sig: cache.nixos.org-1:"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/nar/{darwin_nar_file}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{darwin_nar_digest}"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -22467,6 +22447,91 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "9db21c67530297d548a0ca11",
+      "provider_id": "tuna",
+      "upstream_id": "nix-channels--binary-cache",
+      "tool_id": "nix-macos",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nix-channels"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/nix-cache-info",
+          "expected_status": [
+            200
+          ],
+          "contains": "StoreDir: /nix/store"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{narinfo_hash}.narinfo",
+          "expected_status": [
+            200
+          ],
+          "contains": "Sig: cache.nixos.org-1:"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{darwin_probe_hash}.narinfo",
+          "expected_status": [
+            200
+          ],
+          "contains": "StorePath: /nix/store/{darwin_probe_hash}-{darwin_probe_name}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{darwin_probe_hash}.narinfo",
+          "expected_status": [
+            200
+          ],
+          "contains": "Sig: cache.nixos.org-1:"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/nar/{darwin_nar_file}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{darwin_nar_digest}"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "9e9e5dbdd68f1b01454f8a11",
       "provider_id": "nju",
       "upstream_id": "fedora-riscv--repository-metadata",
@@ -22708,6 +22773,36 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "a0aaa12f9ecce51b35f6407f",
+      "provider_id": "sjtug",
+      "upstream_id": "nix-channels--binary-cache",
+      "tool_id": "nix-macos",
+      "catalog_state": "partial",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "nix-channels/store"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/nix-channels/store/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [],
+        "architectures": [],
+        "environments": [],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -30885,41 +30980,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "d760fc4a66b6587e25e9cbb6",
-      "provider_id": "sjtug",
-      "upstream_id": "nix-channels--binary-cache",
-      "tool_id": "nix-macos",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "nix-channels/store"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/nix-channels%2Fstore/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "d86eeef4efe0844f36b92597",
       "provider_id": "huaweicloud",
       "upstream_id": "manjaro--repository-metadata",
@@ -33659,6 +33719,36 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "f1435fcdfc845a22f2d5ba47",
+      "provider_id": "ustc",
+      "upstream_id": "nix-channels--binary-cache",
+      "tool_id": "nix-macos",
+      "catalog_state": "partial",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "nix-channels"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/nix-channels/store/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [],
+        "architectures": [],
+        "environments": [],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/nix-channels.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
