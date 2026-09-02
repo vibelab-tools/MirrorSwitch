@@ -57,6 +57,7 @@ mod ros;
 mod rubygems;
 mod rustup;
 mod sbt;
+mod scoop;
 mod stack;
 mod tlmgr;
 mod uv;
@@ -129,6 +130,7 @@ pub use ros::RosAdapter;
 pub use rubygems::RubyGemsAdapter;
 pub use rustup::RustupAdapter;
 pub use sbt::SbtAdapter;
+pub use scoop::ScoopAdapter;
 pub use stack::StackAdapter;
 pub use tlmgr::TlmgrAdapter;
 pub use uv::UvAdapter;
@@ -198,6 +200,7 @@ static RUBYGEMS: RubyGemsAdapter = RubyGemsAdapter;
 static ROS: RosAdapter = RosAdapter;
 static RUSTUP: RustupAdapter = RustupAdapter;
 static SBT: SbtAdapter = SbtAdapter;
+static SCOOP: ScoopAdapter = ScoopAdapter;
 static STACK: StackAdapter = StackAdapter;
 static TLMGR: TlmgrAdapter = TlmgrAdapter;
 static UV: UvAdapter = UvAdapter;
@@ -265,6 +268,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &NUGET,
         &CABAL,
         &SBT,
+        &SCOOP,
         &LEININGEN,
         &STACK,
         &GHCUP,

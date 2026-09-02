@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+eb35828b8d51",
-  "content_revision": 20260902184939,
-  "generated_at": "2026-09-02T18:49:39Z",
+  "content_version": "2026.08.28+0a0ce4c31968",
+  "content_revision": 20260902190506,
+  "generated_at": "2026-09-02T19:05:06Z",
   "providers": [
     {
       "id": "aliyun",
@@ -2268,11 +2268,10 @@
       "id": "scoop",
       "adapter_key": "scoop",
       "display_name": "scoop",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/100",
       "supported_scopes": [
-        "user",
-        "environment"
+        "user"
       ],
       "composition": "single"
     },
@@ -2383,40 +2382,6 @@
     }
   ],
   "candidates": [
-    {
-      "id": "0054c93602a72bf8054028d9",
-      "provider_id": "nju",
-      "upstream_id": "scoop-main--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-main.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/scoop-main.git/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
     {
       "id": "00bf9de693c113652af9c4c7",
       "provider_id": "nju",
@@ -3984,40 +3949,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "09aed69ae6b99afff364f34c",
-      "provider_id": "nju",
-      "upstream_id": "scoop-nerd-fonts--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-nerd-fonts.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/scoop-nerd-fonts.git/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "0a2c894f3b762c43264c4c4d",
       "provider_id": "nju",
       "upstream_id": "npm--language-registry",
@@ -5275,6 +5206,63 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "147b2fb60fce7caa0dbc8615",
+      "provider_id": "nju",
+      "upstream_id": "scoop-java--git-mirror",
+      "tool_id": "scoop",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "scoop-java.git"
+      ],
+      "endpoints": [
+        {
+          "role": "git",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/scoop-java.git"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/HEAD",
+          "expected_status": [
+            200
+          ],
+          "contains": "ref: refs/heads/master"
+        },
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/objects/info/packs",
+          "expected_status": [
+            200
+          ],
+          "contains": "P pack-"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json",
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "148c47d64d3bbeb6a373dd12",
       "provider_id": "nju",
       "upstream_id": "maven--language-registry",
@@ -5354,40 +5342,6 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "14db37419af95c2294009df8",
-      "provider_id": "nju",
-      "upstream_id": "scoop-nonportable--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-nonportable.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/scoop-nonportable.git/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -5618,6 +5572,63 @@
         }
       ],
       "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "1718b34106474dda20c2aa1d",
+      "provider_id": "nju",
+      "upstream_id": "scoop-nonportable--git-mirror",
+      "tool_id": "scoop",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "scoop-nonportable.git"
+      ],
+      "endpoints": [
+        {
+          "role": "git",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/scoop-nonportable.git"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/HEAD",
+          "expected_status": [
+            200
+          ],
+          "contains": "ref: refs/heads/master"
+        },
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/objects/info/packs",
+          "expected_status": [
+            200
+          ],
+          "contains": "P pack-"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json",
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
@@ -8888,40 +8899,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "2d4da0a99b84fc302a13d8c7",
-      "provider_id": "nju",
-      "upstream_id": "scoop-java--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-java.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/scoop-java.git/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "2d61ba170d171cb80ee9c3f1",
       "provider_id": "aliyun",
       "upstream_id": "pypi--language-registry",
@@ -9895,40 +9872,6 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "36767327363e7ab24939d50b",
-      "provider_id": "nju",
-      "upstream_id": "scoop--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/scoop.git"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -12462,40 +12405,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "494dfda326b8f8497122786b",
-      "provider_id": "nju",
-      "upstream_id": "scoop-main--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-main.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/scoop-main.git"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "4b0478958231d9f6fe08e23f",
       "provider_id": "aliyun",
       "upstream_id": "centos-debuginfo--repository-metadata",
@@ -13863,40 +13772,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "53fb249294f23aa62d2cfbaa",
-      "provider_id": "nju",
-      "upstream_id": "scoop-nonportable--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-nonportable.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/scoop-nonportable.git"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "543550f538e6c52840442321",
       "provider_id": "huaweicloud",
       "upstream_id": "opensuse--repository-metadata",
@@ -15036,40 +14911,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "5c399afb57d182d3b9745419",
-      "provider_id": "nju",
-      "upstream_id": "scoop-nirsoft--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-nirsoft.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/scoop-nirsoft.git"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "5c4fc69cb18e46eb4ee05c5e",
       "provider_id": "huaweicloud",
       "upstream_id": "kunpeng-yum--repository-metadata",
@@ -15340,40 +15181,6 @@
       ],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "5e875c5b86aa499c1aee803f",
-      "provider_id": "nju",
-      "upstream_id": "scoop--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/scoop.git/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -18205,40 +18012,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "789e5a509d91c5fae0a1d35a",
-      "provider_id": "nju",
-      "upstream_id": "scoop-java--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-java.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/scoop-java.git"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "78b69ae2c198740d04618b98",
       "provider_id": "nju",
       "upstream_id": "grafana-packages--repository-metadata",
@@ -18589,40 +18362,6 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "7a51bf91046f47a71be9d2b0",
-      "provider_id": "nju",
-      "upstream_id": "scoop-extras--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-extras.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/scoop-extras.git"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -19445,40 +19184,6 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "802560296330e25063bcb4d4",
-      "provider_id": "nju",
-      "upstream_id": "scoop-versions--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-versions.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/scoop-versions.git/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -21521,6 +21226,36 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "928d5d5342ef1482fa2d7407",
+      "provider_id": "nju",
+      "upstream_id": "scoop--git-mirror",
+      "tool_id": "scoop",
+      "catalog_state": "partial",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "scoop.git"
+      ],
+      "endpoints": [
+        {
+          "role": "git",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/scoop.git/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [],
+        "architectures": [],
+        "environments": [],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "92b7a98bf7713693f4b405e1",
       "provider_id": "tuna",
       "upstream_id": "clojars--language-registry",
@@ -23347,40 +23082,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "a42130cd19ad93dc3b3ffa80",
-      "provider_id": "nju",
-      "upstream_id": "scoop-versions--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-versions.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/scoop-versions.git"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "a487c56e90416ddccb046001",
       "provider_id": "huaweicloud",
       "upstream_id": "debian-security--repository-metadata",
@@ -24916,6 +24617,63 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "aeb4c7b7d4916358303aca6a",
+      "provider_id": "nju",
+      "upstream_id": "scoop-extras--git-mirror",
+      "tool_id": "scoop",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "scoop-extras.git"
+      ],
+      "endpoints": [
+        {
+          "role": "git",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/scoop-extras.git"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/HEAD",
+          "expected_status": [
+            200
+          ],
+          "contains": "ref: refs/heads/master"
+        },
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/objects/info/packs",
+          "expected_status": [
+            200
+          ],
+          "contains": "P pack-"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json",
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "aec7467aa0181056b74fa3ce",
       "provider_id": "ustc",
       "upstream_id": "ceph-release--repository-metadata",
@@ -26340,40 +26098,6 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "b8931848958ee9fe4ce4664e",
-      "provider_id": "nju",
-      "upstream_id": "scoop-extras--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-extras.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/scoop-extras.git/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -29798,6 +29522,36 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "cdf0874b377adc2bb6853880",
+      "provider_id": "nju",
+      "upstream_id": "scoop--git-mirror",
+      "tool_id": "scoop",
+      "catalog_state": "partial",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "scoop.git"
+      ],
+      "endpoints": [
+        {
+          "role": "git",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/scoop.git"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [],
+        "architectures": [],
+        "environments": [],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "ce3963d030a2f489d7ceb557",
       "provider_id": "sjtug",
       "upstream_id": "dart-pub--language-registry",
@@ -31021,6 +30775,63 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "d55bec86d32b186adc8fc753",
+      "provider_id": "nju",
+      "upstream_id": "scoop-main--git-mirror",
+      "tool_id": "scoop",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "scoop-main.git"
+      ],
+      "endpoints": [
+        {
+          "role": "git",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/scoop-main.git"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/HEAD",
+          "expected_status": [
+            200
+          ],
+          "contains": "ref: refs/heads/master"
+        },
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/objects/info/packs",
+          "expected_status": [
+            200
+          ],
+          "contains": "P pack-"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json",
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "d5b6d67347c768c09ac487a7",
       "provider_id": "nju",
       "upstream_id": "nginx-org--repository-metadata",
@@ -31712,6 +31523,63 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "df052b315e3db4ff9b6d0e9a",
+      "provider_id": "nju",
+      "upstream_id": "scoop-versions--git-mirror",
+      "tool_id": "scoop",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "scoop-versions.git"
+      ],
+      "endpoints": [
+        {
+          "role": "git",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/scoop-versions.git"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/HEAD",
+          "expected_status": [
+            200
+          ],
+          "contains": "ref: refs/heads/master"
+        },
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/objects/info/packs",
+          "expected_status": [
+            200
+          ],
+          "contains": "P pack-"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json",
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "df1fbd7bdfab87fce3679426",
       "provider_id": "huaweicloud",
       "upstream_id": "mongodb-community--repository-metadata",
@@ -31958,40 +31826,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "dffd44f9de7a186d4e3908dd",
-      "provider_id": "nju",
-      "upstream_id": "scoop-nirsoft--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-nirsoft.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/scoop-nirsoft.git/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "e13e8d070cedef366356cd7b",
       "provider_id": "tuna",
       "upstream_id": "melpa--language-registry",
@@ -32063,6 +31897,63 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "e18821cb1ef42e7d923bfc65",
+      "provider_id": "nju",
+      "upstream_id": "scoop-nirsoft--git-mirror",
+      "tool_id": "scoop",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "scoop-nirsoft.git"
+      ],
+      "endpoints": [
+        {
+          "role": "git",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/scoop-nirsoft.git"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/HEAD",
+          "expected_status": [
+            200
+          ],
+          "contains": "ref: refs/heads/master"
+        },
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/objects/info/packs",
+          "expected_status": [
+            200
+          ],
+          "contains": "P pack-"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json",
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -34278,6 +34169,63 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "f6b4fbb84893998f2b225876",
+      "provider_id": "nju",
+      "upstream_id": "scoop-nerd-fonts--git-mirror",
+      "tool_id": "scoop",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "scoop-nerd-fonts.git"
+      ],
+      "endpoints": [
+        {
+          "role": "git",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/scoop-nerd-fonts.git"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/HEAD",
+          "expected_status": [
+            200
+          ],
+          "contains": "ref: refs/heads/master"
+        },
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/objects/info/packs",
+          "expected_status": [
+            200
+          ],
+          "contains": "P pack-"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json",
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "f700c11e8da7b405541ea455",
       "provider_id": "nju",
       "upstream_id": "debian-cd--repository-metadata",
@@ -35212,40 +35160,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "fdc5c9ebc4baa4cdec209f5c",
-      "provider_id": "nju",
-      "upstream_id": "scoop-nerd-fonts--git-mirror",
-      "tool_id": "scoop",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "scoop-nerd-fonts.git"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/scoop-nerd-fonts.git"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

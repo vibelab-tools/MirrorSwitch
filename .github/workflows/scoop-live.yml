@@ -1,0 +1,100 @@
+name: Scoop Windows live boundary
+
+on:
+  schedule:
+    - cron: "11 23 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: Scoop (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: windows-2025
+          - arch: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust toolchain
+        shell: pwsh
+        run: |
+          rustup toolchain install $env:RUST_TOOLCHAIN --profile minimal
+          rustup default $env:RUST_TOOLCHAIN
+      - name: Install Scoop and official buckets
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+          Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+          $shims = Join-Path $HOME 'scoop/shims'
+          $shims | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $env:PATH = "$shims;$env:PATH"
+          if (-not (Test-Path (Join-Path $HOME 'scoop/buckets/main'))) { scoop bucket add main }
+          if (-not (Test-Path (Join-Path $HOME 'scoop/buckets/extras'))) { scoop bucket add extras }
+          scoop bucket list
+      - name: Run deterministic Scoop adapter boundary
+        run: cargo test --locked --test scoop_adapter_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Apply, verify, and restore a real Scoop plan
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
+          $mainConfig = Join-Path $HOME 'scoop/buckets/main/.git/config'
+          $extrasConfig = Join-Path $HOME 'scoop/buckets/extras/.git/config'
+          $mainBefore = (Get-FileHash $mainConfig -Algorithm SHA256).Hash
+          $extrasBefore = (Get-FileHash $extrasConfig -Algorithm SHA256).Hash
+
+          (& $binary status --offline --json) | Set-Content -Encoding utf8 status.json
+          $status = Get-Content status.json -Raw | ConvertFrom-Json
+          $tools = @($status.detected_tools | Where-Object adapter_key -eq 'scoop')
+          if ($tools.Count -ne 1) { throw 'Scoop adapter was not detected' }
+
+          (& $binary plan --offline --tool scoop --scope scoop=user --json) | Set-Content -Encoding utf8 plan.json
+          $plan = Get-Content plan.json -Raw | ConvertFrom-Json
+          if (-not $plan.ok) { throw 'Scoop plan was not actionable' }
+          $planned = @($plan.plan.tools)
+          if ($planned.Count -ne 1 -or $planned[0].adapter_key -ne 'scoop') { throw 'unexpected Scoop plan' }
+          if (@($planned[0].selection.selections | Where-Object provider_id -ne 'nju').Count -ne 0) { throw 'unexpected Scoop mirror provider' }
+          if (@($planned[0].plan.changes).Count -ne 2) { throw 'both official bucket origins must change' }
+
+          (& $binary apply --offline --tool scoop --scope scoop=user --yes --json) | Set-Content -Encoding utf8 apply.json
+          $apply = Get-Content apply.json -Raw | ConvertFrom-Json
+          if (-not $apply.result.successful) { throw 'Scoop apply failed' }
+          $applied = @($apply.result.tools | Where-Object status -eq 'applied')
+          if ($applied.Count -ne 1) { throw 'Scoop transaction was not applied' }
+          $transactionId = $applied[0].receipt.transaction_id
+
+          @('', 'n') | & $binary tui --offline --tool scoop --scope scoop=user | Set-Content -Encoding utf8 tui.txt
+          if (-not ((Get-Content tui.txt) -match 'mirror=nju')) { throw 'Scoop TUI mirror missing' }
+          (& $binary restore $transactionId --yes --json) | Set-Content -Encoding utf8 restore.json
+          $restore = Get-Content restore.json -Raw | ConvertFrom-Json
+          if (-not $restore.receipt.verified) { throw 'Scoop restore failed' }
+
+          if ((Get-FileHash $mainConfig -Algorithm SHA256).Hash -ne $mainBefore) { throw 'main bucket config was not restored' }
+          if ((Get-FileHash $extrasConfig -Algorithm SHA256).Hash -ne $extrasBefore) { throw 'extras bucket config was not restored' }
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: scoop-boundary-${{ matrix.arch }}-${{ github.run_id }}
+          path: |
+            plan.json
+            apply.json
+            status.json
+            restore.json
+            tui.txt
+          if-no-files-found: warn
+          retention-days: 7

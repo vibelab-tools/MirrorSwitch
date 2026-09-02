@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "71"
+CATALOG_FORMAT_REVISION = "72"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -654,6 +654,15 @@ MACPORTS_ROOTS = {
     "nju": "https://mirrors.nju.edu.cn/macports",
     "sjtug": "https://mirror.sjtu.edu.cn/macports",
 }
+SCOOP_BUCKET_ENDPOINTS = {
+    "scoop-main--git-mirror": "https://mirrors.nju.edu.cn/git/scoop-main.git",
+    "scoop-extras--git-mirror": "https://mirrors.nju.edu.cn/git/scoop-extras.git",
+    "scoop-versions--git-mirror": "https://mirrors.nju.edu.cn/git/scoop-versions.git",
+    "scoop-java--git-mirror": "https://mirrors.nju.edu.cn/git/scoop-java.git",
+    "scoop-nerd-fonts--git-mirror": "https://mirrors.nju.edu.cn/git/scoop-nerd-fonts.git",
+    "scoop-nonportable--git-mirror": "https://mirrors.nju.edu.cn/git/scoop-nonportable.git",
+    "scoop-nirsoft--git-mirror": "https://mirrors.nju.edu.cn/git/scoop-nirsoft.git",
+}
 
 
 def utc_now() -> str:
@@ -737,6 +746,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["user"]
     if tool_id == "cocoapods":
         return ["user", "project"]
+    if tool_id == "scoop":
+        return ["user"]
     if tool_id in {"bundler", "stack"}:
         return ["user", "project"]
     if tool_id in NODE_DISTRIBUTION_TOOLS or tool_id in {
@@ -836,6 +847,14 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if tool_id == "scoop" and upstream_key in SCOOP_BUCKET_ENDPOINTS:
+        return [
+            {
+                "role": "git",
+                "protocol": "https",
+                "url": SCOOP_BUCKET_ENDPOINTS[upstream_key],
+            }
+        ]
     if tool_id == "macports" and entry["provider_id"] in MACPORTS_ROOTS:
         root = MACPORTS_ROOTS[entry["provider_id"]]
         return [
@@ -1461,7 +1480,36 @@ def runtime_properties(
         else "unknown"
     )
     probes = candidate_probe(entry)
-    if tool_id == "macports" and entry["provider_id"] in MACPORTS_ROOTS:
+    if tool_id == "scoop":
+        compatibility["operating_systems"] = []
+        compatibility["architectures"] = []
+        compatibility["environments"] = []
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "unknown"
+        probes = []
+        if entry["provider_id"] == "nju" and upstream_key in SCOOP_BUCKET_ENDPOINTS:
+            compatibility["operating_systems"] = ["windows"]
+            compatibility["architectures"] = ["x86_64", "arm64"]
+            compatibility["environments"] = ["host"]
+            delivery_mode = "mirror"
+            probes = [
+                {
+                    "endpoint_role": "git",
+                    "method": "get",
+                    "path": "/HEAD",
+                    "expected_status": [200],
+                    "contains": "ref: refs/heads/master",
+                },
+                {
+                    "endpoint_role": "git",
+                    "method": "get",
+                    "path": "/objects/info/packs",
+                    "expected_status": [200],
+                    "contains": "P pack-",
+                },
+            ]
+    elif tool_id == "macports" and entry["provider_id"] in MACPORTS_ROOTS:
         compatibility["operating_systems"] = ["macos"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["host"]
@@ -4412,6 +4460,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "rustup",
                         "ros",
                         "sbt",
+                        "scoop",
                         "stack",
                         "tlmgr",
                         "gradle",
