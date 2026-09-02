@@ -20,10 +20,14 @@ protocol, and content checks before latency is compared.
 ## Project status
 
 The current release is [v0.1.0 — Linux MVP](https://github.com/vibelab-tools/MirrorSwitch/releases/tag/v0.1.0).
-The authoritative delivery plan is [milestone 1](https://github.com/vibelab-tools/MirrorSwitch/milestone/1).
+Its [delivery milestone](https://github.com/vibelab-tools/MirrorSwitch/milestone/1) is complete.
 Its release artifacts were produced by the [verified tag workflow](https://github.com/vibelab-tools/MirrorSwitch/actions/runs/33628712128).
 No adapter is considered supported until its issue acceptance criteria and
 real-boundary checks have passed.
+
+Linux mirror surfaces without a safe complete candidate remain visible in the
+[v0.1.x follow-up milestone](https://github.com/vibelab-tools/MirrorSwitch/milestone/3). macOS and
+Windows are tracked by [v0.2.0](https://github.com/vibelab-tools/MirrorSwitch/milestone/2).
 
 ## Design baseline
 
