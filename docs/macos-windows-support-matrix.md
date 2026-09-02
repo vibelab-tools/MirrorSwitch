@@ -76,7 +76,8 @@ Every tool has an independent Issue listed in the
 | nvm, pyenv | Planned for macOS only | Unix adapter not applicable | One user shell environment | nvm-windows/pyenv-win are different tools and have no validated six-provider source. |
 | Maven | Implemented through the existing adapter; native release gate required | Implemented through the existing adapter; native release gate required | User | Three POM/metadata/JAR/checksum candidates; native launcher/JDK, Maven home, effective settings and dependency goal. |
 | Gradle | Implemented through the existing adapter; native release gate required | Implemented through the existing adapter; native release gate required | User; Wrapper project explicit | Three Maven candidates plus Huawei/NJU Wrapper distributions; native JVM and `gradlew`/`gradlew.bat`. |
-| sbt, Leiningen | Planned on x86_64/arm64 | Planned on x64/arm64 | User; project explicit | Repository layouts remain distinct; use native scripts and JVM. |
+| sbt | Implemented through the existing adapter; native release gate required | Implemented through the existing adapter; native release gate required | User | Paired Huawei Maven/Ivy metadata, artifact and checksum probes; native JVM/launcher and plugin resolution. |
+| Leiningen | Planned on x86_64/arm64 | Planned on x64/arm64 | User; project explicit | Repository layouts remain distinct; use native scripts and JVM. |
 | Go, Cargo, rustup | Planned on x86_64/arm64 | Planned on x64/arm64 | User | Registry/proxy config is shared only after native path, target asset and checksum checks. |
 | RubyGems, Bundler, Composer | Planned on x86_64/arm64 | Planned on x64/arm64 | User; project explicit | Preserve auth/private sources and validate through native executable conventions. |
 | Dart Pub, Flutter, Julia | Planned on x86_64/arm64 | Planned on x64/arm64 | User | Registry and SDK/toolchain artifacts are separate and platform-specific where applicable. |

@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+5577be749fd3",
-  "content_revision": 20260902224204,
-  "generated_at": "2026-09-02T22:42:04Z",
+  "content_version": "2026.08.28+ca2f522b50da",
+  "content_revision": 20260902225256,
+  "generated_at": "2026-09-02T22:52:56Z",
   "providers": [
     {
       "id": "aliyun",
@@ -6099,97 +6099,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "1a1fd49991b65e6d8b2d31d1",
-      "provider_id": "huaweicloud",
-      "upstream_id": "sbt-plugins--language-registry",
-      "tool_id": "sbt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "sbt"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/ivy/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/ivy/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/ivy/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": [
-          "sbt-1.x",
-          "sbt-2.x"
-        ]
-      },
-      "probes": [
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/com.typesafe.sbt/sbt-native-packager/scala_2.12/sbt_1.0/1.7.6/ivys/ivy.xml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "module=\"sbt-native-packager\""
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/com.typesafe.sbt/sbt-native-packager/scala_2.12/sbt_1.0/1.7.6/ivys/ivy.xml.sha1",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "a391298b496a45d2726b3b196b31d2467136e0c8"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/com.typesafe.sbt/sbt-native-packager/scala_2.12/sbt_1.0/1.7.6/jars/sbt-native-packager.jar",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/com.typesafe.sbt/sbt-native-packager/scala_2.12/sbt_1.0/1.7.6/jars/sbt-native-packager.jar.sha1",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "ee875aa975277e173b15588242b4eb773f9d430c"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -16394,97 +16303,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "702167cc9cda1b1c3aa2fb5d",
-      "provider_id": "huaweicloud",
-      "upstream_id": "maven--language-registry",
-      "tool_id": "sbt",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "maven"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/maven/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/maven/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/maven/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": [
-          "sbt-1.x",
-          "sbt-2.x"
-        ]
-      },
-      "probes": [
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "<artifactId>commons-lang3</artifactId>"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "<artifactId>commons-lang3</artifactId>"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "703d4616875a03774ae80ad6",
       "provider_id": "aliyun",
       "upstream_id": "centos--repository-metadata",
@@ -21584,6 +21402,99 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "98231499d7e16bfc003c5e84",
+      "provider_id": "huaweicloud",
+      "upstream_id": "sbt-plugins--language-registry",
+      "tool_id": "sbt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "sbt"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/ivy/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/ivy/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/ivy/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "sbt-1.x",
+          "sbt-2.x"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/com.typesafe.sbt/sbt-native-packager/scala_2.12/sbt_1.0/1.7.6/ivys/ivy.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "module=\"sbt-native-packager\""
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/com.typesafe.sbt/sbt-native-packager/scala_2.12/sbt_1.0/1.7.6/ivys/ivy.xml.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "a391298b496a45d2726b3b196b31d2467136e0c8"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/com.typesafe.sbt/sbt-native-packager/scala_2.12/sbt_1.0/1.7.6/jars/sbt-native-packager.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/com.typesafe.sbt/sbt-native-packager/scala_2.12/sbt_1.0/1.7.6/jars/sbt-native-packager.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "ee875aa975277e173b15588242b4eb773f9d430c"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -33678,6 +33589,99 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "eca175da733b3a59f2d96b70",
+      "provider_id": "huaweicloud",
+      "upstream_id": "maven--language-registry",
+      "tool_id": "sbt",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "maven"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "sbt-1.x",
+          "sbt-2.x"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/maven-metadata.xml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar.sha1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "1ed471194b02f2c6cb734a0cd6f6f107c673afae"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

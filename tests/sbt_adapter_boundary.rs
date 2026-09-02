@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -35,6 +35,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
             version_codename: Some("bookworm".into()),
             id_like: Vec::new(),
         }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
         root: root.to_path_buf(),
     }
 }
@@ -443,6 +453,89 @@ fn failed_real_resolution_restores_repository_and_all_verification_files() {
 }
 
 #[test]
+fn macos_and_windows_preserve_native_repository_file_layout() {
+    for (os, architecture, bom, newline) in [
+        (OperatingSystem::Macos, Architecture::X86_64, false, "\n"),
+        (OperatingSystem::Windows, Architecture::Arm64, true, "\r\n"),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_sbt(root, "1.13.0", 0, true);
+        let text = format!(
+            "# native sbt repositories{newline}[repositories]{newline}  local{newline}  corporate: https://reader:secret@packages.invalid.example/repository{newline}  maven-central{newline}"
+        );
+        let mut original = text.into_bytes();
+        if bom {
+            original.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let repositories = write(root, "/home/developer/.sbt/repositories", &original);
+        let project_contents = b"ThisBuild / scalaVersion := \"2.13.16\"\n";
+        let project = write(root, "/work/project/build.sbt", project_contents);
+        write(
+            root,
+            "/work/project/project/build.properties",
+            b"sbt.version=1.13.0\n",
+        );
+        let context = native_context(root, os, architecture);
+        let adapter = SbtAdapter;
+        let mut runtime = runtime(root, BTreeMap::new());
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(!serde_json::to_string(&current).unwrap().contains("secret"));
+        let plan = adapter.plan(&context, &current, &selections()).unwrap();
+        assert_eq!(
+            plan,
+            adapter.plan(&context, &current, &selections()).unwrap()
+        );
+        let change = plan
+            .changes
+            .iter()
+            .find(|change| change.target == repositories)
+            .unwrap();
+        assert_eq!(change.new_contents.starts_with(&[0xef, 0xbb, 0xbf]), bom);
+        let rendered = std::str::from_utf8(
+            change
+                .new_contents
+                .strip_prefix(&[0xef, 0xbb, 0xbf])
+                .unwrap_or(&change.new_contents),
+        )
+        .unwrap();
+        assert!(rendered.contains("corporate: https://reader:secret@"));
+        assert!(!rendered.replace(newline, "").contains('\n'));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+        else {
+            panic!("native sbt repositories should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &selections())
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(repositories).unwrap(), original);
+        assert_eq!(fs::read(project).unwrap(), project_contents);
+    }
+}
+
+#[test]
 fn embedded_catalog_has_one_complete_maven_and_one_complete_ivy_candidate() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -465,7 +558,11 @@ fn embedded_catalog_has_one_complete_maven_and_one_complete_ivy_candidate() {
         assert_eq!(candidate.delivery_mode, DeliveryMode::Proxy);
         assert_eq!(
             candidate.compatibility.operating_systems,
-            [OperatingSystem::Linux]
+            [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows
+            ]
         );
         assert_eq!(
             candidate.compatibility.architectures,

@@ -1,8 +1,8 @@
 # sbt adapter
 
-The Linux sbt adapter manages only the user's `~/.sbt/repositories` launcher
-configuration. It supports the reviewed sbt 1.x and 2.x repository-file model
-on x86_64 and arm64. It never edits a launcher script, `build.sbt`,
+The sbt adapter manages only the user's `~/.sbt/repositories` launcher configuration on Linux,
+macOS, and native Windows hosts using x86_64 or arm64. It supports the reviewed sbt 1.x and 2.x
+repository-file model. It never edits a launcher script, `sbt.bat`, `build.sbt`,
 `project/*.sbt`, `project/build.properties`, `.sbtopts`, `.jvmopts`, or a lock
 file.
 
@@ -41,6 +41,10 @@ Maven dependency, load the Ivy-layout plugin, and evaluate a plugin-provided
 setting. Any failure restores every file in the transaction. A successful
 second plan is empty, and explicit restore returns the original repository file
 and removes verification files that did not previously exist.
+
+The repository path stays under the native user home on every OS. Existing UTF-8 BOM and LF/CRLF
+layout are preserved; JVM options, project definitions, credentials and launcher files remain
+read-only.
 
 ## Sources
 

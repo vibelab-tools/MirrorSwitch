@@ -1,0 +1,108 @@
+name: sbt macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "49 4 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: sbt (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel }
+          - { name: macOS arm64, runner: macos-15 }
+          - { name: Windows x86_64, runner: windows-2025 }
+          - { name: Windows arm64, runner: windows-11-arm }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: sbt/setup-sbt@v1
+        with:
+          sbt-runner-version: 1.12.11
+          disk-cache: false
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          sbt --script-version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic sbt boundary
+        run: cargo test --locked --test sbt_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS repository pair and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-sbt-boundary"; export HOME="$boundary/home"; export JAVA_OPTS="-Duser.home=$HOME"
+          unset SBT_OPTS SBT_CREDENTIALS
+          project="$HOME/project"; repositories="$HOME/.sbt/repositories"; mkdir -p "$project/project" "$(dirname "$repositories")"
+          printf '# native repositories\n[repositories]\n  local\n  corporate: https://packages.invalid.example/maven/\n  maven-central\n' > "$repositories"; chmod 0600 "$repositories"
+          printf 'ThisBuild / scalaVersion := "2.13.16"\nresolvers += "private" at "https://packages.invalid.example/maven/"\n' > "$project/build.sbt"
+          printf 'sbt.version=1.13.0\n' > "$project/project/build.properties"
+          printf '{"version":1,"tools":[{"id":"sbt","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$repositories"|awk '{print $1}'); build_before=$(shasum -a 256 "$project/build.sbt"|awk '{print $1}'); mode=$(stat -f '%Lp' "$repositories")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool sbt --scope sbt=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('status.json')); assert [t['adapter_key'] for t in s['detected_tools'] if t['adapter_key']=='sbt']==['sbt']
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool sbt --scope sbt=user > tui.txt; grep -F 'mirror=huaweicloud' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='sbt' and r['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$repositories"|awk '{print $1}')"; test "$build_before" = "$(shasum -a 256 build.sbt|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$repositories")"
+      - name: Exercise Windows repository pair and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-sbt-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; $env:JAVA_OPTS="-Duser.home=$env:USERPROFILE"; Remove-Item Env:SBT_OPTS,Env:SBT_CREDENTIALS -ErrorAction SilentlyContinue
+          $project=Join-Path $env:USERPROFILE 'project'; $repositories=Join-Path $env:USERPROFILE '.sbt/repositories'; New-Item -ItemType Directory -Force $project,(Join-Path $project 'project'),(Split-Path $repositories),$env:LOCALAPPDATA|Out-Null
+          [IO.File]::WriteAllText($repositories,"# native repositories`r`n[repositories]`r`n  local`r`n  corporate: https://packages.invalid.example/maven/`r`n  maven-central`r`n",[Text.UTF8Encoding]::new($true))
+          "ThisBuild / scalaVersion := `"2.13.16`"`r`nresolvers += `"private`" at `"https://packages.invalid.example/maven/`"`r`n"|Set-Content -Encoding utf8 (Join-Path $project 'build.sbt'); 'sbt.version=1.13.0'|Set-Content -Encoding ascii (Join-Path $project 'project/build.properties'); '{"version":1,"tools":[{"id":"sbt","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          $before=(Get-FileHash $repositories -Algorithm SHA256).Hash; $buildBefore=(Get-FileHash (Join-Path $project 'build.sbt') -Algorithm SHA256).Hash; $acl=(Get-Acl $repositories).Sddl
+          Push-Location $project
+          try{
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool sbt --scope sbt=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; if(@($s.detected_tools|Where-Object adapter_key -eq 'sbt').Count -ne 1){throw 'sbt not detected'}; $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)){throw 'frontend plans differ'}
+            @('','n')|& $binary tui --offline --tool sbt --scope sbt=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=huaweicloud')){throw 'sbt mirror missing'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'sbt apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
+            (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'sbt'){throw 'restore failed'}
+          }finally{Pop-Location}
+          if($before -ne (Get-FileHash $repositories -Algorithm SHA256).Hash -or $buildBefore -ne (Get-FileHash (Join-Path $project 'build.sbt') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $repositories).Sddl){throw 'sbt config not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbt-native-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-sbt-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7
