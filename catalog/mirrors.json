@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+2629ad933b1b",
-  "content_revision": 20260902110000,
-  "generated_at": "2026-09-02T11:00:00Z",
+  "content_version": "2026.08.28+1eb7bd4da71d",
+  "content_revision": 20260902113000,
+  "generated_at": "2026-09-02T11:30:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -218,12 +218,14 @@
       ]
     },
     {
-      "id": "ceph--static-files",
-      "family": "ceph",
-      "display_name": "ceph",
-      "content_kind": "static-files",
+      "id": "ceph-release--repository-metadata",
+      "family": "ceph-release",
+      "display_name": "ceph-release",
+      "content_kind": "repository-metadata",
       "aliases": [
-        "ceph"
+        "ceph",
+        "ceph-apt-runtime",
+        "ceph-rpm-runtime"
       ]
     },
     {
@@ -1571,7 +1573,7 @@
       "id": "ceph",
       "adapter_key": "ceph",
       "display_name": "ceph",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/94",
       "supported_scopes": [
         "system"
@@ -13451,36 +13453,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "520f30031b39a39bb7dac3b7",
-      "provider_id": "tuna",
-      "upstream_id": "ceph--static-files",
-      "tool_id": "ceph",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ceph"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/ceph/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "523688d4e0940c0f86b8cead",
       "provider_id": "huaweicloud",
       "upstream_id": "debian--repository-metadata",
@@ -14128,6 +14100,93 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "56cbb29febd0f0bef6770454",
+      "provider_id": "tuna",
+      "upstream_id": "ceph-release--repository-metadata",
+      "tool_id": "ceph",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ceph-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ceph/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ceph/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ceph/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-squid-amd64",
+          "debian-bookworm-squid-arm64",
+          "ubuntu-jammy-squid-amd64",
+          "ubuntu-jammy-squid-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/debian-squid/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ceph.com"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/debian-squid/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/debian-squid/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/debian-squid/pool/main/c/ceph/ceph_19.2.6-1{release}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17219,6 +17278,93 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "7128af315f2c498184117efe",
+      "provider_id": "nju",
+      "upstream_id": "ceph-release--repository-metadata",
+      "tool_id": "ceph",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ceph-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ceph/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ceph/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ceph/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-squid-amd64",
+          "debian-bookworm-squid-arm64",
+          "ubuntu-jammy-squid-amd64",
+          "ubuntu-jammy-squid-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/debian-squid/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ceph.com"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/debian-squid/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/debian-squid/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/debian-squid/pool/main/c/ceph/ceph_19.2.6-1{release}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "7136d18beb59ad1988b9f6f3",
       "provider_id": "nju",
       "upstream_id": "kubernetes--repository-metadata",
@@ -19410,6 +19556,83 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "81d765fc915e44169d3326ff",
+      "provider_id": "aliyun",
+      "upstream_id": "ceph-release--repository-metadata",
+      "tool_id": "ceph",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ceph-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/ceph/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/ceph/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/ceph/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-squid-x86_64",
+          "el-9-squid-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/rpm-squid/el9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/rpm-squid/el9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/rpm-squid/el9/{architecture}/ceph-19.2.6-0.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "82ed9deb591d4c4e074a6c40",
       "provider_id": "sjtug",
       "upstream_id": "alpine--repository-metadata",
@@ -19688,36 +19911,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/manjaro.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "869ea03e9c0acd6f8ed838c2",
-      "provider_id": "nju",
-      "upstream_id": "ceph--static-files",
-      "tool_id": "ceph",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ceph"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/ceph/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -20343,6 +20536,83 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "8bac3d7e18769d606d840531",
+      "provider_id": "ustc",
+      "upstream_id": "ceph-release--repository-metadata",
+      "tool_id": "ceph",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ceph-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ceph/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ceph/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ceph/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-squid-x86_64",
+          "el-9-squid-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/rpm-squid/el9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/rpm-squid/el9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/rpm-squid/el9/{architecture}/ceph-19.2.6-0.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/ceph.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "8d3065824318f91dfddb043e",
       "provider_id": "aliyun",
       "upstream_id": "homebrew--static-files",
@@ -20918,6 +21188,93 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/winget-source.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "927f47e8d50a8a0dd65db17f",
+      "provider_id": "aliyun",
+      "upstream_id": "ceph-release--repository-metadata",
+      "tool_id": "ceph",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ceph-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/ceph/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/ceph/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/ceph/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-squid-amd64",
+          "debian-bookworm-squid-arm64",
+          "ubuntu-jammy-squid-amd64",
+          "ubuntu-jammy-squid-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/debian-squid/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ceph.com"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/debian-squid/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/debian-squid/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/debian-squid/pool/main/c/ceph/ceph_19.2.6-1{release}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -22036,36 +22393,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "a028b152306bdc1982249253",
-      "provider_id": "ustc",
-      "upstream_id": "ceph--static-files",
-      "tool_id": "ceph",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ceph"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/ceph/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/ceph.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -24228,6 +24555,93 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "aec7467aa0181056b74fa3ce",
+      "provider_id": "ustc",
+      "upstream_id": "ceph-release--repository-metadata",
+      "tool_id": "ceph",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ceph-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ceph/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ceph/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ceph/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-squid-amd64",
+          "debian-bookworm-squid-arm64",
+          "ubuntu-jammy-squid-amd64",
+          "ubuntu-jammy-squid-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/debian-squid/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ceph.com"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/debian-squid/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/debian-squid/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/debian-squid/pool/main/c/ceph/ceph_19.2.6-1{release}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/ceph.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -28537,36 +28951,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "cb85d09eb950e25f2fe5e665",
-      "provider_id": "aliyun",
-      "upstream_id": "ceph--static-files",
-      "tool_id": "ceph",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ceph"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/ceph/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "cbc74dc89c1da3d0bfd9178e",
       "provider_id": "nju",
       "upstream_id": "fedora--repository-metadata",
@@ -30988,38 +31372,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "e122ad41adcb08dde5e3e349",
-      "provider_id": "huaweicloud",
-      "upstream_id": "ceph--static-files",
-      "tool_id": "ceph",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ceph"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/ceph/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [
-          "x86_64"
-        ],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "e13e8d070cedef366356cd7b",
       "provider_id": "tuna",
       "upstream_id": "melpa--language-registry",
@@ -31132,6 +31484,83 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "e231767cd20c6e5148086aba",
+      "provider_id": "tuna",
+      "upstream_id": "ceph-release--repository-metadata",
+      "tool_id": "ceph",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ceph-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ceph/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ceph/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ceph/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-squid-x86_64",
+          "el-9-squid-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/rpm-squid/el9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/rpm-squid/el9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/rpm-squid/el9/{architecture}/ceph-19.2.6-0.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -32007,6 +32436,38 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "e936f16c9694b4095a8edae3",
+      "provider_id": "huaweicloud",
+      "upstream_id": "ceph-release--repository-metadata",
+      "tool_id": "ceph",
+      "catalog_state": "partial",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "ceph"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/ceph/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "ea78c26a9064ca18cd8d21ea",
       "provider_id": "nju",
       "upstream_id": "rocky-vault--repository-metadata",
@@ -32577,6 +33038,83 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "ef1e725d206bfcdc41810728",
+      "provider_id": "nju",
+      "upstream_id": "ceph-release--repository-metadata",
+      "tool_id": "ceph",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ceph-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ceph/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ceph/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ceph/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-squid-x86_64",
+          "el-9-squid-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/rpm-squid/el9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/rpm-squid/el9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/rpm-squid/el9/{architecture}/ceph-19.2.6-0.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

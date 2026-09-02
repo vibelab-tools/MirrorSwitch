@@ -5,6 +5,7 @@ mod bioconductor;
 mod bundler;
 mod cabal;
 mod cargo;
+mod ceph;
 mod composer;
 mod conda;
 mod containerd;
@@ -72,6 +73,7 @@ pub use bioconductor::BioconductorAdapter;
 pub use bundler::BundlerAdapter;
 pub use cabal::CabalAdapter;
 pub use cargo::CargoAdapter;
+pub use ceph::CephAdapter;
 pub use composer::ComposerAdapter;
 pub use conda::CondaAdapter;
 pub use containerd::ContainerdAdapter;
@@ -135,6 +137,7 @@ static BIOCONDUCTOR: BioconductorAdapter = BioconductorAdapter;
 static BUNDLER: BundlerAdapter = BundlerAdapter;
 static CABAL: CabalAdapter = CabalAdapter;
 static CARGO: CargoAdapter = CargoAdapter;
+static CEPH: CephAdapter = CephAdapter;
 static CONDA: CondaAdapter = CondaAdapter;
 static COMPOSER: ComposerAdapter = ComposerAdapter;
 static CONTAINERD: ContainerdAdapter = ContainerdAdapter;
@@ -237,6 +240,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &ROS,
         &BUNDLER,
         &CARGO,
+        &CEPH,
         &RUSTUP,
         &COMPOSER,
         &CONTAINERD,
