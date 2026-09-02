@@ -19,8 +19,8 @@ protocol, and content checks before latency is compared.
 
 ## Project status
 
-The project is currently pre-alpha. The authoritative delivery plan is
-[v0.1.0 — Linux MVP](https://github.com/vibelab-tools/MirrorSwitch/milestone/1).
+The current release is [v0.1.0 — Linux MVP](https://github.com/vibelab-tools/MirrorSwitch/releases/tag/v0.1.0).
+The authoritative delivery plan is [milestone 1](https://github.com/vibelab-tools/MirrorSwitch/milestone/1).
 No adapter is considered supported until its issue acceptance criteria and
 real-boundary checks have passed.
 

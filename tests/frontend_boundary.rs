@@ -106,7 +106,7 @@ fn cli_configuration_and_tui_normalize_to_the_same_plan() {
     let from_cli = normalize_request(&report, &cli, FrontendSource::Cli).unwrap();
     let from_configuration =
         normalize_request(&report, &configuration, FrontendSource::Configuration).unwrap();
-    let mut tui_input = Cursor::new(b"\n");
+    let mut tui_input = Cursor::new(b"\ny\n");
     let mut tui_output = Vec::new();
     let from_tui = tui::select_tools(&report, &configuration, &mut tui_input, &mut tui_output)
         .unwrap()
@@ -137,6 +137,19 @@ fn cli_configuration_and_tui_normalize_to_the_same_plan() {
     assert!(rendered.contains("elevation=true"));
     assert!(rendered.contains("old="));
     assert!(rendered.contains("new="));
+    let mut confirmation = Vec::new();
+    assert!(tui::confirm(&mut tui_input, &mut confirmation).unwrap());
+    assert_eq!(confirmation, b"Apply this plan? [y/N] ");
+
+    let mut none_input = Cursor::new(b"n\n");
+    let mut none_output = Vec::new();
+    assert!(
+        tui::select_tools(&report, &configuration, &mut none_input, &mut none_output)
+            .unwrap()
+            .unwrap()
+            .tools
+            .is_empty()
+    );
 
     let source = directory.path().join("etc/apt/sources.list");
     let original = fs::read(&source).unwrap();

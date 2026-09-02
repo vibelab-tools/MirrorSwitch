@@ -4,6 +4,8 @@ MirrorSwitch v0.1.0 ships static Linux binaries for `x86_64` and `arm64`, both a
 archives and as deb/rpm packages. Installation places only the `mirrorswitch` terminal program
 and license/readme files; it does not configure a mirror or start a service.
 
+Packages are attached to the [v0.1.0 GitHub release](https://github.com/vibelab-tools/MirrorSwitch/releases/tag/v0.1.0).
+
 ## Verify a download
 
 Download one complete architecture artifact so its `SHA256SUMS` sits beside the three packages,

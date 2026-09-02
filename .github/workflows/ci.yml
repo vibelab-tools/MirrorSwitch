@@ -117,29 +117,56 @@ jobs:
         run: scripts/package-linux.sh input/mirrorswitch "${{ matrix.arch }}" dist
       - name: Test archive and deb installation
         run: |
+          source tests/docker/images.env
           docker run --rm --network none --platform "${{ matrix.docker_platform }}" \
             -e MIRRORSWITCH_PACKAGE_ARCH="${{ matrix.arch }}" \
             -e MIRRORSWITCH_PACKAGE_FORMAT=archive \
             -e MIRRORSWITCH_VERSION="${{ steps.metadata.outputs.version }}" \
             -v "$PWD/dist:/packages:ro" \
             -v "$PWD/tests/docker/install-package.sh:/test-package.sh:ro" \
-            debian:12.11-slim /bin/sh /test-package.sh
+            "$DEBIAN_IMAGE" /bin/sh /test-package.sh
           docker run --rm --network none --platform "${{ matrix.docker_platform }}" \
             -e MIRRORSWITCH_PACKAGE_ARCH="${{ matrix.arch }}" \
             -e MIRRORSWITCH_PACKAGE_FORMAT=deb \
             -e MIRRORSWITCH_VERSION="${{ steps.metadata.outputs.version }}" \
             -v "$PWD/dist:/packages:ro" \
             -v "$PWD/tests/docker/install-package.sh:/test-package.sh:ro" \
-            debian:12.11-slim /bin/sh /test-package.sh
+            "$DEBIAN_IMAGE" /bin/sh /test-package.sh
+          docker run --rm --network none --platform "${{ matrix.docker_platform }}" \
+            -e MIRRORSWITCH_PACKAGE_ARCH="${{ matrix.arch }}" \
+            -e MIRRORSWITCH_PACKAGE_FORMAT=deb \
+            -e MIRRORSWITCH_VERSION="${{ steps.metadata.outputs.version }}" \
+            -v "$PWD/dist:/packages:ro" \
+            -v "$PWD/tests/docker/install-package.sh:/test-package.sh:ro" \
+            "$UBUNTU_IMAGE" /bin/sh /test-package.sh
+      - name: Test archive installation on Arch Linux
+        if: matrix.arch == 'x86_64'
+        run: |
+          source tests/docker/images.env
+          docker run --rm --network none --platform linux/amd64 \
+            -e MIRRORSWITCH_PACKAGE_ARCH=x86_64 \
+            -e MIRRORSWITCH_PACKAGE_FORMAT=archive \
+            -e MIRRORSWITCH_VERSION="${{ steps.metadata.outputs.version }}" \
+            -v "$PWD/dist:/packages:ro" \
+            -v "$PWD/tests/docker/install-package.sh:/test-package.sh:ro" \
+            "$ARCH_IMAGE" /bin/sh /test-package.sh
       - name: Test rpm installation
         run: |
+          source tests/docker/images.env
           docker run --rm --network none --platform "${{ matrix.docker_platform }}" \
             -e MIRRORSWITCH_PACKAGE_ARCH="${{ matrix.arch }}" \
             -e MIRRORSWITCH_PACKAGE_FORMAT=rpm \
             -e MIRRORSWITCH_VERSION="${{ steps.metadata.outputs.version }}" \
             -v "$PWD/dist:/packages:ro" \
             -v "$PWD/tests/docker/install-package.sh:/test-package.sh:ro" \
-            fedora:42 /bin/sh /test-package.sh
+            "$FEDORA_IMAGE" /bin/sh /test-package.sh
+          docker run --rm --network none --platform "${{ matrix.docker_platform }}" \
+            -e MIRRORSWITCH_PACKAGE_ARCH="${{ matrix.arch }}" \
+            -e MIRRORSWITCH_PACKAGE_FORMAT=rpm \
+            -e MIRRORSWITCH_VERSION="${{ steps.metadata.outputs.version }}" \
+            -v "$PWD/dist:/packages:ro" \
+            -v "$PWD/tests/docker/install-package.sh:/test-package.sh:ro" \
+            "$ROCKY_IMAGE" /bin/sh /test-package.sh
       - name: Verify package checksums
         run: cd dist && sha256sum -c SHA256SUMS
       - name: Save packages for release
@@ -149,3 +176,29 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 14
+
+  release:
+    name: Publish GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: packages
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download verified package artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: mirrorswitch-packages-linux-*
+          path: release-input
+      - name: Prepare one release asset set
+        run: scripts/prepare-release.sh release-input release-files "$GITHUB_REF_NAME"
+      - name: Publish immutable tag assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-files/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "MirrorSwitch $GITHUB_REF_NAME" \
+            --notes-file "docs/releases/$GITHUB_REF_NAME.md"
+          test "$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets | length')" -eq 7

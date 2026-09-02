@@ -105,6 +105,12 @@ pub fn select_tools(
     request.categories.clear();
     request.disabled_tools.clear();
     request.tools = selected;
+    if request.tools.is_empty() {
+        return Ok(Some(NormalizedRequest {
+            source: FrontendSource::Tui,
+            tools: Vec::new(),
+        }));
+    }
     normalize_request(report, &request, FrontendSource::Tui)
         .map(Some)
         .map_err(Into::into)
@@ -160,6 +166,14 @@ pub fn render_preview(preview: &ExecutionPreview, output: &mut dyn Write) -> std
         )?;
     }
     Ok(())
+}
+
+pub fn confirm(input: &mut dyn BufRead, output: &mut dyn Write) -> std::io::Result<bool> {
+    write!(output, "Apply this plan? [y/N] ")?;
+    output.flush()?;
+    let mut answer = String::new();
+    input.read_line(&mut answer)?;
+    Ok(matches!(answer.trim(), "y" | "Y" | "yes" | "YES"))
 }
 
 #[derive(Debug, Error)]

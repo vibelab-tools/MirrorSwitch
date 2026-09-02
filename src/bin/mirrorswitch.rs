@@ -1,6 +1,6 @@
 use std::{
     env,
-    io::{self, BufReader, Write},
+    io::{self, BufReader},
     path::{Path, PathBuf},
     process::ExitCode,
 };
@@ -128,12 +128,16 @@ fn run() -> Result<u8, CliError> {
         );
     }
 
+    let mut tui_input = (command == "tui").then(|| BufReader::new(io::stdin()));
     let request = if command == "tui" {
-        let stdin = io::stdin();
-        let mut reader = BufReader::new(stdin.lock());
         let mut stdout = io::stdout();
-        match tui::select_tools(&report, &input, &mut reader, &mut stdout)
-            .map_err(|error| cli(&parsed, error))?
+        match tui::select_tools(
+            &report,
+            &input,
+            tui_input.as_mut().expect("TUI input exists"),
+            &mut stdout,
+        )
+        .map_err(|error| cli(&parsed, error))?
         {
             Some(request) => request,
             None => return Ok(0),
@@ -157,7 +161,10 @@ fn run() -> Result<u8, CliError> {
     if command == "tui" {
         let mut stdout = io::stdout();
         tui::render_preview(&preview, &mut stdout).map_err(|error| cli(&parsed, error))?;
-        if !parsed.yes && !confirm(&mut stdout).map_err(|error| cli(&parsed, error))? {
+        if !parsed.yes
+            && !tui::confirm(tui_input.as_mut().expect("TUI input exists"), &mut stdout)
+                .map_err(|error| cli(&parsed, error))?
+        {
             return Ok(0);
         }
     } else if command != "apply" {
@@ -177,14 +184,6 @@ fn run() -> Result<u8, CliError> {
         &json!({"ok": applied.successful, "command": command, "catalog": catalog_status, "result": applied}),
     )?;
     Ok(code)
-}
-
-fn confirm(output: &mut dyn Write) -> io::Result<bool> {
-    write!(output, "Apply this plan? [y/N] ")?;
-    output.flush()?;
-    let mut answer = String::new();
-    io::stdin().read_line(&mut answer)?;
-    Ok(matches!(answer.trim(), "y" | "Y" | "yes" | "YES"))
 }
 
 fn runtime(options: &LinuxDetectionOptions) -> OsRuntime {
