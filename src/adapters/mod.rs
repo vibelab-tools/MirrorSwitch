@@ -7,6 +7,7 @@ mod cabal;
 mod cargo;
 mod composer;
 mod conda;
+mod containerd;
 mod cpan;
 mod cran;
 mod dart_pub;
@@ -62,6 +63,7 @@ pub use cabal::CabalAdapter;
 pub use cargo::CargoAdapter;
 pub use composer::ComposerAdapter;
 pub use conda::CondaAdapter;
+pub use containerd::ContainerdAdapter;
 pub use cpan::CpanAdapter;
 pub use cran::CranAdapter;
 pub use dart_pub::DartPubAdapter;
@@ -113,6 +115,7 @@ static CABAL: CabalAdapter = CabalAdapter;
 static CARGO: CargoAdapter = CargoAdapter;
 static CONDA: CondaAdapter = CondaAdapter;
 static COMPOSER: ComposerAdapter = ComposerAdapter;
+static CONTAINERD: ContainerdAdapter = ContainerdAdapter;
 static CPAN: CpanAdapter = CpanAdapter;
 static CRAN: CranAdapter = CranAdapter;
 static DNF: DnfAdapter = DnfAdapter;
@@ -194,6 +197,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &CARGO,
         &RUSTUP,
         &COMPOSER,
+        &CONTAINERD,
         &NUGET,
         &CABAL,
         &SBT,

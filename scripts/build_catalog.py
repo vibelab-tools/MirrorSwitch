@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "52"
+CATALOG_FORMAT_REVISION = "53"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -538,6 +538,8 @@ def runtime_upstream_identity(
         return "opam-cache", "binary-cache"
     if tool_id == "kubernetes-images" and entry["raw_name"] == "k8s":
         return "registry.k8s.io", "container-registry"
+    if tool_id == "containerd" and entry["raw_name"] == "k8s":
+        return "registry.k8s.io", "container-registry"
     if tool_id == "podman-registry" and entry["raw_name"] in {"gcr", "ghcr", "quay"}:
         return f"{entry['raw_name']}.io", "container-registry"
     return entry["normalized_upstream"], entry["content_type"]
@@ -704,6 +706,19 @@ def candidate_endpoints(
         ]
     if (
         tool_id == "kubernetes-images"
+        and upstream_key == KUBERNETES_IMAGES_UPSTREAM
+        and entry["provider_id"] == "nju"
+        and entry["raw_name"] == "k8s"
+    ):
+        return [
+            {
+                "role": "registry",
+                "protocol": "https",
+                "url": KUBERNETES_IMAGES_ENDPOINT,
+            }
+        ]
+    if (
+        tool_id == "containerd"
         and upstream_key == KUBERNETES_IMAGES_UPSTREAM
         and entry["provider_id"] == "nju"
         and entry["raw_name"] == "k8s"
@@ -2739,6 +2754,37 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "containerd"
+        and upstream_key == KUBERNETES_IMAGES_UPSTREAM
+        and entry["provider_id"] == "nju"
+        and entry["raw_name"] == "k8s"
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "proxy"
+        manifest_path = "/v2/{repository_path}/manifests/{tag}"
+        probes = [
+            {
+                "endpoint_role": "registry",
+                "method": "get",
+                "path": manifest_path,
+                "expected_status": [200],
+                "accept": OCI_MANIFEST_ACCEPT,
+                "contains": '"architecture": "{oci_arch}"',
+            },
+            {
+                "endpoint_role": "registry",
+                "method": "get",
+                "path": manifest_path,
+                "expected_status": [200],
+                "accept": OCI_MANIFEST_ACCEPT,
+                "contains": '"digest": "sha256:',
+            },
+        ]
+    elif (
         tool_id == "podman-registry"
         and entry["provider_id"] == "nju"
         and entry["raw_name"] in {"gcr", "ghcr", "quay"}
@@ -3105,6 +3151,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "cargo",
                         "composer",
                         "conda",
+                        "containerd",
                         "cpan",
                         "cran",
                         "dnf",

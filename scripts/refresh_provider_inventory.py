@@ -212,7 +212,7 @@ ISSUE_TARGETS: list[tuple[set[str], list[tuple[str, int]]]] = [
     ({"opam"}, [("opam", 71)]),
     ({"julia", "julia-pkg"}, [("julia", 72)]),
     ({"conan"}, [("conan", 73)]),
-    ({"k8s", "kubernetes-images"}, [("kubernetes-images", 74)]),
+    ({"k8s", "kubernetes-images"}, [("kubernetes-images", 74), ("containerd", 79)]),
     ({"docker-hub", "docker-registry"}, [("docker-registry", 75)]),
     ({"quay", "gcr", "ghcr"}, [("podman-registry", 76)]),
     ({"kubernetes"}, [("kubernetes-packages", 77)]),

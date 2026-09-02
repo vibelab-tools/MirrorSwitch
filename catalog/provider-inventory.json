@@ -23459,6 +23459,11 @@
           "tool_id": "kubernetes-images",
           "state": "planned",
           "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/74"
+        },
+        {
+          "tool_id": "containerd",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/79"
         }
       ],
       "validation": {

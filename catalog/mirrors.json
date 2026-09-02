@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+2fdd91aac67f",
-  "content_revision": 20260902013000,
-  "generated_at": "2026-09-02T01:30:00Z",
+  "content_version": "2026.08.28+53649bc90e11",
+  "content_revision": 20260902030000,
+  "generated_at": "2026-09-02T03:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1600,6 +1600,17 @@
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/42",
       "supported_scopes": [
         "user"
+      ],
+      "composition": "single"
+    },
+    {
+      "id": "containerd",
+      "adapter_key": "containerd",
+      "display_name": "containerd",
+      "state": "supported",
+      "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/79",
+      "supported_scopes": [
+        "system"
       ],
       "composition": "single"
     },
@@ -14242,6 +14253,65 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "6e5324f7e05265266b03b74a",
+      "provider_id": "nju",
+      "upstream_id": "registry.k8s.io--container-registry",
+      "tool_id": "containerd",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "k8s"
+      ],
+      "endpoints": [
+        {
+          "role": "registry",
+          "protocol": "https",
+          "url": "https://k8s.nju.edu.cn/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/{repository_path}/manifests/{tag}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "contains": "\"architecture\": \"{oci_arch}\""
+        },
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/{repository_path}/manifests/{tag}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "contains": "\"digest\": \"sha256:"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
