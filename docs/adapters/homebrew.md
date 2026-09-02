@@ -47,3 +47,14 @@ selected environment through `brew config`, `brew info --json=v2 jq`, `brew upda
 architecture-specific `brew fetch --force --bottle-tag=... jq`. Any failure restores both files.
 Repeating the same successful plan produces no file changes. An explicit transaction restore also
 returns the profile and Brew origin to their exact previous bytes and attributes.
+
+## Continuous validation
+
+The scheduled `homebrew-live.yml` workflow exercises Intel and Apple Silicon runners separately.
+Each job uses the native release binary and a temporary profile to run status, plan, apply, verify,
+TUI planning, and restore against the installed Homebrew. It compares both the profile and the
+Homebrew/brew Git config before and after restore, and uploads only redacted JSON evidence.
+
+The ordinary platform smoke workflow runs the deterministic adapter boundary tests on both macOS
+architectures. Linux CI keeps the catalog and adapter registration covered without treating Linux
+Homebrew as a supported host.
