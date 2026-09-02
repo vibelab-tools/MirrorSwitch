@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  apt:
-    name: APT catalog update and candidate probe
+  cargo:
+    name: Cargo catalog update and candidate probe
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -19,11 +19,13 @@ jobs:
         run: rustup toolchain install 1.88.0 --profile minimal && rustup default 1.88.0
       - name: Build release executable
         run: cargo build --locked --release --bin mirrorswitch
-      - name: Probe live catalog and APT candidates
+      - name: Probe live catalog and Cargo candidates
         shell: bash
         run: |
+          probe_cargo_home="$HOME/.mirrorswitch-live-cargo"
+          mkdir -p "$probe_cargo_home"
           set +e
-          target/release/mirrorswitch plan --tool apt --json > live-probe.json
+          CARGO_HOME="$probe_cargo_home" target/release/mirrorswitch plan --tool cargo --json > live-probe.json
           probe_status=$?
           set -e
           python3 - "$probe_status" <<'PY'
@@ -47,7 +49,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: live-apt-probe-${{ github.run_id }}
+          name: live-cargo-probe-${{ github.run_id }}
           path: live-probe.json
           if-no-files-found: error
           retention-days: 14
