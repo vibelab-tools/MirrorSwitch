@@ -1,8 +1,8 @@
 # npm adapter
 
-The npm adapter supports Linux `x86_64` and `arm64`. It detects npm and Node.js versions, asks npm
-for the effective registry and global/user configuration paths, and reads the current project's
-`.npmrc` when a project directory is available.
+The npm adapter supports Linux, macOS, and native Windows hosts on `x86_64` and `arm64`. It detects
+npm and Node.js versions, asks npm for the effective registry and native global/user configuration
+paths, and reads the current project's `.npmrc` when a project directory is available.
 
 Global, user and project npmrc files are distinct explicit scopes. User is the automatic default;
 project scope is never automatic. Environment configuration is read-only. A higher-precedence
@@ -26,3 +26,6 @@ Applying uses the shared atomic transaction engine. Verification runs `npm confi
 and a real `npm view is-number@7.0.0 name version dist.tarball --json` request from the selected
 project context. Failed effective-config or metadata checks restore the previous file, and repeated
 planning is idempotent.
+
+Existing UTF-8 BOM and LF/CRLF layout are preserved. Windows drive-qualified paths returned by npm
+remain native; MirrorSwitch never substitutes a Unix prefix or guesses the Windows global prefix.

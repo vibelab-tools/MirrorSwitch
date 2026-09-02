@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+11880c0b7821",
-  "content_revision": 20260902215357,
-  "generated_at": "2026-09-02T21:53:57Z",
+  "content_version": "2026.08.28+2dae02274b9e",
+  "content_revision": 20260902220530,
+  "generated_at": "2026-09-02T22:05:30Z",
   "providers": [
     {
       "id": "aliyun",
@@ -23207,66 +23207,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "a3555f005ea76af3c98aa4e0",
-      "provider_id": "huaweicloud",
-      "upstream_id": "npm--language-registry",
-      "tool_id": "npm",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "npm"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/npm/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/is-number/latest",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"name\":\"is-number\""
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/is-number/-/is-number-7.0.0.tgz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "a399da128e3e154531d9f874",
       "provider_id": "nju",
       "upstream_id": "bioconductor--language-registry",
@@ -23374,6 +23314,68 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "a45ca8c8ec598991ac511fed",
+      "provider_id": "huaweicloud",
+      "upstream_id": "npm--language-registry",
+      "tool_id": "npm",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "npm"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/npm/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/is-number/latest",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"name\":\"is-number\""
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/is-number/-/is-number-7.0.0.tgz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

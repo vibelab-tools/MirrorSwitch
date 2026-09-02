@@ -7,7 +7,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -61,7 +61,7 @@ impl Adapter for NpmAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("npm") {
             return Ok(None);
         }
@@ -127,7 +127,7 @@ impl Adapter for NpmAdapter {
         _detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         let project = runtime.project_dir();
         let paths = config_paths(runtime, project.as_deref())?;
@@ -189,7 +189,7 @@ impl Adapter for NpmAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         Ok(SelectionRequest {
             tool_id: "npm".into(),
@@ -219,7 +219,7 @@ impl Adapter for NpmAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let endpoint = selected_endpoint(selections)?;
         validate_precedence(current)?;
@@ -240,9 +240,12 @@ impl Adapter for NpmAdapter {
                 scope_name(current.scope)
             )));
         }
-        let new_contents =
+        let mut new_contents =
             rewrite_default_registry(utf8(&document.path, &document.contents)?, endpoint)?
                 .into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            new_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let existed = current.files.contains(&document.path);
         let changes = (new_contents != document.contents)
             .then(|| PlannedFileChange {
@@ -391,10 +394,18 @@ struct NpmEntry {
     quote: Option<char>,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "npm adapter requires Linux".into(),
+            "npm on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "npm adapter requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -871,6 +882,9 @@ fn verification_failure<T>(
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "npm configuration {} is not UTF-8",

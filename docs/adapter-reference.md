@@ -42,7 +42,7 @@ content remain unchanged and are reported.
 | `pdm` | user/project | Linux/macOS/Windows PDM source query; native config roots, explicit project scope and source ordering preserved ([details](adapters/pdm.md)) |
 | `poetry` | project | Linux/macOS/Windows Poetry resolver; package sources are explicit project state, not publishing repositories ([details](adapters/poetry.md)) |
 | `uv` | user/project | Linux/macOS/Windows no-cache dry-run resolution; native config roots and named/private project sources preserved ([details](adapters/uv.md)) |
-| `npm` | system/user/project | Registry metadata and tarball plus client query; scopes/auth preserved ([details](adapters/npm.md)) |
+| `npm` | system/user/project | Linux/macOS/Windows registry metadata, tarball and client query; npm-reported paths, scopes and auth preserved ([details](adapters/npm.md)) |
 | `pnpm` | user | Registry metadata/tarball and `pnpm view`; project/auth/TLS overrides block changes ([details](adapters/pnpm.md)) |
 | `yarn` | user/project | Classic/Berry-specific query; generations and configuration formats never cross ([details](adapters/yarn.md)) |
 | `conda` | user | Linux/macOS/Windows Conda/Mamba/Micromamba search; native channel/subdir completeness required ([details](adapters/conda.md)) |

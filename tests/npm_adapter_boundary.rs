@@ -1,6 +1,7 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
+    collections::BTreeMap,
     fs,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
@@ -32,6 +33,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
             version_codename: Some("bookworm".into()),
             id_like: Vec::new(),
         }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
         root: root.to_path_buf(),
     }
 }
@@ -85,6 +96,37 @@ fn runtime(root: &Path) -> OsRuntime {
     OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
         .with_home("/home/developer")
         .with_project_dir("/work/project")
+}
+
+fn native_runtime(root: &Path, environment: BTreeMap<String, String>) -> OsRuntime {
+    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home("/Users/test")
+        .with_project_dir("/work/project")
+        .with_environment(environment)
+}
+
+fn install_native_clients(root: &Path, selected: &str, global_path: &str, user_path: &str) {
+    executable(
+        root,
+        "/usr/bin/node",
+        "#!/bin/sh\n[ \"$1\" = --version ] && { echo v22.17.0; exit 0; }\nexit 64\n".into(),
+    );
+    let global = root.join(global_path.trim_start_matches('/'));
+    let user = root.join(user_path.trim_start_matches('/'));
+    let project = root.join("work/project/.npmrc");
+    let project_directory = root.join("work/project");
+    executable(
+        root,
+        "/usr/bin/npm",
+        format!(
+            "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 11.4.2; exit 0; fi\nif [ \"$1 $2 $3\" = 'config get globalconfig' ]; then echo '{global_path}'; exit 0; fi\nif [ \"$1 $2 $3\" = 'config get userconfig' ]; then echo '{user_path}'; exit 0; fi\nif [ \"$1\" = prefix ]; then echo /work/project; exit 0; fi\nregistry() {{\n  value='https://registry.npmjs.org/'\n  for file in '{global}' '{user}' '{project}'; do\n    if [ -f \"$file\" ]; then found=$(tr -d '\\357\\273\\277' < \"$file\" | sed -n 's/^[[:space:]]*registry[[:space:]]*=[[:space:]]*//p' | tail -1 | sed -e 's/^\"//' -e 's/\"$//'); [ -n \"$found\" ] && value=$found; fi\n  done\n  printf '%s\\n' \"$value\"\n}}\nif [ \"$1 $2 $3\" = 'config get registry' ]; then registry; exit 0; fi\nif [ \"$1 $2\" = 'config list' ]; then printf '; \"env\" config from environment\\n'; exit 0; fi\nif [ \"$1\" = view ]; then [ \"$PWD\" = '{project_directory}' ] || exit 66; value=$(registry); [ \"${{value%/}}\" = '{selected}' ] || exit 65; echo '{{\"name\":\"is-number\",\"version\":\"7.0.0\",\"dist.tarball\":\"{selected}/is-number/-/is-number-7.0.0.tgz\"}}'; exit 0; fi\nexit 64\n",
+            selected = selected.trim_end_matches('/'),
+            global = global.display(),
+            user = user.display(),
+            project = project.display(),
+            project_directory = project_directory.display(),
+        ),
+    );
 }
 
 fn selection(url: &str) -> MirrorSelection {
@@ -400,6 +442,105 @@ fn environment_precedence_tls_bypass_and_unsafe_auth_are_rejected_without_disclo
 }
 
 #[test]
+fn macos_and_windows_use_npm_reported_native_paths_and_preserve_layout() {
+    for (os, architecture, global_path, user_path, environment, bom, newline) in [
+        (
+            OperatingSystem::Macos,
+            Architecture::X86_64,
+            "/usr/local/lib/node_modules/npm/npmrc",
+            "/Users/test/.npmrc",
+            BTreeMap::new(),
+            false,
+            "\n",
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::Arm64,
+            "/ProgramFiles/nodejs/node_modules/npm/npmrc",
+            "/Users/test/.npmrc",
+            BTreeMap::from([("APPDATA".into(), "/Users/test/AppData/Roaming".into())]),
+            true,
+            "\r\n",
+        ),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_native_clients(root, HUAWEI, global_path, user_path);
+        let global_contents = b"registry=https://registry.npmjs.org/\nfund=false\n";
+        let global = write(root, global_path, global_contents);
+        write(
+            root,
+            "/work/project/.npmrc",
+            b"@team:registry=https://packages.invalid.example/npm/\n",
+        );
+        let text = format!(
+            "# native npm config{newline}registry=\"https://registry.npmjs.org/\"{newline}@corp:registry=https://reader:secret@packages.invalid.example/npm/{newline}unknown-option=keep{newline}"
+        );
+        let mut original = text.into_bytes();
+        if bom {
+            original.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let user = write(root, user_path, &original);
+        let context = native_context(root, os, architecture);
+        let adapter = NpmAdapter;
+        let mut runtime = native_runtime(root, environment);
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(!serde_json::to_string(&current).unwrap().contains("secret"));
+        let selected = [selection(HUAWEI)];
+        let plan = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(plan, adapter.plan(&context, &current, &selected).unwrap());
+        assert_eq!(
+            plan.changes[0]
+                .new_contents
+                .starts_with(&[0xef, 0xbb, 0xbf]),
+            bom
+        );
+        let rendered = std::str::from_utf8(
+            plan.changes[0]
+                .new_contents
+                .strip_prefix(&[0xef, 0xbb, 0xbf])
+                .unwrap_or(&plan.changes[0].new_contents),
+        )
+        .unwrap();
+        assert!(rendered.contains("unknown-option=keep"));
+        assert!(!rendered.replace(newline, "").contains('\n'));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+        else {
+            panic!("native npm config should change")
+        };
+        if !bom {
+            assert!(
+                adapter
+                    .verify(&context, &mut runtime, &receipt)
+                    .unwrap()
+                    .valid
+            );
+        }
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &selected)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(user).unwrap(), original);
+        assert_eq!(fs::read(global).unwrap(), global_contents);
+    }
+}
+
+#[test]
 fn embedded_catalog_requires_metadata_and_tarball_for_the_https_complete_candidate() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -412,7 +553,12 @@ fn embedded_catalog_requires_metadata_and_tarball_for_the_https_complete_candida
     assert!(candidates.iter().all(|candidate| {
         candidate.upstream_id == UPSTREAM
             && candidate.delivery_mode == DeliveryMode::Proxy
-            && candidate.compatibility.operating_systems == [OperatingSystem::Linux]
+            && candidate.compatibility.operating_systems
+                == [
+                    OperatingSystem::Linux,
+                    OperatingSystem::Macos,
+                    OperatingSystem::Windows,
+                ]
             && candidate.compatibility.architectures == [Architecture::X86_64, Architecture::Arm64]
             && candidate.endpoints[0].role == EndpointRole::Index
             && candidate.endpoints[0].protocol == Protocol::Https

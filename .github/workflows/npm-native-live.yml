@@ -1,0 +1,111 @@
+name: npm macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "59 2 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: npm (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel, node_arch: x64 }
+          - { name: macOS arm64, runner: macos-15, node_arch: arm64 }
+          - { name: Windows x86_64, runner: windows-2025, node_arch: x64 }
+          - { name: Windows arm64, runner: windows-11-arm, node_arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          architecture: ${{ matrix.node_arch }}
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          node --version && npm --version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic npm boundary
+        run: cargo test --locked --test npm_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS paths, frontends, query, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-npm-boundary"; export HOME="$boundary/home"
+          unset npm_config_registry NPM_CONFIG_REGISTRY npm_config_userconfig NPM_CONFIG_USERCONFIG
+          project="$boundary/project"; user_config="$HOME/.npmrc"; mkdir -p "$HOME" "$project"
+          printf 'registry=https://registry.npmjs.org/\nfund=false\n' > "$user_config"; chmod 0600 "$user_config"
+          printf '@private:registry=https://packages.invalid.example/npm/\n' > "$project/.npmrc"
+          printf '{"version":1,"tools":[{"id":"npm","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$user_config"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/.npmrc"|awk '{print $1}'); mode=$(stat -f '%Lp' "$user_config")
+          cd "$project"
+          "$binary" status --offline --json > status.json
+          "$binary" plan --offline --tool npm --scope npm=user --json > plan-cli.json
+          "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('status.json')); assert [t['adapter_key'] for t in s['detected_tools'] if t['adapter_key']=='npm']==['npm']
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool npm --scope npm=user > tui.txt; grep -F 'mirror=huaweicloud' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('idempotent.json'))['result']; assert r['successful'] and not [t for t in r['tools'] if t['status']=='applied']
+          PY
+          "$binary" restore "$id" --yes --json > restore.json
+          test "$before" = "$(shasum -a 256 "$user_config"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 .npmrc|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$user_config")"
+      - name: Exercise Windows paths, frontends, query, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-npm-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'
+          Remove-Item Env:npm_config_registry,Env:NPM_CONFIG_REGISTRY,Env:npm_config_userconfig,Env:NPM_CONFIG_USERCONFIG -ErrorAction SilentlyContinue
+          $project=Join-Path $boundary 'project'; $user=Join-Path $env:USERPROFILE '.npmrc'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA,$project|Out-Null
+          [IO.File]::WriteAllText($user,"registry=https://registry.npmjs.org/`r`nfund=false`r`n",[Text.UTF8Encoding]::new($true))
+          '@private:registry=https://packages.invalid.example/npm/'|Set-Content -Encoding utf8 (Join-Path $project '.npmrc'); '{"version":1,"tools":[{"id":"npm","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          $before=(Get-FileHash $user -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project '.npmrc') -Algorithm SHA256).Hash; $acl=(Get-Acl $user).Sddl
+          Push-Location $project
+          try {
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json
+            (& $binary plan --offline --tool npm --scope npm=user --json)|Set-Content -Encoding utf8 plan-cli.json
+            (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; if(@($s.detected_tools|Where-Object adapter_key -eq 'npm').Count -ne 1){throw 'npm not detected'}
+            $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)){throw 'frontend plans differ'}
+            @('','n')|& $binary tui --offline --tool npm --scope npm=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=huaweicloud')){throw 'npm mirror missing'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'npm apply failed'}
+            $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
+            (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'npm'){throw 'restore failed'}
+          } finally {Pop-Location}
+          if($before -ne (Get-FileHash $user -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project '.npmrc') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $user).Sddl){throw 'npm config not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: npm-native-boundary-${{ runner.os }}-${{ matrix.node_arch }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-npm-boundary/project/*.json
+          if-no-files-found: warn
+          retention-days: 7
