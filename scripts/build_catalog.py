@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "66"
+CATALOG_FORMAT_REVISION = "67"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -641,6 +641,8 @@ TLMGR_PLATFORM_SHA256 = {
     "x86_64-linuxmusl": "bd32c86e19c774b7715824fceab5fe92ca33f6110e8d9d84fc62589249d581ba",
     "aarch64-linux": "01ad1b1457f65d4717b969b7ca27e08a559831d2c0658581b9659cf93c3c10ff",
 }
+HOMEBREW_GIT_UPSTREAM = "homebrew--git-mirror"
+HOMEBREW_BOTTLES_UPSTREAM = "homebrew-bottles--binary-cache"
 
 
 def utc_now() -> str:
@@ -714,6 +716,8 @@ def runtime_upstream_identity(
 
 
 def tool_scopes(tool_id: str) -> list[str]:
+    if tool_id == "homebrew":
+        return ["user"]
     if tool_id in {"bundler", "stack"}:
         return ["user", "project"]
     if tool_id in NODE_DISTRIBUTION_TOOLS or tool_id in {
@@ -813,6 +817,26 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "homebrew"
+        and entry["provider_id"] == "ustc"
+        and upstream_key == HOMEBREW_GIT_UPSTREAM
+    ):
+        endpoint = entry["public_endpoints"][0]["url"]
+        return [
+            {"role": "git", "protocol": "https", "url": endpoint},
+            {"role": "artifacts", "protocol": "https", "url": endpoint},
+        ]
+    if (
+        tool_id == "homebrew"
+        and entry["provider_id"] == "ustc"
+        and upstream_key == HOMEBREW_BOTTLES_UPSTREAM
+    ):
+        endpoint = entry["public_endpoints"][0]["url"]
+        return [
+            {"role": "metadata", "protocol": "https", "url": endpoint},
+            {"role": "artifacts", "protocol": "https", "url": endpoint},
+        ]
     if tool_id == "cpan" and upstream_key == CPAN_RUNTIME_UPSTREAM:
         endpoint = entry["public_endpoints"][0]["url"]
         return [
@@ -1393,6 +1417,53 @@ def runtime_properties(
     )
     probes = candidate_probe(entry)
     if (
+        tool_id == "homebrew"
+        and entry["provider_id"] == "ustc"
+        and upstream_key in {HOMEBREW_GIT_UPSTREAM, HOMEBREW_BOTTLES_UPSTREAM}
+    ):
+        compatibility["operating_systems"] = ["macos"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ["4", "5"]
+        delivery_mode = "mirror"
+        if upstream_key == HOMEBREW_GIT_UPSTREAM:
+            probes = [
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/HEAD",
+                    "expected_status": [200],
+                    "expected_content_type": "application/octet-stream",
+                    "contains": "ref: refs/heads/",
+                }
+            ]
+        else:
+            probes = [
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "head",
+                    "path": "/api/formula.jws.json",
+                    "expected_status": [200],
+                    "expected_content_type": "application/json",
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "get",
+                    "path": "/api/formula/jq.json",
+                    "expected_status": [200],
+                    "expected_content_type": "application/json",
+                    "contains": "{homebrew_bottle_tag}",
+                },
+                {
+                    "endpoint_role": "artifacts",
+                    "method": "head",
+                    "path": "/v2/homebrew/core/jq/blobs/sha256:{homebrew_bottle_sha}",
+                    "expected_status": [200, 206],
+                    "expected_content_type": "application/octet-stream",
+                },
+            ]
+    elif (
         tool_id == "tlmgr"
         and upstream_key == TLMGR_RUNTIME_UPSTREAM
         and entry["raw_name"] == "CTAN"
@@ -4170,6 +4241,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "ghcup",
                         "gitlab-runner",
                         "grafana",
+                        "homebrew",
                         "rubygems",
                         "rustup",
                         "ros",

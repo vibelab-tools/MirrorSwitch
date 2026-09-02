@@ -43,6 +43,7 @@ Windows are tracked by [v0.2.0](https://github.com/vibelab-tools/MirrorSwitch/mi
 - [Testing and Docker matrix](docs/testing.md)
 - [Linux packaging](docs/packaging.md)
 - [Contribution guide](CONTRIBUTING.md)
+- [Homebrew adapter](docs/adapters/homebrew.md)
 - [Per-repository mirror selection](docs/mirror-selection.md)
 - [APT adapter](docs/adapters/apt.md)
 - [DNF adapter](docs/adapters/dnf.md)

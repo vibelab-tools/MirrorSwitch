@@ -25,6 +25,7 @@ mod go;
 mod gradle;
 mod grafana;
 mod guix;
+mod homebrew;
 mod influxdb;
 mod julia;
 mod kubernetes_images;
@@ -94,6 +95,7 @@ pub use go::GoAdapter;
 pub use gradle::GradleAdapter;
 pub use grafana::GrafanaAdapter;
 pub use guix::GuixAdapter;
+pub use homebrew::HomebrewAdapter;
 pub use influxdb::InfluxDbAdapter;
 pub use julia::JuliaAdapter;
 pub use kubernetes_images::KubernetesImagesAdapter;
@@ -159,6 +161,7 @@ static GRADLE: GradleAdapter = GradleAdapter;
 static GHCUP: GhcupAdapter = GhcupAdapter;
 static GITLAB_RUNNER: GitLabRunnerAdapter = GitLabRunnerAdapter;
 static GUIX: GuixAdapter = GuixAdapter;
+static HOMEBREW: HomebrewAdapter = HomebrewAdapter;
 static INFLUXDB: InfluxDbAdapter = InfluxDbAdapter;
 static JULIA: JuliaAdapter = JuliaAdapter;
 static KUBERNETES_IMAGES: KubernetesImagesAdapter = KubernetesImagesAdapter;
@@ -213,6 +216,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &XBPS,
         &NIX,
         &GUIX,
+        &HOMEBREW,
         &INFLUXDB,
         &FLATPAK,
         &OPKG,
