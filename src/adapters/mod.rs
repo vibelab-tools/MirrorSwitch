@@ -21,6 +21,7 @@ mod ghcup;
 mod go;
 mod gradle;
 mod guix;
+mod influxdb;
 mod julia;
 mod kubernetes_images;
 mod kubernetes_packages;
@@ -81,6 +82,7 @@ pub use ghcup::GhcupAdapter;
 pub use go::GoAdapter;
 pub use gradle::GradleAdapter;
 pub use guix::GuixAdapter;
+pub use influxdb::InfluxDbAdapter;
 pub use julia::JuliaAdapter;
 pub use kubernetes_images::KubernetesImagesAdapter;
 pub use kubernetes_packages::KubernetesPackagesAdapter;
@@ -137,6 +139,7 @@ static GO: GoAdapter = GoAdapter;
 static GRADLE: GradleAdapter = GradleAdapter;
 static GHCUP: GhcupAdapter = GhcupAdapter;
 static GUIX: GuixAdapter = GuixAdapter;
+static INFLUXDB: InfluxDbAdapter = InfluxDbAdapter;
 static JULIA: JuliaAdapter = JuliaAdapter;
 static KUBERNETES_IMAGES: KubernetesImagesAdapter = KubernetesImagesAdapter;
 static KUBERNETES_PACKAGES: KubernetesPackagesAdapter = KubernetesPackagesAdapter;
@@ -184,6 +187,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &XBPS,
         &NIX,
         &GUIX,
+        &INFLUXDB,
         &FLATPAK,
         &OPKG,
         &PIP,

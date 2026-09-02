@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+95c6ead7c76a",
-  "content_revision": 20260902073000,
-  "generated_at": "2026-09-02T07:30:00Z",
+  "content_version": "2026.08.28+a39698fae3cb",
+  "content_revision": 20260902080000,
+  "generated_at": "2026-09-02T08:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -859,12 +859,13 @@
       ]
     },
     {
-      "id": "influxdata--static-files",
-      "family": "influxdata",
-      "display_name": "influxdata",
-      "content_kind": "static-files",
+      "id": "influxdata-packages--repository-metadata",
+      "family": "influxdata-packages",
+      "display_name": "influxdata-packages",
+      "content_kind": "repository-metadata",
       "aliases": [
-        "influxdata"
+        "influxdata-apt-runtime",
+        "influxdata-rpm-runtime"
       ]
     },
     {
@@ -1860,7 +1861,7 @@
       "id": "influxdb",
       "adapter_key": "influxdb",
       "display_name": "influxdb",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/87",
       "supported_scopes": [
         "system"
@@ -2593,6 +2594,101 @@
             200
           ],
           "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "0283e89f03ef672dadefc284",
+      "provider_id": "nju",
+      "upstream_id": "influxdata-packages--repository-metadata",
+      "tool_id": "influxdb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "influxdata-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/influxdata/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/influxdata/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/influxdata/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-stable-2-amd64",
+          "debian-stable-2-arm64",
+          "ubuntu-stable-2-amd64",
+          "ubuntu-stable-2-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/{family}/dists/stable/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: InfluxDB"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{family}/dists/stable/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{family}/dists/stable/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{family}/packages/{package_name}",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{family}/packages/influxdb2-client_2.7.5-3_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
         }
       ],
       "source_urls": [
@@ -11481,36 +11577,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "4c42a560a0d86bf442833628",
-      "provider_id": "nju",
-      "upstream_id": "influxdata--static-files",
-      "tool_id": "influxdb",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "influxdata"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/influxdata/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "4c9bf80c19e29e8a354e055a",
       "provider_id": "tuna",
       "upstream_id": "nongnu-elpa--language-registry",
@@ -15112,6 +15178,99 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "6f5f9325f53698a918b5cc55",
+      "provider_id": "ustc",
+      "upstream_id": "influxdata-packages--repository-metadata",
+      "tool_id": "influxdb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "influxdata-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/influxdata/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/influxdata/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/influxdata/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-stable-2-amd64",
+          "debian-stable-2-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/{family}/dists/stable/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: InfluxDB"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{family}/dists/stable/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{family}/dists/stable/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{family}/packages/{package_name}",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{family}/packages/influxdb2-client_2.7.5-3_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/influxdata.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "6fb4f7b3e44056dd9211ec0c",
       "provider_id": "tuna",
       "upstream_id": "nix-channels--binary-cache",
@@ -17670,6 +17829,89 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "85ae7d09413a303a25c7617a",
+      "provider_id": "nju",
+      "upstream_id": "influxdata-packages--repository-metadata",
+      "tool_id": "influxdb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "influxdata-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/influxdata/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/influxdata/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/influxdata/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-stable-2-x86_64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/yum/el9-x86_64/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/el9-x86_64/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/el9-x86_64/{package_name}",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/el9-x86_64/influxdb2-client_2.7.5-3.x86_64.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "8614a6276525521d0637dee2",
       "provider_id": "ustc",
       "upstream_id": "manjaro--repository-metadata",
@@ -18055,6 +18297,89 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "8874ea59503f350e3c2b392f",
+      "provider_id": "tuna",
+      "upstream_id": "influxdata-packages--repository-metadata",
+      "tool_id": "influxdb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "influxdata-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/influxdata/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/influxdata/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/influxdata/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-stable-2-x86_64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/yum/el9-x86_64/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/el9-x86_64/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/el9-x86_64/{package_name}",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/el9-x86_64/influxdb2-client_2.7.5-3.x86_64.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
@@ -22378,36 +22703,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "b0f18014642f8574e592c2a3",
-      "provider_id": "tuna",
-      "upstream_id": "influxdata--static-files",
-      "tool_id": "influxdb",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "influxdata"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/influxdata/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "b255098500446c3c4659b919",
       "provider_id": "sjtug",
       "upstream_id": "fedora-secondary--repository-metadata",
@@ -24327,6 +24622,101 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "c21b931bca6b2baa340e7476",
+      "provider_id": "tuna",
+      "upstream_id": "influxdata-packages--repository-metadata",
+      "tool_id": "influxdb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "influxdata-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/influxdata/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/influxdata/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/influxdata/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-stable-2-amd64",
+          "debian-stable-2-arm64",
+          "ubuntu-stable-2-amd64",
+          "ubuntu-stable-2-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/{family}/dists/stable/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: InfluxDB"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{family}/dists/stable/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{family}/dists/stable/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{family}/packages/{package_name}",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{family}/packages/influxdb2-client_2.7.5-3_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -27605,36 +27995,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/centos-vault.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "d9ada10b36006ddd2ec66473",
-      "provider_id": "ustc",
-      "upstream_id": "influxdata--static-files",
-      "tool_id": "influxdb",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "influxdata"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/influxdata/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/influxdata.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

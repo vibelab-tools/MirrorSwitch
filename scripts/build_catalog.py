@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "57"
+CATALOG_FORMAT_REVISION = "58"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -507,6 +507,18 @@ MONGODB_APT_REPOSITORY_VERSIONS = [
 MONGODB_RPM_REPOSITORY_VERSIONS = [
     "el-9-8.0-x86_64",
 ]
+INFLUXDB_UPSTREAM = "influxdata-packages--repository-metadata"
+INFLUXDB_ENDPOINTS = {
+    "nju": "https://mirrors.nju.edu.cn/influxdata/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/influxdata/",
+    "ustc": "https://mirrors.ustc.edu.cn/influxdata/",
+}
+INFLUXDB_APT_REPOSITORY_VERSIONS = [
+    f"{family}-stable-2-{architecture}"
+    for family in ["debian", "ubuntu"]
+    for architecture in ["amd64", "arm64"]
+]
+INFLUXDB_RPM_REPOSITORY_VERSIONS = ["el-9-stable-2-x86_64"]
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -596,6 +608,8 @@ def runtime_upstream_identity(
         return "mysql-community", "repository-metadata"
     if tool_id == "mongodb" and entry["raw_name"].startswith("mongodb"):
         return "mongodb-community", "repository-metadata"
+    if tool_id == "influxdb" and entry["raw_name"].startswith("influxdata"):
+        return "influxdata-packages", "repository-metadata"
     if tool_id == "podman-registry" and entry["raw_name"] in {"gcr", "ghcr", "quay"}:
         return f"{entry['raw_name']}.io", "container-registry"
     return entry["normalized_upstream"], entry["content_type"]
@@ -847,6 +861,17 @@ def candidate_endpoints(
         and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
     ):
         endpoint = MONGODB_ENDPOINTS[entry["provider_id"]]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "packages"]
+        ]
+    if (
+        tool_id == "influxdb"
+        and upstream_key == INFLUXDB_UPSTREAM
+        and entry["provider_id"] in INFLUXDB_ENDPOINTS
+        and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
+    ):
+        endpoint = INFLUXDB_ENDPOINTS[entry["provider_id"]]
         return [
             {"role": role, "protocol": "https", "url": endpoint}
             for role in ["index", "metadata", "packages"]
@@ -3304,6 +3329,51 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "influxdb"
+        and upstream_key == INFLUXDB_UPSTREAM
+        and entry["provider_id"] in INFLUXDB_ENDPOINTS
+        and entry["raw_name"].endswith("-apt-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = list(INFLUXDB_APT_REPOSITORY_VERSIONS)
+        if entry["provider_id"] == "ustc":
+            compatibility["repository_versions"] = [
+                version
+                for version in compatibility["repository_versions"]
+                if version.startswith("debian-")
+            ]
+        delivery_mode = "mirror"
+        root = "/{family}"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{root}/dists/stable/InRelease", "expected_status": [200], "contains": "Origin: InfluxDB"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/stable/Release.gpg", "expected_status": [200]},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/stable/main/binary-{{architecture}}/Packages.gz", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/packages/{{package_name}}", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/packages/influxdb2-client_2.7.5-3_{{architecture}}.deb", "expected_status": [200]},
+        ]
+    elif (
+        tool_id == "influxdb"
+        and upstream_key == INFLUXDB_UPSTREAM
+        and entry["provider_id"] in {"nju", "tuna"}
+        and entry["raw_name"].endswith("-rpm-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = INFLUXDB_RPM_REPOSITORY_VERSIONS
+        delivery_mode = "mirror"
+        root = "/yum/el9-x86_64"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{root}/repodata/repomd.xml", "expected_status": [200], "contains": "<repomd"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/repodata/repomd.xml", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/{{package_name}}", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/influxdb2-client_2.7.5-3.x86_64.rpm", "expected_status": [200]},
+        ]
+    elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
@@ -3493,6 +3563,19 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                             "raw_name": f"mongodb-{surface}-runtime",
                         }
                     )
+            elif (
+                any(target["tool_id"] == "influxdb" for target in targets)
+                and entry["provider_id"] in INFLUXDB_ENDPOINTS
+                and entry["raw_name"] == "influxdata"
+            ):
+                surfaces = ["apt", "rpm"] if entry["provider_id"] in {"nju", "tuna"} else ["apt"]
+                for surface in surfaces:
+                    planned_entries.append(
+                        {
+                            **entry,
+                            "raw_name": f"influxdata-{surface}-runtime",
+                        }
+                    )
             elif entry["raw_name"] == "elpa":
                 for archive, (family, _) in ELPA_ARCHIVES.items():
                     root = entry["public_endpoints"][0]["url"].rstrip("/")
@@ -3579,6 +3662,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "tlmgr",
                         "gradle",
                         "guix",
+                        "influxdb",
                         "julia",
                         "kubernetes-images",
                         "kubernetes-packages",
