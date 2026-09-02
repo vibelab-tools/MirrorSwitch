@@ -5,7 +5,7 @@
 MirrorSwitch is a Rust terminal tool for selecting and applying compatible
 China-hosted mirrors for software-development repositories.
 
-The first release targets Linux on `x86_64` and `arm64`. It will provide three
+The first release targets Linux on `x86_64` and `arm64`. It provides three
 front ends backed by the same core engine:
 
 - a non-interactive CLI;
@@ -26,13 +26,16 @@ real-boundary checks have passed.
 
 ## Design baseline
 
+- [Linux installation and upgrades](docs/install-linux.md)
 - [Product boundary](docs/product-boundary.md)
 - [Linux support matrix](docs/support-matrix.md)
+- [Supported adapter reference](docs/adapter-reference.md)
 - [Six-provider inventory](docs/provider-inventory.md)
 - [Runtime catalog and safe updates](docs/catalog-updates.md)
 - [Linux CLI, configuration, and TUI](docs/cli.md)
 - [Testing and Docker matrix](docs/testing.md)
 - [Linux packaging](docs/packaging.md)
+- [Contribution guide](CONTRIBUTING.md)
 - [Per-repository mirror selection](docs/mirror-selection.md)
 - [APT adapter](docs/adapters/apt.md)
 - [DNF adapter](docs/adapters/dnf.md)

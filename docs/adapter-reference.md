@@ -1,0 +1,99 @@
+# Supported adapter reference
+
+This index is the v0.1.0 operator contract for all 64 catalog entries currently marked
+`supported`. The checked-in catalog remains authoritative for exact versions, distributions,
+architectures, upstreams, candidates, and content probes.
+
+All rows use the same lifecycle: detect and plan are read-only; compatible candidates must pass
+hard filters and content probes before latency ordering; apply writes through a private atomic
+transaction; the adapter verifies through its public client boundary; verification failure
+restores the transaction; an explicit transaction ID can be restored later. System scope requires
+an elevated apply/restore, user scope runs as the owning user, and project/site scopes are explicit.
+Unsupported versions, ambiguous/private-only sources, unsafe trust policy, and incomplete mirror
+content remain unchanged and are reported.
+
+## System package and host configuration
+
+| Adapter | Scope | Verification boundary and key limit |
+| --- | --- | --- |
+| `apt` | system | `apt-get update`; Debian/Ubuntu list and deb822 only ([details](adapters/apt.md)) |
+| `dnf` | system | DNF/DNF5 metadata refresh; reviewed Fedora/Rocky/Alma/Stream layouts ([details](adapters/dnf.md)) |
+| `yum` | system | YUM refresh; true legacy CentOS only, never a duplicate DNF path ([details](adapters/yum.md)) |
+| `pacman` | system | Pacman database query; Arch and Arch Linux ARM stay distinct ([details](adapters/pacman.md)) |
+| `zypper` | system | Zypper refresh/query; Leap/Tumbleweed/Packman remain separate ([details](adapters/zypper.md)) |
+| `apk` | system | APK index refresh/query; exact stable branch and architecture ([details](adapters/apk.md)) |
+| `portage` | system | Portage/emerge read-only validation; distfiles and repository sync are independent ([details](adapters/portage.md)) |
+| `xbps` | system | XBPS index refresh/query; glibc/musl and override order preserved ([details](adapters/xbps.md)) |
+| `nix` | system/user | Nix store query; daemon/single-user mode and cache signatures must match ([details](adapters/nix.md)) |
+| `guix` | system | `guix weather`; daemon substitutes only, channels/keys remain read-only ([details](adapters/guix.md)) |
+| `flatpak` | system/user | Architecture-specific `remote-ls`; existing mapped Flathub remote only ([details](adapters/flatpak.md)) |
+| `opkg` | system | Feed signature/update/query; exact release/target/subtarget/package architecture ([details](adapters/opkg.md)) |
+
+## Language, build, and editor tools
+
+| Adapter | Scope | Verification boundary and key limit |
+| --- | --- | --- |
+| `pip` | system/user/site | Effective `pip config` plus fixed package query; environment/auth policy is never overwritten ([details](adapters/pip.md)) |
+| `pdm` | user/project | PDM source query; project scope explicit and source ordering preserved ([details](adapters/pdm.md)) |
+| `poetry` | project | Poetry resolver; package sources are project-local, not publishing repositories ([details](adapters/poetry.md)) |
+| `uv` | user/project | No-cache dry-run resolution; named/private project sources preserved ([details](adapters/uv.md)) |
+| `npm` | system/user/project | Registry metadata and tarball plus client query; scopes/auth preserved ([details](adapters/npm.md)) |
+| `pnpm` | user | Registry metadata/tarball and `pnpm view`; project/auth/TLS overrides block changes ([details](adapters/pnpm.md)) |
+| `yarn` | user/project | Classic/Berry-specific query; generations and configuration formats never cross ([details](adapters/yarn.md)) |
+| `conda` | user | Conda/Mamba/Micromamba search; channel/subdir/architecture completeness required ([details](adapters/conda.md)) |
+| `pyenv` | user | Exact Python release/archive query; custom definitions and runtime overrides preserved ([#69](https://github.com/vibelab-tools/MirrorSwitch/issues/69)) |
+| `maven` | user | Fixed Maven dependency resolution; private mirrors/servers/proxies preserved ([details](adapters/maven.md)) |
+| `gradle` | user/project | Dependency and Wrapper distribution verification; project scope explicit ([details](adapters/gradle.md)) |
+| `sbt` | user | Maven/Ivy fixed dependency resolution; repository layouts stay distinct ([details](adapters/sbt.md)) |
+| `leiningen` | user | Fixed Clojars/Maven dependency resolution; profiles and credentials preserved ([#62](https://github.com/vibelab-tools/MirrorSwitch/issues/62)) |
+| `bazel` | system/user | Bazelisk release or signed APT path; project files and checksum policy preserved ([#70](https://github.com/vibelab-tools/MirrorSwitch/issues/70)) |
+| `nvm` | user | Remote version query; one initialized shell profile and Node/io.js roots ([details](adapters/nvm.md)) |
+| `fnm` | user | Remote protocol query; persistent shell environment must be explicit ([details](adapters/fnm.md)) |
+| `go` | user | Fixed module download with checksum; GOPROXY fallback/private rules preserved ([details](adapters/go.md)) |
+| `cargo` | user | Fixed crate sparse/git index and checksum/archive query; private registries preserved ([details](adapters/cargo.md)) |
+| `rustup` | user | `rustup check` with manifests/components/target checksums; dist/update roots stay paired ([details](adapters/rustup.md)) |
+| `rubygems` | user | Fixed gem metadata/archive and client query; ordered private sources preserved ([details](adapters/rubygems.md)) |
+| `bundler` | user/project | Compact/classic index resolution; Gemfile and lockfile are never rewritten ([details](adapters/bundler.md)) |
+| `composer` | user | Composer diagnose/query with metadata/dist/VCS chain; auth and project config preserved ([details](adapters/composer.md)) |
+| `nuget` | user | NuGet/dotnet config hierarchy and fixed restore/install; mappings/auth preserved ([details](adapters/nuget.md)) |
+| `cabal` | user | Secure index/package query; project configuration remains read-only ([details](adapters/cabal.md)) |
+| `stack` | user/project | Snapshot/Hackage/toolchain query; project scope explicit ([details](adapters/stack.md)) |
+| `ghcup` | user | Signed metadata and bindist checks; custom channels and keys preserved ([details](adapters/ghcup.md)) |
+| `cpan` | user | CPAN/CPANM index and distribution query; client-specific config preserved ([#67](https://github.com/vibelab-tools/MirrorSwitch/issues/67)) |
+| `cran` | user | Fixed R package query; named repositories and Bioconductor policy preserved ([#68](https://github.com/vibelab-tools/MirrorSwitch/issues/68)) |
+| `bioconductor` | user | Version-paired repository/package query; project/renv configuration stays read-only ([#64](https://github.com/vibelab-tools/MirrorSwitch/issues/64)) |
+| `tlmgr` | system/user | TeX Live remote query; release year and installation platform must match ([#65](https://github.com/vibelab-tools/MirrorSwitch/issues/65)) |
+| `dart-pub` | user | Isolated fixed-package resolution; SDK channel/artifacts are not Pub ([#63](https://github.com/vibelab-tools/MirrorSwitch/issues/63)) |
+| `flutter` | user | Flutter storage plus Pub query; both repository classes must validate ([#66](https://github.com/vibelab-tools/MirrorSwitch/issues/66)) |
+| `julia` | user | Isolated Pkg resolve; depot/registries/projects remain read-only ([#72](https://github.com/vibelab-tools/MirrorSwitch/issues/72)) |
+| `opam` | user | Repository/package archive query; project switches remain read-only ([#71](https://github.com/vibelab-tools/MirrorSwitch/issues/71)) |
+| `elpa` | user | Batch archive refresh; GNU/NonGNU/MELPA selected independently ([#80](https://github.com/vibelab-tools/MirrorSwitch/issues/80)) |
+
+## Containers and development infrastructure
+
+| Adapter | Scope | Verification boundary and key limit |
+| --- | --- | --- |
+| `docker-ce` | system | Signed APT/RPM refresh; package repository only, not daemon registry ([#78](https://github.com/vibelab-tools/MirrorSwitch/issues/78)) |
+| `containerd` | system | Effective config plus real registry pull; service restart is reported, never automatic ([#79](https://github.com/vibelab-tools/MirrorSwitch/issues/79)) |
+| `podman-registry` | system/user | Registries.conf parse plus real pull; TLS/auth/custom policy preserved ([#76](https://github.com/vibelab-tools/MirrorSwitch/issues/76)) |
+| `kubernetes-packages` | system | Signed APT/RPM refresh for exact maintained minor channel ([#77](https://github.com/vibelab-tools/MirrorSwitch/issues/77)) |
+| `kubernetes-images` | user | Exact kubeadm image manifest/pull plan; CoreDNS mapping is explicit ([#74](https://github.com/vibelab-tools/MirrorSwitch/issues/74)) |
+| `ros` | system | Signed ROS 1 Noetic/Focal snapshot refresh; ROS 2 is a separate unsupported adapter ([#81](https://github.com/vibelab-tools/MirrorSwitch/issues/81)) |
+| `gitlab-runner` | system | Signed package metadata refresh; runner registration/executor/server config untouched ([#93](https://github.com/vibelab-tools/MirrorSwitch/issues/93)) |
+| `mysql` | system | Signed MySQL Community 8.4 APT/RPM refresh; server/data untouched ([#85](https://github.com/vibelab-tools/MirrorSwitch/issues/85)) |
+| `mariadb` | system | Signed MariaDB 11.8 repository refresh; server/data untouched ([#88](https://github.com/vibelab-tools/MirrorSwitch/issues/88)) |
+| `postgresql` | system | Signed PGDG 17 repository refresh; server/data untouched ([#89](https://github.com/vibelab-tools/MirrorSwitch/issues/89)) |
+| `mongodb` | system | Signed MongoDB Community 8.0 repository refresh; server/data untouched ([#86](https://github.com/vibelab-tools/MirrorSwitch/issues/86)) |
+| `influxdb` | system | Signed stable 2.x package repository refresh; service/data untouched ([#87](https://github.com/vibelab-tools/MirrorSwitch/issues/87)) |
+| `elasticstack` | system | Signed Elastic 9.x package repository refresh; service/data untouched ([#90](https://github.com/vibelab-tools/MirrorSwitch/issues/90)) |
+| `grafana` | system | Signed Grafana 13.x stable repository refresh; service/data untouched ([#91](https://github.com/vibelab-tools/MirrorSwitch/issues/91)) |
+| `zabbix` | system | Signed Zabbix 7.4 stable repository refresh; service/data untouched ([#92](https://github.com/vibelab-tools/MirrorSwitch/issues/92)) |
+| `ceph` | system | Signed Ceph Squid package repository refresh; cluster/config/data untouched ([#94](https://github.com/vibelab-tools/MirrorSwitch/issues/94)) |
+| `nginx` | system | Signed Nginx stable/mainline repository refresh; service/config/data untouched ([#95](https://github.com/vibelab-tools/MirrorSwitch/issues/95)) |
+
+## Not supported in v0.1.0
+
+The Linux catalog keeps Conan, Docker daemon registry mirrors, Helm, Jenkins Update Center, and
+ROS 2 in `planned` state because their v0.1 acceptance evidence is incomplete. They are not
+compiled adapters and cannot write configuration. macOS and Windows entries are deferred to the
+v0.2.0 milestone and are likewise inert in the Linux binary.

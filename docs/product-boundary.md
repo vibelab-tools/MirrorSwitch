@@ -75,7 +75,7 @@ permission requirements.
 | `detect` | No | Environment, detected tools, effective configuration source, and unsupported reasons |
 | `plan` | No | Per-tool compatible candidates, probes, latency result, intended diff, permissions, restart impact, and fallback |
 | `apply` | Yes | Verified transaction identifier, applied targets, backups, validation results, and any rollback |
-| `status` | No | Current effective source, catalog version/origin, drift, and latest transaction state |
+| `status` | No | Host/container context, permissions, detected tools, default selections, notices, and catalog version/origin |
 | `restore` | Yes | Selected transaction restored and verified, with conflicts or unsupported state reported |
 
 The configuration file and TUI produce the same internal request and plan as

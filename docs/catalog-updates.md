@@ -35,12 +35,24 @@ does not replace the current data. A valid newer cache is preferred over the emb
 when the network is unavailable. Corrupt caches are reported and left untouched for diagnosis.
 
 `CatalogStatus` is serializable machine output containing the active schema/content version,
-revision, generation time, source, cache condition and update result. Until the main CLI/TUI lands,
-the same status is available with:
+revision, generation time, source, cache condition and update result. Inspect it without changing
+configuration:
 
 ```bash
-cargo run --bin catalogctl -- status /path/to/catalog-cache.json
+mirrorswitch status --json | jq '.catalog'
+mirrorswitch status --offline --json | jq '.catalog'
 ```
+
+`source` is `fresh-remote`, `last-known-good-cache`, or `embedded-baseline`. The `update.status`
+field distinguishes `updated`, `no-update`, `fetch-failed`, invalid data, stale data, revision
+conflicts, and cache-write failures. `--offline` reports `update.status` as `offline` and performs
+no Raw request. The cache is `$XDG_CACHE_HOME/mirrorswitch/catalog.json`, or
+`~/.cache/mirrorswitch/catalog.json` when `XDG_CACHE_HOME` is unset.
+
+The Raw URL is anonymous. It therefore requires this repository and the file to be publicly
+readable; a private repository returns HTTP 404 and the status records that exact fallback reason.
+This does not disable the embedded catalog, but a newer remote revision cannot arrive until the
+URL is public or a different public distribution endpoint is implemented.
 
 Remote data is declarative. The schema rejects unknown executable fields, and a tool may become
 `supported` only when its ID matches an adapter compiled into the binary and present in the
