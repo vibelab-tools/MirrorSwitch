@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     cell::RefCell,
@@ -53,6 +53,16 @@ fn context(
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -78,7 +88,7 @@ env_file='{physical_env}'
 value() {{
   key="$1"
   if [ -f "$env_file" ]; then
-    found=$(sed -n "s/^${{key}}=//p" "$env_file" | tail -n 1)
+    found=$(sed -n "s/^${{key}}=//p" "$env_file" | tail -n 1 | tr -d '\r')
     if [ -n "$found" ]; then printf '%s' "$found"; return; fi
   fi
   case "$key" in
@@ -450,6 +460,68 @@ fn failed_real_module_query_restores_the_original_goenv() {
 }
 
 #[test]
+fn macos_and_windows_use_reported_goenv_and_preserve_native_line_endings() {
+    for (os, architecture, newline) in [
+        (OperatingSystem::Macos, Architecture::X86_64, "\n"),
+        (OperatingSystem::Windows, Architecture::Arm64, "\r\n"),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_go(root, "1.27.0", 0);
+        let text = format!(
+            "GOPROXY=https://proxy.golang.org,direct{newline}GOSUMDB=sum.golang.org{newline}GOPRIVATE=corp.invalid.example/*{newline}GONOSUMDB=corp.invalid.example/*{newline}UNKNOWN_GO_SETTING=keep{newline}"
+        );
+        let original = text.into_bytes();
+        let goenv = write(root, "/home/developer/.config/go/env", &original);
+        let context = native_context(root, os, architecture);
+        let adapter = GoAdapter;
+        let mut runtime = runtime(root, BTreeMap::new());
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let request = adapter
+            .selection_request(&context, &detected, &current)
+            .unwrap();
+        assert_eq!(request.context.os, os);
+        let selected = [selection(ALIYUN)];
+        let plan = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(plan, adapter.plan(&context, &current, &selected).unwrap());
+        let rendered = std::str::from_utf8(&plan.changes[0].new_contents).unwrap();
+        assert!(rendered.contains("UNKNOWN_GO_SETTING=keep"));
+        assert!(rendered.contains("GOPRIVATE=corp.invalid.example/*"));
+        assert!(!rendered.replace(newline, "").contains('\n'));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+        else {
+            panic!("native GOENV should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &selected)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(goenv).unwrap(), original);
+    }
+}
+
+#[test]
 fn catalog_keeps_three_records_but_activates_only_the_checksum_complete_candidate() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -478,6 +550,14 @@ fn catalog_keeps_three_records_but_activates_only_the_checksum_complete_candidat
     assert_eq!(complete[0].provider_id, "aliyun");
     assert_eq!(complete[0].upstream_id, GO_PROXY_UPSTREAM);
     assert_eq!(complete[0].delivery_mode, DeliveryMode::Proxy);
+    assert_eq!(
+        complete[0].compatibility.operating_systems,
+        [
+            OperatingSystem::Linux,
+            OperatingSystem::Macos,
+            OperatingSystem::Windows
+        ]
+    );
     assert_eq!(complete[0].compatibility.architectures.len(), 2);
     assert_eq!(complete[0].probes.len(), 6);
     for candidate in complete {

@@ -1,7 +1,8 @@
 # Go Modules adapter
 
-The Go Modules adapter supports the stable Go `1.13+` module environment model on Linux
-`x86_64` and `arm64`. Detection records the Go version, the effective `GOPROXY` chain and its
+The Go Modules adapter supports the stable Go `1.13+` module environment model on Linux, macOS,
+and native Windows hosts using `x86_64` or `arm64`. Detection records the Go version, the effective
+`GOPROXY` chain and its
 comma/pipe separator model, the persistent `GOENV` path, checksum-database state, private-module
 policy state, and any process-level `GOPROXY` override. The behavior follows the official
 [Go Modules reference](https://go.dev/ref/mod#environment-variables) and
@@ -33,3 +34,7 @@ MirrorSwitch confirms the effective value through `go env` and runs
 `go mod download -json github.com/pkg/errors@v0.9.1`; both module and `go.mod` `h1:` checksums must
 be present. Failure restores the exact prior `GOENV` file, replanning is idempotent, and CLI,
 configuration-file, and TUI entry points consume the same plan.
+
+The writable path always comes from `go env GOENV`; MirrorSwitch does not derive it from a Linux,
+macOS, or Windows directory convention. Existing LF/CRLF layout and unrelated settings are
+preserved, while project `go.env`, `go.mod`, and `go.sum` files remain read-only.

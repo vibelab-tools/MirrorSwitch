@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+bf3762b7fb6e",
-  "content_revision": 20260902230338,
-  "generated_at": "2026-09-02T23:03:38Z",
+  "content_version": "2026.08.28+622b07500aa8",
+  "content_revision": 20260902231343,
+  "generated_at": "2026-09-02T23:13:43Z",
   "providers": [
     {
       "id": "aliyun",
@@ -24060,103 +24060,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "ac51b34140ee39cda0344833",
-      "provider_id": "aliyun",
-      "upstream_id": "goproxy--language-registry",
-      "tool_id": "go",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "goproxy"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/goproxy/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/github.com/pkg/errors/@v/list",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "v0.9.1"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/github.com/pkg/errors/@v/v0.9.1.info",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "v0.9.1"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/github.com/pkg/errors/@v/v0.9.1.mod",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "module github.com/pkg/errors"
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/github.com/pkg/errors/@v/v0.9.1.zip",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/sumdb/sum.golang.org/supported",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/sumdb/sum.golang.org/lookup/github.com/pkg/errors@v0.9.1",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "github.com/pkg/errors v0.9.1 h1:"
-        }
-      ],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/goproxy"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "acb34c222720c1f68a58aad6",
       "provider_id": "nju",
       "upstream_id": "flutter-sdk--git-mirror",
@@ -30336,6 +30239,105 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/elpa.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "d2432043e76c07b2f799aec6",
+      "provider_id": "aliyun",
+      "upstream_id": "goproxy--language-registry",
+      "tool_id": "go",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "goproxy"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/goproxy/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/github.com/pkg/errors/@v/list",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "v0.9.1"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/github.com/pkg/errors/@v/v0.9.1.info",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "v0.9.1"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/github.com/pkg/errors/@v/v0.9.1.mod",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "module github.com/pkg/errors"
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/github.com/pkg/errors/@v/v0.9.1.zip",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/sumdb/sum.golang.org/supported",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/sumdb/sum.golang.org/lookup/github.com/pkg/errors@v0.9.1",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "github.com/pkg/errors v0.9.1 h1:"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/goproxy"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

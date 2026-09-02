@@ -1,0 +1,106 @@
+name: Go Modules macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "33 5 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: Go Modules (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel, go_arch: x64 }
+          - { name: macOS arm64, runner: macos-15, go_arch: arm64 }
+          - { name: Windows x86_64, runner: windows-2025, go_arch: x64 }
+          - { name: Windows arm64, runner: windows-11-arm, go_arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.27.x"
+          architecture: ${{ matrix.go_arch }}
+          cache: false
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          go version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic Go Modules boundary
+        run: cargo test --locked --test go_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS GOENV, frontends, download, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-go-boundary"; export HOME="$boundary/home" XDG_CONFIG_HOME="$boundary/config"
+          unset GOENV GOPROXY GOSUMDB GOPRIVATE GONOPROXY GONOSUMDB GO111MODULE
+          project="$HOME/project"; mkdir -p "$project" "$XDG_CONFIG_HOME"
+          go env -w GOPROXY=https://proxy.golang.org,direct GOSUMDB=sum.golang.org 'GOPRIVATE=corp.invalid.example/*' 'GONOSUMDB=corp.invalid.example/*'
+          goenv=$(go env GOENV)
+          printf 'module example.invalid/native\n\ngo 1.27\n' > "$project/go.mod"
+          printf '{"version":1,"tools":[{"id":"go","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$goenv"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/go.mod"|awk '{print $1}'); mode=$(stat -f '%Lp' "$goenv")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool go --scope go=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('status.json')); assert [t['adapter_key'] for t in s['detected_tools'] if t['adapter_key']=='go']==['go']
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool go --scope go=user > tui.txt; grep -F 'mirror=aliyun' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='go' and r['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$goenv"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 go.mod|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$goenv")"
+      - name: Exercise Windows GOENV, frontends, download, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-go-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:GOENV,Env:GOPROXY,Env:GOSUMDB,Env:GOPRIVATE,Env:GONOPROXY,Env:GONOSUMDB,Env:GO111MODULE -ErrorAction SilentlyContinue
+          $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $project,$env:APPDATA,$env:LOCALAPPDATA|Out-Null
+          go env -w GOPROXY=https://proxy.golang.org,direct GOSUMDB=sum.golang.org 'GOPRIVATE=corp.invalid.example/*' 'GONOSUMDB=corp.invalid.example/*'
+          $goenv=go env GOENV; $text=(Get-Content $goenv -Raw)-replace "(?<!`r)`n","`r`n"; [IO.File]::WriteAllText($goenv,$text,[Text.UTF8Encoding]::new($false))
+          "module example.invalid/native`r`n`r`ngo 1.27`r`n"|Set-Content -Encoding utf8 (Join-Path $project 'go.mod'); '{"version":1,"tools":[{"id":"go","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          $before=(Get-FileHash $goenv -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'go.mod') -Algorithm SHA256).Hash; $acl=(Get-Acl $goenv).Sddl
+          Push-Location $project
+          try{
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool go --scope go=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; if(@($s.detected_tools|Where-Object adapter_key -eq 'go').Count -ne 1){throw 'Go not detected'}; $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)){throw 'frontend plans differ'}
+            @('','n')|& $binary tui --offline --tool go --scope go=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=aliyun')){throw 'Go mirror missing'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Go apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
+            (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'go'){throw 'restore failed'}
+          }finally{Pop-Location}
+          if($before -ne (Get-FileHash $goenv -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'go.mod') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $goenv).Sddl){throw 'Go configuration not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: go-native-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-go-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7
