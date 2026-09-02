@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "62"
+CATALOG_FORMAT_REVISION = "63"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -563,6 +563,18 @@ GRAFANA_ENDPOINTS = {
     "tuna": "https://mirrors.tuna.tsinghua.edu.cn/grafana/",
 }
 GRAFANA_APT_REPOSITORY_VERSIONS = ["apt-stable-13-amd64", "apt-stable-13-arm64"]
+ZABBIX_UPSTREAM = "zabbix-packages--repository-metadata"
+ZABBIX_ENDPOINTS = {
+    "aliyun": "https://mirrors.aliyun.com/zabbix/",
+    "huaweicloud": "https://repo.huaweicloud.com/zabbix/",
+    "nju": "https://mirrors.nju.edu.cn/zabbix/",
+}
+ZABBIX_APT_REPOSITORY_VERSIONS = [
+    f"{family}-{release}-7.4-{architecture}"
+    for family, release in [("debian", "bookworm"), ("ubuntu", "jammy"), ("ubuntu", "noble")]
+    for architecture in ["amd64", "arm64"]
+]
+ZABBIX_RPM_REPOSITORY_VERSIONS = ["el-9-7.4-x86_64", "el-9-7.4-aarch64"]
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -662,6 +674,8 @@ def runtime_upstream_identity(
         return "elastic-stack", "repository-metadata"
     if tool_id == "grafana" and entry["raw_name"].startswith("grafana"):
         return "grafana-packages", "repository-metadata"
+    if tool_id == "zabbix" and entry["raw_name"].startswith("zabbix"):
+        return "zabbix-packages", "repository-metadata"
     if tool_id == "podman-registry" and entry["raw_name"] in {"gcr", "ghcr", "quay"}:
         return f"{entry['raw_name']}.io", "container-registry"
     return entry["normalized_upstream"], entry["content_type"]
@@ -959,6 +973,14 @@ def candidate_endpoints(
         and entry["raw_name"].endswith("-apt-runtime")
     ):
         endpoint = GRAFANA_ENDPOINTS[entry["provider_id"]]
+        return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
+    if (
+        tool_id == "zabbix"
+        and upstream_key == ZABBIX_UPSTREAM
+        and entry["provider_id"] in ZABBIX_ENDPOINTS
+        and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
+    ):
+        endpoint = ZABBIX_ENDPOINTS[entry["provider_id"]]
         return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
     if (
         tool_id == "flutter"
@@ -3575,6 +3597,47 @@ def runtime_properties(
             {"endpoint_role": "packages", "method": "head", "path": f"{root}/pool/main/g/grafana-enterprise/grafana-enterprise_13.2.0_32077357341_linux_{{architecture}}.deb", "expected_status": [200]},
         ]
     elif (
+        tool_id == "zabbix"
+        and upstream_key == ZABBIX_UPSTREAM
+        and entry["provider_id"] in ZABBIX_ENDPOINTS
+        and entry["raw_name"].endswith("-apt-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ZABBIX_APT_REPOSITORY_VERSIONS
+        delivery_mode = "mirror"
+        stable = "/zabbix/7.4/stable/{family}"
+        release = "/zabbix/7.4/release/{family}"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{stable}/dists/{{release}}/InRelease", "expected_status": [200], "contains": "Origin: Zabbix"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{stable}/dists/{{release}}/Release.gpg", "expected_status": [200]},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{stable}/dists/{{release}}/main/binary-{{architecture}}/Packages.gz", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{stable}/pool/main/z/zabbix/zabbix-server-pgsql_7.4.14-1+{{platform_tag}}_{{architecture}}.deb", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{stable}/pool/main/z/zabbix/zabbix-agent2_7.4.14-1+{{platform_tag}}_{{architecture}}.deb", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{release}/pool/main/z/zabbix-release/zabbix-release_7.4-3+{{platform_tag}}_all.deb", "expected_status": [200]},
+        ]
+    elif (
+        tool_id == "zabbix"
+        and upstream_key == ZABBIX_UPSTREAM
+        and entry["provider_id"] in ZABBIX_ENDPOINTS
+        and entry["raw_name"].endswith("-rpm-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = ZABBIX_RPM_REPOSITORY_VERSIONS
+        delivery_mode = "mirror"
+        root = "/zabbix/7.4/stable/rhel/9/{architecture}"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{root}/repodata/repomd.xml", "expected_status": [200], "contains": "<repomd"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/repodata/repomd.xml", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/zabbix-server-pgsql-7.4.14-release1.el9.{{architecture}}.rpm", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/zabbix-agent2-7.4.14-release1.el9.{{architecture}}.rpm", "expected_status": [200]},
+        ]
+    elif (
         tool_id == "elasticstack"
         and upstream_key == ELASTICSTACK_UPSTREAM
         and entry["provider_id"] in ELASTICSTACK_ENDPOINTS
@@ -3826,6 +3889,13 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                 and entry["raw_name"] == "grafana"
             ):
                 planned_entries.append({**entry, "raw_name": "grafana-apt-runtime"})
+            elif (
+                any(target["tool_id"] == "zabbix" for target in targets)
+                and entry["provider_id"] in ZABBIX_ENDPOINTS
+                and entry["raw_name"] == "zabbix"
+            ):
+                for surface in ["apt", "rpm"]:
+                    planned_entries.append({**entry, "raw_name": f"zabbix-{surface}-runtime"})
             elif entry["raw_name"] == "elpa":
                 for archive, (family, _) in ELPA_ARCHIVES.items():
                     root = entry["public_endpoints"][0]["url"].rstrip("/")
@@ -3943,6 +4013,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "pyenv",
                         "xbps",
                         "zypper",
+                        "zabbix",
                     }
                     else target["state"]
                 ),

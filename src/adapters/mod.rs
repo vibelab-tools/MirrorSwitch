@@ -57,6 +57,7 @@ mod uv;
 mod xbps;
 mod yarn;
 mod yum;
+mod zabbix;
 mod zypper;
 
 use std::collections::HashSet;
@@ -122,6 +123,7 @@ pub use uv::UvAdapter;
 pub use xbps::XbpsAdapter;
 pub use yarn::YarnAdapter;
 pub use yum::YumAdapter;
+pub use zabbix::ZabbixAdapter;
 pub use zypper::ZypperAdapter;
 
 static APK: ApkAdapter = ApkAdapter;
@@ -183,6 +185,7 @@ static UV: UvAdapter = UvAdapter;
 static XBPS: XbpsAdapter = XbpsAdapter;
 static YARN: YarnAdapter = YarnAdapter;
 static YUM: YumAdapter = YumAdapter;
+static ZABBIX: ZabbixAdapter = ZabbixAdapter;
 static ZYPPER: ZypperAdapter = ZypperAdapter;
 
 pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
@@ -247,6 +250,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &PYENV,
         &BAZEL,
         &OPAM,
+        &ZABBIX,
     ]
 }
 

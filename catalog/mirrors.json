@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+3da62f34947a",
-  "content_revision": 20260902100000,
-  "generated_at": "2026-09-02T10:00:00Z",
+  "content_version": "2026.08.28+cd2978d8d0ce",
+  "content_revision": 20260902103000,
+  "generated_at": "2026-09-02T10:30:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1476,12 +1476,13 @@
       ]
     },
     {
-      "id": "zabbix--static-files",
-      "family": "zabbix",
-      "display_name": "zabbix",
-      "content_kind": "static-files",
+      "id": "zabbix-packages--repository-metadata",
+      "family": "zabbix-packages",
+      "display_name": "zabbix-packages",
+      "content_kind": "repository-metadata",
       "aliases": [
-        "zabbix"
+        "zabbix-apt-runtime",
+        "zabbix-rpm-runtime"
       ]
     }
   ],
@@ -2359,7 +2360,7 @@
       "id": "zabbix",
       "adapter_key": "zabbix",
       "display_name": "zabbix",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/92",
       "supported_scopes": [
         "system"
@@ -3518,36 +3519,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "05d9fae644917c1c004aae24",
-      "provider_id": "nju",
-      "upstream_id": "zabbix--static-files",
-      "tool_id": "zabbix",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "zabbix"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/zabbix/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "05e61aa1ba5f97f32ad4de76",
       "provider_id": "huaweicloud",
       "upstream_id": "pypi--language-registry",
@@ -4559,6 +4530,91 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "0eff9a7e55d3bef2fcf935f3",
+      "provider_id": "aliyun",
+      "upstream_id": "zabbix-packages--repository-metadata",
+      "tool_id": "zabbix",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "zabbix-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/zabbix/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/zabbix/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/zabbix/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-7.4-x86_64",
+          "el-9-7.4-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/zabbix/7.4/stable/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/rhel/9/{architecture}/zabbix-server-pgsql-7.4.14-release1.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/rhel/9/{architecture}/zabbix-agent2-7.4.14-release1.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -6028,36 +6084,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "19dd6b4d5fc753d3c1c30628",
-      "provider_id": "huaweicloud",
-      "upstream_id": "zabbix--static-files",
-      "tool_id": "zabbix",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "zabbix"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/zabbix/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "1a1fd49991b65e6d8b2d31d1",
       "provider_id": "huaweicloud",
       "upstream_id": "sbt-plugins--language-registry",
@@ -6498,6 +6524,111 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "1d5568d7ad184de38400b097",
+      "provider_id": "huaweicloud",
+      "upstream_id": "zabbix-packages--repository-metadata",
+      "tool_id": "zabbix",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "zabbix-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/zabbix/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/zabbix/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/zabbix/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-7.4-amd64",
+          "debian-bookworm-7.4-arm64",
+          "ubuntu-jammy-7.4-amd64",
+          "ubuntu-jammy-7.4-arm64",
+          "ubuntu-noble-7.4-amd64",
+          "ubuntu-noble-7.4-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/zabbix/7.4/stable/{family}/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: Zabbix"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/{family}/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/{family}/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/{family}/pool/main/z/zabbix/zabbix-server-pgsql_7.4.14-1+{platform_tag}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/{family}/pool/main/z/zabbix/zabbix-agent2_7.4.14-1+{platform_tag}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/release/{family}/pool/main/z/zabbix-release/zabbix-release_7.4-3+{platform_tag}_all.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -12037,6 +12168,91 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "48c6f95dc71e9c6819afe7c5",
+      "provider_id": "huaweicloud",
+      "upstream_id": "zabbix-packages--repository-metadata",
+      "tool_id": "zabbix",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "zabbix-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/zabbix/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/zabbix/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/zabbix/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-7.4-x86_64",
+          "el-9-7.4-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/zabbix/7.4/stable/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/rhel/9/{architecture}/zabbix-server-pgsql-7.4.14-release1.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/rhel/9/{architecture}/zabbix-agent2-7.4.14-release1.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -21604,36 +21820,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "9d0fc4f82c9bfa7fb514ace7",
-      "provider_id": "aliyun",
-      "upstream_id": "zabbix--static-files",
-      "tool_id": "zabbix",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "zabbix"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/zabbix/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "9d748f533e9217a637d03331",
       "provider_id": "sjtug",
       "upstream_id": "blackarch--repository-metadata",
@@ -26978,6 +27164,91 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "c4f8d9b47f23e46d904a4c68",
+      "provider_id": "nju",
+      "upstream_id": "zabbix-packages--repository-metadata",
+      "tool_id": "zabbix",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "zabbix-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/zabbix/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/zabbix/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/zabbix/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-7.4-x86_64",
+          "el-9-7.4-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/zabbix/7.4/stable/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/rhel/9/{architecture}/zabbix-server-pgsql-7.4.14-release1.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/rhel/9/{architecture}/zabbix-agent2-7.4.14-release1.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "c54ed904c895fa16f2ac472b",
       "provider_id": "nju",
       "upstream_id": "nix--binary-cache",
@@ -27926,6 +28197,111 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "cb237c5b8497c39c55241528",
+      "provider_id": "nju",
+      "upstream_id": "zabbix-packages--repository-metadata",
+      "tool_id": "zabbix",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "zabbix-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/zabbix/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/zabbix/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/zabbix/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-7.4-amd64",
+          "debian-bookworm-7.4-arm64",
+          "ubuntu-jammy-7.4-amd64",
+          "ubuntu-jammy-7.4-arm64",
+          "ubuntu-noble-7.4-amd64",
+          "ubuntu-noble-7.4-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/zabbix/7.4/stable/{family}/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: Zabbix"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/{family}/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/{family}/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/{family}/pool/main/z/zabbix/zabbix-server-pgsql_7.4.14-1+{platform_tag}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/{family}/pool/main/z/zabbix/zabbix-agent2_7.4.14-1+{platform_tag}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/release/{family}/pool/main/z/zabbix-release/zabbix-release_7.4-3+{platform_tag}_all.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -32263,6 +32639,111 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "f2e3910488001555926777db",
+      "provider_id": "aliyun",
+      "upstream_id": "zabbix-packages--repository-metadata",
+      "tool_id": "zabbix",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "zabbix-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/zabbix/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/zabbix/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/zabbix/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-7.4-amd64",
+          "debian-bookworm-7.4-arm64",
+          "ubuntu-jammy-7.4-amd64",
+          "ubuntu-jammy-7.4-arm64",
+          "ubuntu-noble-7.4-amd64",
+          "ubuntu-noble-7.4-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/zabbix/7.4/stable/{family}/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: Zabbix"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/{family}/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/{family}/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/{family}/pool/main/z/zabbix/zabbix-server-pgsql_7.4.14-1+{platform_tag}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/stable/{family}/pool/main/z/zabbix/zabbix-agent2_7.4.14-1+{platform_tag}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/zabbix/7.4/release/{family}/pool/main/z/zabbix-release/zabbix-release_7.4-3+{platform_tag}_all.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
