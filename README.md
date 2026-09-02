@@ -34,6 +34,7 @@ Windows are tracked by [v0.2.0](https://github.com/vibelab-tools/MirrorSwitch/mi
 - [Linux installation and upgrades](docs/install-linux.md)
 - [Product boundary](docs/product-boundary.md)
 - [Linux support matrix](docs/support-matrix.md)
+- [macOS and Windows mirror inventory](docs/macos-windows-inventory.md)
 - [Supported adapter reference](docs/adapter-reference.md)
 - [Six-provider inventory](docs/provider-inventory.md)
 - [Runtime catalog and safe updates](docs/catalog-updates.md)
