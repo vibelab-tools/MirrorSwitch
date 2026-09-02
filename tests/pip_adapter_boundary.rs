@@ -1,6 +1,7 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
+    collections::BTreeMap,
     fs,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
@@ -38,6 +39,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -68,8 +79,37 @@ fn install_pip(root: &Path, selected: &str, query_exit: i32, environment: &str) 
     );
 }
 
+fn install_native_pip(
+    root: &Path,
+    selected: &str,
+    debug: &str,
+    global: &str,
+    user: &str,
+    site: &str,
+) {
+    let global = root.join(global.trim_start_matches('/'));
+    let user = root.join(user.trim_start_matches('/'));
+    let site = root.join(site.trim_start_matches('/'));
+    executable(
+        root,
+        "/usr/bin/pip",
+        format!(
+            "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 'pip 25.2 from native/site-packages/pip (python 3.13)'; exit 0; fi\nif [ \"$1 $2\" = 'config debug' ]; then\n  printf '%s' '{debug}'\n  exit 0\nfi\nif [ \"$1 $2\" = 'config list' ]; then\n  url=$(sed -n 's/^[[:space:]]*index-url[[:space:]]*=[[:space:]]*//p' '{site}' 2>/dev/null | tail -1)\n  [ -n \"$url\" ] || url=$(sed -n 's/^[[:space:]]*index-url[[:space:]]*=[[:space:]]*//p' '{user}' 2>/dev/null | tail -1)\n  [ -n \"$url\" ] || url=$(sed -n 's/^[[:space:]]*index-url[[:space:]]*=[[:space:]]*//p' '{global}' 2>/dev/null | tail -1)\n  printf \"global.index-url='%s'\\n\" \"$url\"\n  exit 0\nfi\nif [ \"$1 $2 $3\" = 'index versions sampleproject' ]; then\n  found=1\n  for file in '{global}' '{user}' '{site}'; do [ -f \"$file\" ] && grep -q '{selected}' \"$file\" && found=0; done\n  [ $found -eq 0 ] || exit 65\n  echo 'sampleproject (4.0.0)'\n  exit 0\nfi\nexit 64\n",
+            global = global.display(),
+            user = user.display(),
+            site = site.display(),
+        ),
+    );
+}
+
 fn runtime(root: &Path) -> OsRuntime {
     OsRuntime::new(root, vec![PathBuf::from("/usr/bin")]).with_home("/home/developer")
+}
+
+fn native_runtime(root: &Path, home: &str, environment: BTreeMap<String, String>) -> OsRuntime {
+    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home(home)
+        .with_environment(environment)
 }
 
 fn selection(url: &str) -> MirrorSelection {
@@ -298,6 +338,173 @@ fn environment_credentials_command_overrides_and_tls_bypass_are_not_mutated() {
 }
 
 #[test]
+fn macos_and_windows_use_native_user_paths_and_preserve_native_text_layout() {
+    struct Case {
+        os: OperatingSystem,
+        architecture: Architecture,
+        home: &'static str,
+        global: &'static str,
+        user: &'static str,
+        site: &'static str,
+        environment: BTreeMap<String, String>,
+        bom: bool,
+        newline: &'static str,
+    }
+
+    let cases = [
+        Case {
+            os: OperatingSystem::Macos,
+            architecture: Architecture::X86_64,
+            home: "/Users/test",
+            global: "/Library/Application Support/pip/pip.conf",
+            user: "/Users/test/Library/Application Support/pip/pip.conf",
+            site: "/opt/native/pip.conf",
+            environment: BTreeMap::new(),
+            bom: false,
+            newline: "\n",
+        },
+        Case {
+            os: OperatingSystem::Windows,
+            architecture: Architecture::Arm64,
+            home: "/Users/test",
+            global: "/ProgramData/pip/pip.ini",
+            user: "/Users/test/AppData/Roaming/pip/pip.ini",
+            site: "/venv/pip.ini",
+            environment: BTreeMap::from([
+                ("APPDATA".into(), "/Users/test/AppData/Roaming".into()),
+                ("ProgramData".into(), "/ProgramData".into()),
+            ]),
+            bom: true,
+            newline: "\r\n",
+        },
+    ];
+
+    for case in cases {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        let debug = format!(
+            "env_var:\nenv:\nglobal:\n  {}, exists: True\nsite:\n  {}, exists: False\nuser:\n",
+            case.global, case.site
+        );
+        install_native_pip(root, TUNA, &debug, case.global, case.user, case.site);
+        let global = write(
+            root,
+            case.global,
+            b"[global]\nproxy = https://proxy.invalid.example\ncert = machine.pem\n",
+        );
+        let original_text = format!(
+            "[global]{0}index-url = https://pypi.org/simple/{0}extra-index-url = https://reader:password@private.invalid.example/simple{0}cert = C:\\certs\\ca.pem{0}proxy = https://proxy.invalid.example{0}unknown-option = keep{0}",
+            case.newline
+        );
+        let mut original = original_text.into_bytes();
+        if case.bom {
+            original.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let user = write(root, case.user, &original);
+        let context = native_context(root, case.os, case.architecture);
+        let adapter = PipAdapter;
+        let mut runtime = native_runtime(root, case.home, case.environment);
+
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        assert_eq!(detected.executable.as_deref(), Some(Path::new("pip")));
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let selected = current
+            .documents
+            .iter()
+            .find(|document| document.format == "pip-selected-config")
+            .unwrap();
+        assert_eq!(selected.path, PathBuf::from(case.user));
+        assert!(
+            !serde_json::to_string(&current)
+                .unwrap()
+                .contains("password")
+        );
+
+        let chosen = [selection(TUNA)];
+        let cli = adapter.plan(&context, &current, &chosen).unwrap();
+        let config = adapter.plan(&context, &current, &chosen).unwrap();
+        let tui = adapter.plan(&context, &current, &chosen).unwrap();
+        assert_eq!(cli, config);
+        assert_eq!(config, tui);
+        assert_eq!(cli.changes[0].target, user);
+        assert_eq!(
+            cli.changes[0].new_contents.starts_with(&[0xef, 0xbb, 0xbf]),
+            case.bom
+        );
+        let rendered = std::str::from_utf8(
+            cli.changes[0]
+                .new_contents
+                .strip_prefix(&[0xef, 0xbb, 0xbf])
+                .unwrap_or(&cli.changes[0].new_contents),
+        )
+        .unwrap();
+        assert!(rendered.contains(&format!("index-url = {TUNA}")));
+        assert!(rendered.contains("unknown-option = keep"));
+        assert!(rendered.contains("cert = C:\\certs\\ca.pem"));
+        assert!(rendered.contains("proxy = https://proxy.invalid.example"));
+        assert!(!rendered.replace(case.newline, "").contains('\n'));
+
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("native pip user configuration should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &chosen)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(user).unwrap(), original);
+        assert_eq!(
+            fs::read(global).unwrap(),
+            b"[global]\nproxy = https://proxy.invalid.example\ncert = machine.pem\n"
+        );
+    }
+
+    let directory = tempdir().unwrap();
+    install_native_pip(
+        directory.path(),
+        TUNA,
+        "env_var:\nenv:\nglobal:\nsite:\nuser:\n",
+        "/etc/pip.conf",
+        "/Users/test/Library/Application Support/pip/pip.conf",
+        "/opt/native/pip.conf",
+    );
+    let mut context = native_context(
+        directory.path(),
+        OperatingSystem::Macos,
+        Architecture::Arm64,
+    );
+    context.environment = ExecutionEnvironment::Container;
+    let runtime = native_runtime(directory.path(), "/Users/test", BTreeMap::new());
+    assert!(
+        PipAdapter
+            .detect(&context, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("native host")
+    );
+}
+
+#[test]
 fn embedded_catalog_has_six_complete_simple_api_candidates() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -313,7 +520,12 @@ fn embedded_catalog_has_six_complete_simple_api_candidates() {
                 candidate.delivery_mode,
                 DeliveryMode::Mirror | DeliveryMode::Proxy
             )
-            && candidate.compatibility.operating_systems == [OperatingSystem::Linux]
+            && candidate.compatibility.operating_systems
+                == [
+                    OperatingSystem::Linux,
+                    OperatingSystem::Macos,
+                    OperatingSystem::Windows,
+                ]
             && candidate.compatibility.architectures == [Architecture::X86_64, Architecture::Arm64]
             && candidate.endpoints[0].role == EndpointRole::Index
             && candidate.endpoints[0].protocol == Protocol::Https

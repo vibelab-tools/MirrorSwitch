@@ -38,7 +38,7 @@ content remain unchanged and are reported.
 
 | Adapter | Scope | Verification boundary and key limit |
 | --- | --- | --- |
-| `pip` | system/user/site | Effective `pip config` plus fixed package query; environment/auth policy is never overwritten ([details](adapters/pip.md)) |
+| `pip` | system/user/site | Linux/macOS/Windows `pip config` hierarchy plus fixed package query; native paths, text layout and environment/auth policy are preserved ([details](adapters/pip.md)) |
 | `pdm` | user/project | PDM source query; project scope explicit and source ordering preserved ([details](adapters/pdm.md)) |
 | `poetry` | project | Poetry resolver; package sources are project-local, not publishing repositories ([details](adapters/poetry.md)) |
 | `uv` | user/project | No-cache dry-run resolution; named/private project sources preserved ([details](adapters/uv.md)) |

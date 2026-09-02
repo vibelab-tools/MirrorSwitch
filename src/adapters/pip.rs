@@ -7,7 +7,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -60,7 +60,7 @@ impl Adapter for PipAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         let Some(command) = pip_command(runtime) else {
             return Ok(None);
         };
@@ -81,7 +81,7 @@ impl Adapter for PipAdapter {
         }
         Ok(Some(DetectedTool {
             tool_id: "pip".into(),
-            executable: Some(PathBuf::from(format!("/usr/bin/{command}"))),
+            executable: Some(PathBuf::from(command)),
             version: (!version.is_empty()).then_some(version),
             evidence,
         }))
@@ -94,14 +94,14 @@ impl Adapter for PipAdapter {
         _detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         let command = pip_command(runtime).ok_or_else(|| {
             AdapterError::Runtime("pip command disappeared after detection".into())
         })?;
         let debug_text = run_text(runtime, command, &["config", "debug"], "pip config debug")?;
         let debug = parse_debug(&debug_text)?;
-        let selected_path = selected_path(&debug, runtime, scope)?;
+        let selected_path = selected_path(&debug, context, runtime, scope)?;
         let mut paths = debug.paths.clone();
         if !paths.iter().any(|path| path.path == selected_path) {
             paths.push(DebugPath {
@@ -156,7 +156,7 @@ impl Adapter for PipAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         Ok(SelectionRequest {
             tool_id: "pip".into(),
@@ -186,7 +186,7 @@ impl Adapter for PipAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let endpoint = selected_endpoint(selections)?;
         validate_precedence(current, endpoint)?;
@@ -199,7 +199,10 @@ impl Adapter for PipAdapter {
             })?;
         let text = utf8(&document.path, &document.contents)?;
         require_tls_policy(current, endpoint)?;
-        let new_contents = rewrite_primary_index(text, endpoint)?.into_bytes();
+        let mut new_contents = rewrite_primary_index(text, endpoint)?.into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            new_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let existed = current.files.contains(&document.path);
         let changes = (new_contents != document.contents)
             .then(|| PlannedFileChange {
@@ -340,10 +343,18 @@ struct IniEntry {
     multiline: bool,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "pip adapter requires Linux".into(),
+            "pip on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "pip adapter requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -482,6 +493,7 @@ fn validate_paths(paths: &[DebugPath]) -> Result<(), AdapterError> {
 
 fn selected_path(
     debug: &DebugInfo,
+    context: &SystemContext,
     runtime: &dyn Runtime,
     scope: ConfigurationScope,
 ) -> Result<PathBuf, AdapterError> {
@@ -496,18 +508,38 @@ fn selected_path(
         return Ok(path);
     }
     match scope {
-        ConfigurationScope::System => Ok(PathBuf::from("/etc/pip.conf")),
-        ConfigurationScope::User => runtime
-            .home_dir()
-            .map(|home| home.join(".config/pip/pip.conf"))
-            .ok_or_else(|| {
+        ConfigurationScope::System => Ok(match context.os {
+            OperatingSystem::Linux => PathBuf::from("/etc/pip.conf"),
+            OperatingSystem::Macos => PathBuf::from("/Library/Application Support/pip/pip.conf"),
+            OperatingSystem::Windows => {
+                environment_path(runtime, "ProgramData")?.join("pip/pip.ini")
+            }
+        }),
+        ConfigurationScope::User => {
+            let home = runtime.home_dir().ok_or_else(|| {
                 AdapterError::Unsupported("pip user scope requires a home directory".into())
-            }),
+            })?;
+            Ok(match context.os {
+                OperatingSystem::Linux => home.join(".config/pip/pip.conf"),
+                OperatingSystem::Macos => home.join("Library/Application Support/pip/pip.conf"),
+                OperatingSystem::Windows => {
+                    environment_path(runtime, "APPDATA")?.join("pip/pip.ini")
+                }
+            })
+        }
         ConfigurationScope::Site => Err(AdapterError::Unsupported(
             "pip did not report a site configuration path".into(),
         )),
         _ => unreachable!("validated pip scope"),
     }
+}
+
+fn environment_path(runtime: &dyn Runtime, name: &str) -> Result<PathBuf, AdapterError> {
+    runtime
+        .environment_variable(name)
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from)
+        .ok_or_else(|| AdapterError::Unsupported(format!("pip {name} is unavailable")))
 }
 
 fn origin_scope(scope: ConfigurationScope) -> OriginScope {
@@ -902,6 +934,9 @@ fn verification_failure<T>(
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "pip configuration {} is not UTF-8",
