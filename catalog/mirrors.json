@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+53649bc90e11",
-  "content_revision": 20260902030000,
-  "generated_at": "2026-09-02T03:00:00Z",
+  "content_version": "2026.08.28+79a5bf506800",
+  "content_revision": 20260902050000,
+  "generated_at": "2026-09-02T05:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -435,15 +435,6 @@
       ]
     },
     {
-      "id": "elpa--language-registry",
-      "family": "elpa",
-      "display_name": "elpa",
-      "content_kind": "language-registry",
-      "aliases": [
-        "elpa"
-      ]
-    },
-    {
       "id": "epel--repository-metadata",
       "family": "epel",
       "display_name": "epel",
@@ -652,6 +643,15 @@
       "content_kind": "static-files",
       "aliases": [
         "gitlab-runner"
+      ]
+    },
+    {
+      "id": "gnu-elpa--language-registry",
+      "family": "gnu-elpa",
+      "display_name": "gnu-elpa",
+      "content_kind": "language-registry",
+      "aliases": [
+        "elpa/gnu"
       ]
     },
     {
@@ -976,6 +976,15 @@
       ]
     },
     {
+      "id": "melpa--language-registry",
+      "family": "melpa",
+      "display_name": "melpa",
+      "content_kind": "language-registry",
+      "aliases": [
+        "elpa/melpa"
+      ]
+    },
+    {
       "id": "mongodb--static-files",
       "family": "mongodb",
       "display_name": "mongodb",
@@ -1066,6 +1075,15 @@
         "node",
         "nodejs",
         "nodejs-release"
+      ]
+    },
+    {
+      "id": "nongnu-elpa--language-registry",
+      "family": "nongnu-elpa",
+      "display_name": "nongnu-elpa",
+      "content_kind": "language-registry",
+      "aliases": [
+        "elpa/nongnu"
       ]
     },
     {
@@ -1708,12 +1726,10 @@
       "id": "elpa",
       "adapter_key": "elpa",
       "display_name": "elpa",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/80",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "user"
       ],
       "composition": "single"
     },
@@ -5086,6 +5102,88 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/brew.git.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "188a68df6cfadeb0c3286bb7",
+      "provider_id": "ustc",
+      "upstream_id": "nongnu-elpa--language-registry",
+      "tool_id": "elpa",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elpa/nongnu"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/elpa/nongnu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/elpa/nongnu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/elpa/nongnu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/archive-contents",
+          "expected_status": [
+            200
+          ],
+          "contains": "(adoc-mode"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/adoc-mode-0.9.0.tar",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/archive-contents.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/adoc-mode-0.9.0.tar.sig",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/elpa.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -9561,6 +9659,81 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "3cc21a6cc2df685b793b5259",
+      "provider_id": "ustc",
+      "upstream_id": "melpa--language-registry",
+      "tool_id": "elpa",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elpa/melpa"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/elpa/melpa/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/elpa/melpa/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/elpa/melpa/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/archive-contents",
+          "expected_status": [
+            200
+          ],
+          "contains": "(dash ."
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/dash-20260221.1346.tar",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/archive-contents",
+          "expected_status": [
+            200
+          ],
+          "contains": "20260221 1346"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/elpa.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "3ce386e2a836566d57ddc6dc",
       "provider_id": "huaweicloud",
       "upstream_id": "docker-ce--repository-metadata",
@@ -11151,6 +11324,88 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "4c9bf80c19e29e8a354e055a",
+      "provider_id": "tuna",
+      "upstream_id": "nongnu-elpa--language-registry",
+      "tool_id": "elpa",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elpa/nongnu"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elpa/nongnu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elpa/nongnu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elpa/nongnu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/archive-contents",
+          "expected_status": [
+            200
+          ],
+          "contains": "(adoc-mode"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/adoc-mode-0.9.0.tar",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/archive-contents.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/adoc-mode-0.9.0.tar.sig",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "4ce23a89e8e1e66b5a68a7f6",
       "provider_id": "nju",
       "upstream_id": "centos-stream--repository-metadata",
@@ -12679,6 +12934,88 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "5b3fccf243ed50c27ab120be",
+      "provider_id": "tuna",
+      "upstream_id": "gnu-elpa--language-registry",
+      "tool_id": "elpa",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elpa/gnu"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/archive-contents",
+          "expected_status": [
+            200
+          ],
+          "contains": "(a68-mode"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/a68-mode-1.3.tar",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/archive-contents.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/a68-mode-1.3.tar.sig",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "5bdc52ecfc2fcfec8847b4ba",
       "provider_id": "aliyun",
       "upstream_id": "maven--language-registry",
@@ -14159,43 +14496,6 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/pypi.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "6dd2337a138cdc90244678d7",
-      "provider_id": "nju",
-      "upstream_id": "elpa--language-registry",
-      "tool_id": "elpa",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "elpa"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/elpa/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -16048,6 +16348,88 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "7f0f295546e6a44eb2e52b0b",
+      "provider_id": "nju",
+      "upstream_id": "nongnu-elpa--language-registry",
+      "tool_id": "elpa",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elpa/nongnu"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elpa/nongnu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elpa/nongnu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elpa/nongnu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/archive-contents",
+          "expected_status": [
+            200
+          ],
+          "contains": "(adoc-mode"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/adoc-mode-0.9.0.tar",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/archive-contents.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/adoc-mode-0.9.0.tar.sig",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "7f6013a4c66adda1d8ae55bd",
       "provider_id": "nju",
       "upstream_id": "ros2--static-files",
@@ -16762,43 +17144,6 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "87083d16383bfdf93bf70331",
-      "provider_id": "ustc",
-      "upstream_id": "elpa--language-registry",
-      "tool_id": "elpa",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "elpa"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/elpa/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/elpa.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -21797,6 +22142,88 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "b47d1e5a4f9522bb7b856649",
+      "provider_id": "nju",
+      "upstream_id": "gnu-elpa--language-registry",
+      "tool_id": "elpa",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elpa/gnu"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elpa/gnu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elpa/gnu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elpa/gnu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/archive-contents",
+          "expected_status": [
+            200
+          ],
+          "contains": "(a68-mode"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/a68-mode-1.3.tar",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/archive-contents.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/a68-mode-1.3.tar.sig",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "b48e7df8c965f1b98fb1034a",
       "provider_id": "sjtug",
       "upstream_id": "fedora-ostree--repository-metadata",
@@ -25569,6 +25996,88 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "d1d9bf9dc3f7d13b40f402c6",
+      "provider_id": "ustc",
+      "upstream_id": "gnu-elpa--language-registry",
+      "tool_id": "elpa",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elpa/gnu"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/elpa/gnu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/elpa/gnu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/elpa/gnu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/archive-contents",
+          "expected_status": [
+            200
+          ],
+          "contains": "(a68-mode"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/a68-mode-1.3.tar",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/archive-contents.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/a68-mode-1.3.tar.sig",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/elpa.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "d26ec19d7ec57f7ddd3853b8",
       "provider_id": "nju",
       "upstream_id": "almalinux--repository-metadata",
@@ -25615,6 +26124,81 @@
             200
           ],
           "contains": "<repomd"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "d271b8ec47b9c3c08dd2b91d",
+      "provider_id": "nju",
+      "upstream_id": "melpa--language-registry",
+      "tool_id": "elpa",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elpa/melpa"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elpa/melpa/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elpa/melpa/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/elpa/melpa/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/archive-contents",
+          "expected_status": [
+            200
+          ],
+          "contains": "(dash ."
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/dash-20260221.1346.tar",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/archive-contents",
+          "expected_status": [
+            200
+          ],
+          "contains": "20260221 1346"
         }
       ],
       "source_urls": [
@@ -26233,43 +26817,6 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "d72d903145ef6ee1936f1a7b",
-      "provider_id": "tuna",
-      "upstream_id": "elpa--language-registry",
-      "tool_id": "elpa",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "elpa"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/elpa/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -26938,6 +27485,81 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "e13e8d070cedef366356cd7b",
+      "provider_id": "tuna",
+      "upstream_id": "melpa--language-registry",
+      "tool_id": "elpa",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "elpa/melpa"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/archive-contents",
+          "expected_status": [
+            200
+          ],
+          "contains": "(dash ."
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/dash-20260221.1346.tar",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/archive-contents",
+          "expected_status": [
+            200
+          ],
+          "contains": "20260221 1346"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

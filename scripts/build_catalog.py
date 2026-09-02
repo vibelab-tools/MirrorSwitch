@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "53"
+CATALOG_FORMAT_REVISION = "54"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -457,6 +457,11 @@ DOCKER_CE_ENDPOINTS = {
     "tuna": "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/",
     "ustc": "https://mirrors.ustc.edu.cn/docker-ce/",
 }
+ELPA_ARCHIVES = {
+    "gnu": ("gnu-elpa", "a68-mode-1.3.tar"),
+    "nongnu": ("nongnu-elpa", "adoc-mode-0.9.0.tar"),
+    "melpa": ("melpa", "dash-20260221.1346.tar"),
+}
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -599,6 +604,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["system"]
     if tool_id == "docker-ce":
         return ["system"]
+    if tool_id == "elpa":
+        return ["user"]
     if tool_id in {
         "maven",
         "sbt",
@@ -748,6 +755,12 @@ def candidate_endpoints(
         and entry["raw_name"] == "docker-ce"
     ):
         endpoint = DOCKER_CE_ENDPOINTS[entry["provider_id"]]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "packages"]
+        ]
+    if tool_id == "elpa" and entry["raw_name"].startswith("elpa/"):
+        endpoint = entry["public_endpoints"][0]["url"]
         return [
             {"role": role, "protocol": "https", "url": endpoint}
             for role in ["index", "metadata", "packages"]
@@ -2941,6 +2954,62 @@ def runtime_properties(
                 "contains": '<data type="primary">',
             },
         ]
+    elif tool_id == "elpa" and entry["raw_name"].startswith("elpa/"):
+        archive = entry["raw_name"].split("/", 1)[1]
+        _, package = ELPA_ARCHIVES[archive]
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "mirror"
+        marker = {
+            "gnu": "(a68-mode",
+            "nongnu": "(adoc-mode",
+            "melpa": "(dash .",
+        }[archive]
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/archive-contents",
+                "expected_status": [200],
+                "contains": marker,
+            },
+            {
+                "endpoint_role": "packages",
+                "method": "head",
+                "path": f"/{package}",
+                "expected_status": [200],
+            },
+        ]
+        if archive in {"gnu", "nongnu"}:
+            probes.extend(
+                [
+                    {
+                        "endpoint_role": "metadata",
+                        "method": "head",
+                        "path": "/archive-contents.sig",
+                        "expected_status": [200],
+                    },
+                    {
+                        "endpoint_role": "packages",
+                        "method": "head",
+                        "path": f"/{package}.sig",
+                        "expected_status": [200],
+                    },
+                ]
+            )
+        else:
+            probes.append(
+                {
+                    "endpoint_role": "metadata",
+                    "method": "get",
+                    "path": "/archive-contents",
+                    "expected_status": [200],
+                    "contains": "20260221 1346",
+                }
+            )
     elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
@@ -3103,7 +3172,25 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                 )
             entry["adapter_targets"] = targets
         if entry["adapter_state"] == "planned":
-            planned_entries.append(entry)
+            if entry["raw_name"] == "elpa":
+                for archive, (family, _) in ELPA_ARCHIVES.items():
+                    root = entry["public_endpoints"][0]["url"].rstrip("/")
+                    planned_entries.append(
+                        {
+                            **entry,
+                            "raw_name": f"elpa/{archive}",
+                            "normalized_upstream": family,
+                            "public_endpoints": [
+                                {
+                                    "url": f"{root}/{archive}/",
+                                    "protocol": "https",
+                                    "derivation": "reviewed-elpa-archive-subpath",
+                                }
+                            ],
+                        }
+                    )
+            else:
+                planned_entries.append(entry)
     active_providers = {entry["provider_id"] for entry in planned_entries}
     providers = [
         {
@@ -3156,6 +3243,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "cran",
                         "dnf",
                         "docker-ce",
+                        "elpa",
                         "dart-pub",
                         "flatpak",
                         "fnm",

@@ -85,7 +85,7 @@ release gate.
 | Dart/Flutter | [Dart Pub #63](https://github.com/vibelab-tools/MirrorSwitch/issues/63), [Flutter #66](https://github.com/vibelab-tools/MirrorSwitch/issues/66) | User | registry vs SDK/engine artifacts, channel/version/architecture | Planned |
 | Julia | [Julia Pkg #72](https://github.com/vibelab-tools/MirrorSwitch/issues/72) | User; project/depot/registries read-only | Julia/Pkg 1.6–1.x; `/registries`, immutable registry/package objects, x86_64/arm64 artifacts, and an isolated real Pkg resolve; empty `JULIA_PKG_SERVER` remains an opt-out | Supported |
 | OCaml | [opam #71](https://github.com/vibelab-tools/MirrorSwitch/issues/71) | User; project off | repository protocol vs archive cache | Planned |
-| Emacs | [package.el/ELPA #80](https://github.com/vibelab-tools/MirrorSwitch/issues/80) | User | each archive independently mapped, metadata/package/signature | Planned |
+| Emacs | [package.el/ELPA #80](https://github.com/vibelab-tools/MirrorSwitch/issues/80) | User init file | GNU/NonGNU/MELPA independently selected; archive/package checks, GNU/NonGNU signatures, upstream-unsigned MELPA; preserve custom archives/priorities/Lisp | Supported |
 | C/C++ | [Conan #73](https://github.com/vibelab-tools/MirrorSwitch/issues/73) | User | Conan 1/2 API, recipe and profile-compatible binary | Planned |
 
 ## Container and development infrastructure
