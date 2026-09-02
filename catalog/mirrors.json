@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+ab710a8e1e81",
-  "content_revision": 20260901113000,
-  "generated_at": "2026-09-01T11:30:00Z",
+  "content_version": "2026.08.28+5e490bf430b1",
+  "content_revision": 20260902000000,
+  "generated_at": "2026-09-02T00:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1880,7 +1880,7 @@
       "id": "kubernetes-packages",
       "adapter_key": "kubernetes-packages",
       "display_name": "kubernetes-packages",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/77",
       "supported_scopes": [
         "system"
@@ -5901,6 +5901,123 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "1f53276067a73298e737be78",
+      "provider_id": "ustc",
+      "upstream_id": "kubernetes--repository-metadata",
+      "tool_id": "kubernetes-packages",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "kubernetes"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/kubernetes/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/kubernetes/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/kubernetes/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/core:/stable:/{minor}/deb/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: obs://build.opensuse.org/isv:kubernetes:core:stable:{minor}/deb"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/core:/stable:/{minor}/deb/Packages",
+          "expected_status": [
+            200
+          ],
+          "contains": "Package: kubeadm"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/core:/stable:/{minor}/deb/Packages",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture: {deb_arch}"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/core:/stable:/v1.35/deb/amd64/kubeadm_1.35.8-1.1_amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/core:/stable:/v1.35/deb/arm64/kubeadm_1.35.8-1.1_arm64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/core:/stable:/{minor}/rpm/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<data type=\"primary\">"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/core:/stable:/v1.35/rpm/x86_64/kubeadm-1.35.8-150500.1.1.x86_64.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/core:/stable:/v1.35/rpm/aarch64/kubeadm-1.35.8-150500.1.1.aarch64.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/kubernetes.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "1fc29320bf721ca90e84a010",
       "provider_id": "huaweicloud",
       "upstream_id": "dart-pub--language-registry",
@@ -9163,41 +9280,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "3cb5d3a21fe9db351a515996",
-      "provider_id": "ustc",
-      "upstream_id": "kubernetes--repository-metadata",
-      "tool_id": "kubernetes-packages",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "kubernetes"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/kubernetes/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/kubernetes.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -14180,6 +14262,123 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/pypi.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "7136d18beb59ad1988b9f6f3",
+      "provider_id": "nju",
+      "upstream_id": "kubernetes--repository-metadata",
+      "tool_id": "kubernetes-packages",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "kubernetes"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/kubernetes/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/kubernetes/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/kubernetes/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/core:/stable:/{minor}/deb/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: obs://build.opensuse.org/isv:kubernetes:core:stable:{minor}/deb"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/core:/stable:/{minor}/deb/Packages",
+          "expected_status": [
+            200
+          ],
+          "contains": "Package: kubeadm"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/core:/stable:/{minor}/deb/Packages",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture: {deb_arch}"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/core:/stable:/v1.35/deb/amd64/kubeadm_1.35.8-1.1_amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/core:/stable:/v1.35/deb/arm64/kubeadm_1.35.8-1.1_arm64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/core:/stable:/{minor}/rpm/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<data type=\"primary\">"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/core:/stable:/v1.35/rpm/x86_64/kubeadm-1.35.8-150500.1.1.x86_64.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/core:/stable:/v1.35/rpm/aarch64/kubeadm-1.35.8-150500.1.1.aarch64.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -19304,6 +19503,123 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "a75652c5a1040e6efc0e26a3",
+      "provider_id": "tuna",
+      "upstream_id": "kubernetes--repository-metadata",
+      "tool_id": "kubernetes-packages",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "kubernetes"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/kubernetes/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/kubernetes/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/kubernetes/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/core:/stable:/{minor}/deb/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: obs://build.opensuse.org/isv:kubernetes:core:stable:{minor}/deb"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/core:/stable:/{minor}/deb/Packages",
+          "expected_status": [
+            200
+          ],
+          "contains": "Package: kubeadm"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/core:/stable:/{minor}/deb/Packages",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture: {deb_arch}"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/core:/stable:/v1.35/deb/amd64/kubeadm_1.35.8-1.1_amd64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/core:/stable:/v1.35/deb/arm64/kubeadm_1.35.8-1.1_arm64.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/core:/stable:/{minor}/rpm/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<data type=\"primary\">"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/core:/stable:/v1.35/rpm/x86_64/kubeadm-1.35.8-150500.1.1.x86_64.rpm",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/core:/stable:/v1.35/rpm/aarch64/kubeadm-1.35.8-150500.1.1.aarch64.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -26613,41 +26929,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "e65d282a724038ac8d7cf3d7",
-      "provider_id": "tuna",
-      "upstream_id": "kubernetes--repository-metadata",
-      "tool_id": "kubernetes-packages",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "kubernetes"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/kubernetes/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "e6bf6ac2010cbc8e2c58f43c",
       "provider_id": "sjtug",
       "upstream_id": "opam-cache--binary-cache",
@@ -27293,41 +27574,6 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/archlinuxcn.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "ee34fdd624753bf5d98a40c9",
-      "provider_id": "nju",
-      "upstream_id": "kubernetes--repository-metadata",
-      "tool_id": "kubernetes-packages",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "kubernetes"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/kubernetes/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

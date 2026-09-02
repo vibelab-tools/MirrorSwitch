@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "50"
+CATALOG_FORMAT_REVISION = "51"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -433,6 +433,21 @@ OCI_MANIFEST_ACCEPT = (
     "application/vnd.docker.distribution.manifest.v2+json, "
     "application/vnd.oci.image.manifest.v1+json"
 )
+KUBERNETES_PACKAGES_UPSTREAM = "kubernetes--repository-metadata"
+KUBERNETES_PACKAGES_ACTIONABLE_PROVIDERS = {"nju", "tuna", "ustc"}
+KUBERNETES_PACKAGES_ENDPOINTS = {
+    "nju": "https://mirrors.nju.edu.cn/kubernetes/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/kubernetes/",
+    "ustc": "https://mirrors.ustc.edu.cn/kubernetes/",
+}
+KUBERNETES_DEB_BASELINE = {
+    "amd64": "amd64/kubeadm_1.35.8-1.1_amd64.deb",
+    "arm64": "arm64/kubeadm_1.35.8-1.1_arm64.deb",
+}
+KUBERNETES_RPM_BASELINE = {
+    "x86_64": "x86_64/kubeadm-1.35.8-150500.1.1.x86_64.rpm",
+    "aarch64": "aarch64/kubeadm-1.35.8-150500.1.1.aarch64.rpm",
+}
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -569,6 +584,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["user"]
     if tool_id == "podman-registry":
         return ["system", "user"]
+    if tool_id == "kubernetes-packages":
+        return ["system"]
     if tool_id in {
         "maven",
         "sbt",
@@ -686,6 +703,17 @@ def candidate_endpoints(
                 "protocol": "https",
                 "url": KUBERNETES_IMAGES_ENDPOINT,
             }
+        ]
+    if (
+        tool_id == "kubernetes-packages"
+        and upstream_key == KUBERNETES_PACKAGES_UPSTREAM
+        and entry["provider_id"] in KUBERNETES_PACKAGES_ACTIONABLE_PROVIDERS
+        and entry["raw_name"] == "kubernetes"
+    ):
+        endpoint = KUBERNETES_PACKAGES_ENDPOINTS[entry["provider_id"]]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "packages"]
         ]
     if (
         tool_id == "flutter"
@@ -2719,6 +2747,68 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "kubernetes-packages"
+        and upstream_key == KUBERNETES_PACKAGES_UPSTREAM
+        and entry["provider_id"] in KUBERNETES_PACKAGES_ACTIONABLE_PROVIDERS
+        and entry["raw_name"] == "kubernetes"
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "mirror"
+        deb_root = "/core:/stable:/{minor}/deb"
+        rpm_root = "/core:/stable:/{minor}/rpm"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": f"{deb_root}/Release",
+                "expected_status": [200],
+                "contains": "Origin: obs://build.opensuse.org/isv:kubernetes:core:stable:{minor}/deb",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": f"{deb_root}/Packages",
+                "expected_status": [200],
+                "contains": "Package: kubeadm",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": f"{deb_root}/Packages",
+                "expected_status": [200],
+                "contains": "Architecture: {deb_arch}",
+            },
+            *[
+                {
+                    "endpoint_role": "packages",
+                    "method": "head",
+                    "path": f"/core:/stable:/v1.35/deb/{path}",
+                    "expected_status": [200],
+                }
+                for path in KUBERNETES_DEB_BASELINE.values()
+            ],
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": f"{rpm_root}/repodata/repomd.xml",
+                "expected_status": [200],
+                "contains": '<data type="primary">',
+            },
+            *[
+                {
+                    "endpoint_role": "packages",
+                    "method": "head",
+                    "path": f"/core:/stable:/v1.35/rpm/{path}",
+                    "expected_status": [200],
+                }
+                for path in KUBERNETES_RPM_BASELINE.values()
+            ],
+        ]
+    elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
@@ -2946,6 +3036,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "guix",
                         "julia",
                         "kubernetes-images",
+                        "kubernetes-packages",
                         "leiningen",
                         "maven",
                         "nix",
