@@ -42,7 +42,7 @@ jobs:
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component rustfmt,clippy
           rustup default "$RUST_TOOLCHAIN"
       - name: Run native Rust boundaries
-        run: cargo test --locked --test host_detection_boundary --test transaction_boundary --test homebrew_adapter_boundary --test nix_adapter_boundary --test cocoapods_adapter_boundary --test catalog_contract --test catalog_runtime_contract --test catalog_update_boundary --test selection_boundary -- --test-threads=1
+        run: cargo test --locked --test host_detection_boundary --test transaction_boundary --test homebrew_adapter_boundary --test nix_adapter_boundary --test cocoapods_adapter_boundary --test macports_adapter_boundary --test catalog_contract --test catalog_runtime_contract --test catalog_update_boundary --test selection_boundary -- --test-threads=1
       - name: Build release executable
         run: cargo build --locked --release --bin mirrorswitch
       - name: Exercise macOS terminal entrypoints

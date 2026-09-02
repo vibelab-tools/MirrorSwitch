@@ -27,6 +27,7 @@ SYSTEM_TOOLS = {
     "jenkins",
     "kubernetes-images",
     "kubernetes-packages",
+    "macports",
     "mariadb",
     "mongodb",
     "mysql",
@@ -70,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "70"
+CATALOG_FORMAT_REVISION = "71"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -648,6 +649,11 @@ COCOAPODS_SPECS_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/git/CocoaPods/Specs.git",
     "tuna": "https://mirrors.tuna.tsinghua.edu.cn/git/CocoaPods/Specs.git",
 }
+MACPORTS_ROOTS = {
+    "aliyun": "https://mirrors.aliyun.com/macports",
+    "nju": "https://mirrors.nju.edu.cn/macports",
+    "sjtug": "https://mirror.sjtu.edu.cn/macports",
+}
 
 
 def utc_now() -> str:
@@ -830,6 +836,20 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if tool_id == "macports" and entry["provider_id"] in MACPORTS_ROOTS:
+        root = MACPORTS_ROOTS[entry["provider_id"]]
+        return [
+            {
+                "role": "metadata",
+                "protocol": "https",
+                "url": f"{root}/release/tarballs/",
+            },
+            {
+                "role": "artifacts",
+                "protocol": "https",
+                "url": f"{root}/packages/",
+            },
+        ]
     if (
         tool_id == "cocoapods"
         and upstream_key == COCOAPODS_GIT_UPSTREAM
@@ -1441,7 +1461,51 @@ def runtime_properties(
         else "unknown"
     )
     probes = candidate_probe(entry)
-    if tool_id == "cocoapods":
+    if tool_id == "macports" and entry["provider_id"] in MACPORTS_ROOTS:
+        compatibility["operating_systems"] = ["macos"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/ports.tar.gz",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "get",
+                "path": "/ports.tar.gz.rmd160",
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/PortIndex_darwin_{macports_os_major}_{macports_index_arch}/PortIndex",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/zlib/{macports_archive}",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/octet-stream",
+                "sha256": "{macports_archive_digest}",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/zlib/{macports_archive}.rmd160",
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+                "sha256": "{macports_signature_digest}",
+            },
+        ]
+    elif tool_id == "cocoapods":
         compatibility["operating_systems"] = []
         compatibility["architectures"] = []
         compatibility["environments"] = []
@@ -4357,6 +4421,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "kubernetes-images",
                         "kubernetes-packages",
                         "leiningen",
+                        "macports",
                         "mariadb",
                         "maven",
                         "mongodb",

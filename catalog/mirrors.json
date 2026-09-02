@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+ba69caab7538",
-  "content_revision": 20260902182646,
-  "generated_at": "2026-09-02T18:26:46Z",
+  "content_version": "2026.08.28+eb35828b8d51",
+  "content_revision": 20260902184939,
+  "generated_at": "2026-09-02T18:49:39Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1937,12 +1937,10 @@
       "id": "macports",
       "adapter_key": "macports",
       "display_name": "macports",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/99",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "system"
       ],
       "composition": "single"
     },
@@ -11564,40 +11562,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "40d5969b563cceb5e855c94a",
-      "provider_id": "nju",
-      "upstream_id": "macports--static-files",
-      "tool_id": "macports",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "macports"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/macports/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "macos"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "414b5d1d756418c48bd19a5d",
       "provider_id": "nju",
       "upstream_id": "openeuler-archive--repository-metadata",
@@ -13682,40 +13646,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "530f489263ab90b8fcfb86b3",
-      "provider_id": "aliyun",
-      "upstream_id": "macports--static-files",
-      "tool_id": "macports",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "macports"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/macports/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "macos"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "5320dab1f886c9498825f9cf",
       "provider_id": "ustc",
       "upstream_id": "openeuler--repository-metadata",
@@ -15715,6 +15645,95 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "61a03d92751bbea185a015ba",
+      "provider_id": "nju",
+      "upstream_id": "macports--static-files",
+      "tool_id": "macports",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "macports"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/macports/release/tarballs/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/macports/packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ports.tar.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ports.tar.gz.rmd160",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/PortIndex_darwin_{macports_os_major}_{macports_index_arch}/PortIndex",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/zlib/{macports_archive}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{macports_archive_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/zlib/{macports_archive}.rmd160",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{macports_signature_digest}"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -19763,6 +19782,95 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/brew.git.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "82cb701916721c016c520407",
+      "provider_id": "sjtug",
+      "upstream_id": "macports--static-files",
+      "tool_id": "macports",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "macports"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/macports/release/tarballs/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/macports/packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ports.tar.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ports.tar.gz.rmd160",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/PortIndex_darwin_{macports_os_major}_{macports_index_arch}/PortIndex",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/zlib/{macports_archive}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{macports_archive_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/zlib/{macports_archive}.rmd160",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{macports_signature_digest}"
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -24808,40 +24916,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "ae6ce9eef171277cca45049b",
-      "provider_id": "sjtug",
-      "upstream_id": "macports--static-files",
-      "tool_id": "macports",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "macports"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/macports/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "macos"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "aec7467aa0181056b74fa3ce",
       "provider_id": "ustc",
       "upstream_id": "ceph-release--repository-metadata",
@@ -26014,6 +26088,95 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "b7c73ff723182c0e8f80e5da",
+      "provider_id": "aliyun",
+      "upstream_id": "macports--static-files",
+      "tool_id": "macports",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "macports"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/macports/release/tarballs/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/macports/packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/ports.tar.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ports.tar.gz.rmd160",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/PortIndex_darwin_{macports_os_major}_{macports_index_arch}/PortIndex",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/zlib/{macports_archive}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{macports_archive_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/zlib/{macports_archive}.rmd160",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{macports_signature_digest}"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

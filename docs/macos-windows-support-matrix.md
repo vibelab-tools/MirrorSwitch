@@ -41,7 +41,7 @@ details.
 | Homebrew | x86_64, arm64 | User shell variables; Git, signed JSON API, bottle/artifact endpoints | USTC is the first complete candidate to validate; TUNA/NJU/SJTUG/Alibaba are partial by surface | `brew update`, API read, bottle manifest/blob and fixed formula | [#96](https://github.com/vibelab-tools/MirrorSwitch/issues/96) |
 | Nix | `x86_64-darwin`, `aarch64-darwin` | User or daemon substituters plus trusted keys | TUNA/NJU verified; USTC/SJTUG partial | Darwin `.narinfo`, NAR hash/signature and `nix path-info` | [#97](https://github.com/vibelab-tools/MirrorSwitch/issues/97) |
 | CocoaPods | x86_64, arm64 | Existing user Specs Git repository; project Podfile only when explicit | TUNA/NJU Specs Git verified; Huawei archive and all CDN replacements partial | Git metadata, podspec, Podfile parsing and declared source tag | [#98](https://github.com/vibelab-tools/MirrorSwitch/issues/98) |
-| MacPorts | x86_64, arm64 | System `${prefix}/etc/macports` sources and archive sites | Alibaba/NJU/SJTUG partial | `port sync/search/fetch` plus matching Darwin archive | [#99](https://github.com/vibelab-tools/MirrorSwitch/issues/99) |
+| MacPorts | x86_64, arm64 | System `/opt/local/etc/macports` sources and archive sites | Alibaba/NJU/SJTUG paired tree and package candidates verified | Signed `port sync`, `info` and matching Darwin `archivefetch` | [#99](https://github.com/vibelab-tools/MirrorSwitch/issues/99) |
 
 ## Windows-native tool matrix
 

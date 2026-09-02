@@ -55,6 +55,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             "kubernetes-images",
             "kubernetes-packages",
             "leiningen",
+            "macports",
             "mariadb",
             "maven",
             "mongodb",

@@ -29,6 +29,7 @@ content remain unchanged and are reported.
 | `guix` | system | `guix weather`; daemon substitutes only, channels/keys remain read-only ([details](adapters/guix.md)) |
 | `flatpak` | system/user | Architecture-specific `remote-ls`; existing mapped Flathub remote only ([details](adapters/flatpak.md)) |
 | `opkg` | system | Feed signature/update/query; exact release/target/subtarget/package architecture ([details](adapters/opkg.md)) |
+| `macports` | system | Paired signed ports tree and binary archive; Darwin/architecture-specific `archivefetch` ([details](adapters/macports.md)) |
 
 ## Language, build, and editor tools
 
