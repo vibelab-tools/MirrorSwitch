@@ -2,7 +2,7 @@
 name = "mirrorswitch"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 license = "MIT"
 description = "Safe per-tool mirror selection for development repositories"
 repository = "https://github.com/vibelab-tools/MirrorSwitch"

@@ -1,0 +1,53 @@
+name: Live mirror probe
+
+on:
+  schedule:
+    - cron: "17 21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apt:
+    name: APT catalog update and candidate probe
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.88.0 --profile minimal && rustup default 1.88.0
+      - name: Build release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Probe live catalog and APT candidates
+        shell: bash
+        run: |
+          set +e
+          target/release/mirrorswitch plan --tool apt --json > live-probe.json
+          probe_status=$?
+          set -e
+          python3 - "$probe_status" <<'PY'
+          import datetime
+          import json
+          import pathlib
+          import sys
+
+          path = pathlib.Path("live-probe.json")
+          payload = json.loads(path.read_text())
+          report = {
+              "observed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              "exit_code": int(sys.argv[1]),
+              "payload": payload,
+          }
+          path.write_text(json.dumps(report, indent=2) + "\n")
+          if report["exit_code"] not in (0, 3):
+              raise SystemExit(report["exit_code"])
+          PY
+      - name: Save timestamped probe evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-apt-probe-${{ github.run_id }}
+          path: live-probe.json
+          if-no-files-found: error
+          retention-days: 14

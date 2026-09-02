@@ -387,8 +387,7 @@ impl Adapter for DartPubAdapter {
             Ok(VerificationResult {
                 valid: true,
                 summary: format!(
-                    "Dart Pub resolved retry 3.1.2 through {} with an isolated cache",
-                    endpoint
+                    "Dart Pub resolved retry 3.1.2 through {endpoint} with an isolated cache"
                 ),
             })
         })();

@@ -51,7 +51,38 @@ run_unit() {
   phase=adapter-coverage
   python3 -B "$repo_root/scripts/check_adapter_coverage.py"
   phase=rust-tests
-  cargo test --all-targets -- --test-threads=1
+  cargo test --locked --all-targets -- --test-threads=1
+}
+
+run_quality() {
+  phase=rustfmt
+  cargo fmt --check
+  phase=clippy
+  cargo clippy --locked --all-targets -- -D warnings
+}
+
+apt_tree_hash() {
+  if [[ -d /etc/apt ]]; then
+    find /etc/apt -type f -exec sha256sum {} + | LC_ALL=C sort | sha256sum | awk '{print $1}'
+  else
+    printf '%s\n' absent
+  fi
+}
+
+run_cli() {
+  phase=cli-build
+  cargo build --locked --release --bin mirrorswitch
+  local binary="$repo_root/target/release/mirrorswitch" before after payload
+  phase=cli-version
+  "$binary" --version | grep -F "mirrorswitch " >/dev/null
+  phase=cli-help
+  "$binary" --help | grep -F "mirrorswitch detect" >/dev/null
+  phase=cli-read-only-detect
+  before=$(apt_tree_hash)
+  payload=$("$binary" detect --offline --json --category system)
+  after=$(apt_tree_hash)
+  [[ "$before" == "$after" ]]
+  python3 -c 'import json,sys; data=json.load(sys.stdin); assert data["ok"] is True; assert data["report"]["context"]["os"] == "linux"' <<<"$payload"
 }
 
 run_language() {
@@ -82,7 +113,9 @@ run_distro() {
 }
 
 case "$mode" in
+  quality) run_quality ;;
   unit) run_unit ;;
+  cli) run_cli ;;
   language) run_language ;;
   distro)
     [[ -n "$scenario" ]] || { echo 'usage: scripts/test.sh distro NAME [native|arm64]' >&2; exit 64; }
@@ -94,7 +127,7 @@ case "$mode" in
     done
     ;;
   *)
-    echo 'usage: scripts/test.sh {unit|language|distro NAME [native|arm64]|docker}' >&2
+    echo 'usage: scripts/test.sh {quality|unit|cli|language|distro NAME [native|arm64]|docker}' >&2
     exit 64
     ;;
 esac
