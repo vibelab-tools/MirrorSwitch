@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "59"
+CATALOG_FORMAT_REVISION = "60"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -533,6 +533,18 @@ MARIADB_APT_REPOSITORY_VERSIONS = [
     for architecture in ["amd64", "arm64"]
 ]
 MARIADB_RPM_REPOSITORY_VERSIONS = ["el-9-11.8-x86_64", "el-9-11.8-aarch64"]
+POSTGRESQL_UPSTREAM = "postgresql-pgdg--repository-metadata"
+POSTGRESQL_ENDPOINTS = {
+    "aliyun": "https://mirrors.aliyun.com/postgresql/",
+    "huaweicloud": "https://repo.huaweicloud.com/postgresql/",
+    "nju": "https://mirrors.nju.edu.cn/postgresql/",
+}
+POSTGRESQL_APT_REPOSITORY_VERSIONS = [
+    f"{family}-{release}-17-{architecture}"
+    for family, release in [("debian", "bookworm"), ("ubuntu", "jammy"), ("ubuntu", "noble")]
+    for architecture in ["amd64", "arm64"]
+]
+POSTGRESQL_RPM_REPOSITORY_VERSIONS = ["el-9-17-x86_64", "el-9-17-aarch64"]
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -626,6 +638,8 @@ def runtime_upstream_identity(
         return "influxdata-packages", "repository-metadata"
     if tool_id == "mariadb" and entry["raw_name"].startswith("mariadb"):
         return "mariadb-packages", "repository-metadata"
+    if tool_id == "postgresql" and entry["raw_name"].startswith("postgresql"):
+        return "postgresql-pgdg", "repository-metadata"
     if tool_id == "podman-registry" and entry["raw_name"] in {"gcr", "ghcr", "quay"}:
         return f"{entry['raw_name']}.io", "container-registry"
     return entry["normalized_upstream"], entry["content_type"]
@@ -899,6 +913,14 @@ def candidate_endpoints(
         and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
     ):
         endpoint = MARIADB_ENDPOINTS[entry["provider_id"]]
+        return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
+    if (
+        tool_id == "postgresql"
+        and upstream_key == POSTGRESQL_UPSTREAM
+        and entry["provider_id"] in POSTGRESQL_ENDPOINTS
+        and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
+    ):
+        endpoint = POSTGRESQL_ENDPOINTS[entry["provider_id"]]
         return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
     if (
         tool_id == "flutter"
@@ -3435,6 +3457,44 @@ def runtime_properties(
             {"endpoint_role": "packages", "method": "head", "path": f"{root}/rpms/MariaDB-server-11.8.9-1.el9.{{architecture}}.rpm", "expected_status": [200]},
         ]
     elif (
+        tool_id == "postgresql"
+        and upstream_key == POSTGRESQL_UPSTREAM
+        and entry["provider_id"] in {"aliyun", "nju"}
+        and entry["raw_name"].endswith("-apt-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = POSTGRESQL_APT_REPOSITORY_VERSIONS
+        delivery_mode = "mirror"
+        root = "/repos/apt"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{root}/dists/{{release}}-pgdg/InRelease", "expected_status": [200], "contains": "Origin: apt.postgresql.org"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/{{release}}-pgdg/Release.gpg", "expected_status": [200]},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/{{release}}-pgdg/main/binary-{{architecture}}/Packages.gz", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/pool/main/p/postgresql-17/postgresql-17_17.11-1.pgdg{{platform_tag}}+2_{{architecture}}.deb", "expected_status": [200]},
+        ]
+    elif (
+        tool_id == "postgresql"
+        and upstream_key == POSTGRESQL_UPSTREAM
+        and entry["provider_id"] in POSTGRESQL_ENDPOINTS
+        and entry["raw_name"].endswith("-rpm-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = POSTGRESQL_RPM_REPOSITORY_VERSIONS
+        delivery_mode = "mirror"
+        root = "/repos/yum/17/redhat/rhel-9-{architecture}"
+        package = "postgresql17-server-17.5-2PGDG.rhel9.{architecture}.rpm" if entry["provider_id"] == "huaweicloud" else "postgresql17-server-17.9-1PGDG.rhel9.7.{architecture}.rpm"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{root}/repodata/repomd.xml", "expected_status": [200], "contains": "<repomd"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/repodata/repomd.xml", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/{package}", "expected_status": [200]},
+        ]
+    elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
@@ -3644,6 +3704,14 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
             ):
                 for surface in ["apt", "rpm"]:
                     planned_entries.append({**entry, "raw_name": f"mariadb-{surface}-runtime"})
+            elif (
+                any(target["tool_id"] == "postgresql" for target in targets)
+                and entry["provider_id"] in POSTGRESQL_ENDPOINTS
+                and entry["raw_name"] == "postgresql"
+            ):
+                surfaces = ["rpm"] if entry["provider_id"] == "huaweicloud" else ["apt", "rpm"]
+                for surface in surfaces:
+                    planned_entries.append({**entry, "raw_name": f"postgresql-{surface}-runtime"})
             elif entry["raw_name"] == "elpa":
                 for archive, (family, _) in ELPA_ARCHIVES.items():
                     root = entry["public_endpoints"][0]["url"].rstrip("/")
@@ -3755,6 +3823,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "yarn",
                         "pacman",
                         "portage",
+                        "postgresql",
                         "pyenv",
                         "xbps",
                         "zypper",

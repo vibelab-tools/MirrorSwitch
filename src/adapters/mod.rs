@@ -43,6 +43,7 @@ mod pnpm;
 mod podman_registry;
 mod poetry;
 mod portage;
+mod postgresql;
 mod pyenv;
 mod ros;
 mod rubygems;
@@ -105,6 +106,7 @@ pub use pnpm::PnpmAdapter;
 pub use podman_registry::PodmanRegistryAdapter;
 pub use poetry::PoetryAdapter;
 pub use portage::PortageAdapter;
+pub use postgresql::PostgreSqlAdapter;
 pub use pyenv::PyenvAdapter;
 pub use ros::RosAdapter;
 pub use rubygems::RubyGemsAdapter;
@@ -163,6 +165,7 @@ static PNPM: PnpmAdapter = PnpmAdapter;
 static PODMAN_REGISTRY: PodmanRegistryAdapter = PodmanRegistryAdapter;
 static POETRY: PoetryAdapter = PoetryAdapter;
 static PORTAGE: PortageAdapter = PortageAdapter;
+static POSTGRESQL: PostgreSqlAdapter = PostgreSqlAdapter;
 static PYENV: PyenvAdapter = PyenvAdapter;
 static RUBYGEMS: RubyGemsAdapter = RubyGemsAdapter;
 static ROS: RosAdapter = RosAdapter;
@@ -186,6 +189,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &PACMAN,
         &ZYPPER,
         &PORTAGE,
+        &POSTGRESQL,
         &APK,
         &XBPS,
         &NIX,

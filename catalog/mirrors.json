@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+0de76436382a",
-  "content_revision": 20260902083000,
-  "generated_at": "2026-09-02T08:30:00Z",
+  "content_version": "2026.08.28+8580b0c6b223",
+  "content_revision": 20260902090000,
+  "generated_at": "2026-09-02T09:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1215,12 +1215,13 @@
       ]
     },
     {
-      "id": "postgresql--static-files",
-      "family": "postgresql",
-      "display_name": "postgresql",
-      "content_kind": "static-files",
+      "id": "postgresql-pgdg--repository-metadata",
+      "family": "postgresql-pgdg",
+      "display_name": "postgresql-pgdg",
+      "content_kind": "repository-metadata",
       "aliases": [
-        "postgresql"
+        "postgresql-apt-runtime",
+        "postgresql-rpm-runtime"
       ]
     },
     {
@@ -2184,7 +2185,7 @@
       "id": "postgresql",
       "adapter_key": "postgresql",
       "display_name": "postgresql",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/89",
       "supported_scopes": [
         "system"
@@ -7791,6 +7792,83 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "23ca3d7dc124e28384998380",
+      "provider_id": "nju",
+      "upstream_id": "postgresql-pgdg--repository-metadata",
+      "tool_id": "postgresql",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "postgresql-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/postgresql/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/postgresql/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/postgresql/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-17-x86_64",
+          "el-9-17-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/repos/yum/17/redhat/rhel-9-{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repos/yum/17/redhat/rhel-9-{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/repos/yum/17/redhat/rhel-9-{architecture}/postgresql17-server-17.9-1PGDG.rhel9.7.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "2409cfd39a56ed8451e4fa82",
       "provider_id": "ustc",
       "upstream_id": "mariadb-packages--repository-metadata",
@@ -10517,36 +10595,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "3e593baae28a35f8f7795633",
-      "provider_id": "aliyun",
-      "upstream_id": "postgresql--static-files",
-      "tool_id": "postgresql",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "postgresql"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/postgresql/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "3ed0c25b3ecd4f00e4bc7587",
       "provider_id": "ustc",
       "upstream_id": "mariadb-packages--repository-metadata",
@@ -10794,6 +10842,83 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "402556418bbae141344dfa23",
+      "provider_id": "huaweicloud",
+      "upstream_id": "postgresql-pgdg--repository-metadata",
+      "tool_id": "postgresql",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "postgresql-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/postgresql/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/postgresql/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/postgresql/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-17-x86_64",
+          "el-9-17-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/repos/yum/17/redhat/rhel-9-{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repos/yum/17/redhat/rhel-9-{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/repos/yum/17/redhat/rhel-9-{architecture}/postgresql17-server-17.5-2PGDG.rhel9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
       ],
@@ -13418,6 +13543,95 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "578c0d357f26d249cf875e5b",
+      "provider_id": "nju",
+      "upstream_id": "postgresql-pgdg--repository-metadata",
+      "tool_id": "postgresql",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "postgresql-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/postgresql/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/postgresql/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/postgresql/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-17-amd64",
+          "debian-bookworm-17-arm64",
+          "ubuntu-jammy-17-amd64",
+          "ubuntu-jammy-17-arm64",
+          "ubuntu-noble-17-amd64",
+          "ubuntu-noble-17-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/repos/apt/dists/{release}-pgdg/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: apt.postgresql.org"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repos/apt/dists/{release}-pgdg/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repos/apt/dists/{release}-pgdg/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/repos/apt/pool/main/p/postgresql-17/postgresql-17_17.11-1.pgdg{platform_tag}+2_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "57b30605eb6fbd8bf258bdec",
       "provider_id": "ustc",
       "upstream_id": "rust-toolchain--release-artifacts",
@@ -14888,36 +15102,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "63556f8a08a3d7e0bd91ebce",
-      "provider_id": "nju",
-      "upstream_id": "postgresql--static-files",
-      "tool_id": "postgresql",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "postgresql"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/postgresql/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "636e3cd1b23508113379b7e5",
       "provider_id": "sjtug",
       "upstream_id": "flutter-sdk--git-mirror",
@@ -15013,6 +15197,83 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "64c1fdc8625ab2decf78c6cf",
+      "provider_id": "aliyun",
+      "upstream_id": "postgresql-pgdg--repository-metadata",
+      "tool_id": "postgresql",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "postgresql-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/postgresql/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/postgresql/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/postgresql/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-17-x86_64",
+          "el-9-17-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/repos/yum/17/redhat/rhel-9-{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repos/yum/17/redhat/rhel-9-{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/repos/yum/17/redhat/rhel-9-{architecture}/postgresql17-server-17.9-1PGDG.rhel9.7.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -19104,36 +19365,6 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "8bdb2b99bbcd76c4af73db21",
-      "provider_id": "huaweicloud",
-      "upstream_id": "postgresql--static-files",
-      "tool_id": "postgresql",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "postgresql"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/postgresql/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -28858,6 +29089,95 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "db467536d137d94e9d52eaa9",
+      "provider_id": "aliyun",
+      "upstream_id": "postgresql-pgdg--repository-metadata",
+      "tool_id": "postgresql",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "postgresql-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/postgresql/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/postgresql/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/postgresql/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-17-amd64",
+          "debian-bookworm-17-arm64",
+          "ubuntu-jammy-17-amd64",
+          "ubuntu-jammy-17-arm64",
+          "ubuntu-noble-17-amd64",
+          "ubuntu-noble-17-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/repos/apt/dists/{release}-pgdg/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: apt.postgresql.org"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repos/apt/dists/{release}-pgdg/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repos/apt/dists/{release}-pgdg/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/repos/apt/pool/main/p/postgresql-17/postgresql-17_17.11-1.pgdg{platform_tag}+2_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
