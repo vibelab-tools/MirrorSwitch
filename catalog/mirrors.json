@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+dfae797678ed",
-  "content_revision": 20260902070000,
-  "generated_at": "2026-09-02T07:00:00Z",
+  "content_version": "2026.08.28+95c6ead7c76a",
+  "content_revision": 20260902073000,
+  "generated_at": "2026-09-02T07:30:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -985,12 +985,14 @@
       ]
     },
     {
-      "id": "mongodb--static-files",
-      "family": "mongodb",
-      "display_name": "mongodb",
-      "content_kind": "static-files",
+      "id": "mongodb-community--repository-metadata",
+      "family": "mongodb-community",
+      "display_name": "mongodb-community",
+      "content_kind": "repository-metadata",
       "aliases": [
-        "mongodb"
+        "mongodb",
+        "mongodb-apt-runtime",
+        "mongodb-rpm-runtime"
       ]
     },
     {
@@ -1959,7 +1961,7 @@
       "id": "mongodb",
       "adapter_key": "mongodb",
       "display_name": "mongodb",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/86",
       "supported_scopes": [
         "system"
@@ -3864,6 +3866,94 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "0b462ad51f07fcb147ad7aa1",
+      "provider_id": "tuna",
+      "upstream_id": "mongodb-community--repository-metadata",
+      "tool_id": "mongodb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mongodb-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/mongodb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/mongodb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/mongodb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-8.0-amd64",
+          "ubuntu-jammy-8.0-amd64",
+          "ubuntu-jammy-8.0-arm64",
+          "ubuntu-noble-8.0-amd64",
+          "ubuntu-noble-8.0-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/apt/{family}/dists/{release}/mongodb-org/8.0/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: mongodb"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/apt/{family}/dists/{release}/mongodb-org/8.0/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/apt/{family}/dists/{release}/mongodb-org/8.0/{component}/binary-{architecture}/Packages",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/apt/{family}/dists/{release}/mongodb-org/8.0/{component}/binary-{architecture}/{package_name}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -6098,36 +6188,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "1e48c6f52c69803338c6ce0f",
-      "provider_id": "huaweicloud",
-      "upstream_id": "mongodb--static-files",
-      "tool_id": "mongodb",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "mongodb"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/mongodb/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "1e7fc090355df2ac93f03c66",
       "provider_id": "nju",
       "upstream_id": "dart-pub--language-registry",
@@ -7417,36 +7477,6 @@
       ],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "2583962d887952374ebb53f4",
-      "provider_id": "tuna",
-      "upstream_id": "mongodb--static-files",
-      "tool_id": "mongodb",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "mongodb"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/mongodb/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -9701,6 +9731,36 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "3c5894b147a9964703dc493e",
+      "provider_id": "aliyun",
+      "upstream_id": "mongodb-community--repository-metadata",
+      "tool_id": "mongodb",
+      "catalog_state": "partial",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "mongodb"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/mongodb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [],
+        "architectures": [],
+        "environments": [],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -22212,36 +22272,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "b059c243731ac8f41f488033",
-      "provider_id": "aliyun",
-      "upstream_id": "mongodb--static-files",
-      "tool_id": "mongodb",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "mongodb"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/mongodb/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "b0729fe96e58992d26de60f6",
       "provider_id": "nju",
       "upstream_id": "maven--language-registry",
@@ -27643,6 +27673,81 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "da636a866c42bc9e3ab1293f",
+      "provider_id": "huaweicloud",
+      "upstream_id": "mongodb-community--repository-metadata",
+      "tool_id": "mongodb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mongodb-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/mongodb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/mongodb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/mongodb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-8.0-x86_64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/yum/el{release}-8.0/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/el{release}-8.0/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/el{release}-8.0/RPMS/{package_name}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "da99e580fbab969fd44ed26a",
       "provider_id": "huaweicloud",
       "upstream_id": "centos-altarch--repository-metadata",
@@ -27861,6 +27966,94 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "df1fbd7bdfab87fce3679426",
+      "provider_id": "huaweicloud",
+      "upstream_id": "mongodb-community--repository-metadata",
+      "tool_id": "mongodb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mongodb-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/mongodb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/mongodb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/mongodb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-8.0-amd64",
+          "ubuntu-jammy-8.0-amd64",
+          "ubuntu-jammy-8.0-arm64",
+          "ubuntu-noble-8.0-amd64",
+          "ubuntu-noble-8.0-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/apt/{family}/dists/{release}/mongodb-org/8.0/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: mongodb"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/apt/{family}/dists/{release}/mongodb-org/8.0/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/apt/{family}/dists/{release}/mongodb-org/8.0/{component}/binary-{architecture}/Packages",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/apt/{family}/dists/{release}/mongodb-org/8.0/{component}/binary-{architecture}/{package_name}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -28754,6 +28947,94 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "e7ed0b5e7d2c261d768bccf5",
+      "provider_id": "nju",
+      "upstream_id": "mongodb-community--repository-metadata",
+      "tool_id": "mongodb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mongodb-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/mongodb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/mongodb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/mongodb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-8.0-amd64",
+          "ubuntu-jammy-8.0-amd64",
+          "ubuntu-jammy-8.0-arm64",
+          "ubuntu-noble-8.0-amd64",
+          "ubuntu-noble-8.0-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/apt/{family}/dists/{release}/mongodb-org/8.0/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: mongodb"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/apt/{family}/dists/{release}/mongodb-org/8.0/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/apt/{family}/dists/{release}/mongodb-org/8.0/{component}/binary-{architecture}/Packages",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/apt/{family}/dists/{release}/mongodb-org/8.0/{component}/binary-{architecture}/{package_name}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "e83a6a601a749d7f4a87f0e3",
       "provider_id": "aliyun",
       "upstream_id": "openwrt--repository-metadata",
@@ -29517,6 +29798,81 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "eef7c2dfd4280a46d317fa10",
+      "provider_id": "tuna",
+      "upstream_id": "mongodb-community--repository-metadata",
+      "tool_id": "mongodb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mongodb-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/mongodb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/mongodb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/mongodb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-8.0-x86_64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/yum/el{release}-8.0/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/el{release}-8.0/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/el{release}-8.0/RPMS/{package_name}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "efe9232ebadb7613bd753e16",
       "provider_id": "nju",
       "upstream_id": "mysql-community--repository-metadata",
@@ -29960,36 +30316,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "f69adb5a8805165dcb214de7",
-      "provider_id": "nju",
-      "upstream_id": "mongodb--static-files",
-      "tool_id": "mongodb",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "mongodb"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/mongodb/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "f700c11e8da7b405541ea455",
       "provider_id": "nju",
       "upstream_id": "debian-cd--repository-metadata",
@@ -30345,6 +30671,81 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "f9ee3763d04d00c86ae0fd03",
+      "provider_id": "nju",
+      "upstream_id": "mongodb-community--repository-metadata",
+      "tool_id": "mongodb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mongodb-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/mongodb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/mongodb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/mongodb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-8.0-x86_64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/yum/el{release}-8.0/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/el{release}-8.0/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/el{release}-8.0/RPMS/{package_name}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],

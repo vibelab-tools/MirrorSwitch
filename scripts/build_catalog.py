@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "56"
+CATALOG_FORMAT_REVISION = "57"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -490,6 +490,23 @@ MYSQL_RPM_REPOSITORY_VERSIONS = [
     "el-9-8.4-lts-x86_64",
     "el-9-8.4-lts-aarch64",
 ]
+MONGODB_UPSTREAM = "mongodb-community--repository-metadata"
+MONGODB_ENDPOINTS = {
+    "aliyun": "https://mirrors.aliyun.com/mongodb/",
+    "huaweicloud": "https://repo.huaweicloud.com/mongodb/",
+    "nju": "https://mirrors.nju.edu.cn/mongodb/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/mongodb/",
+}
+MONGODB_APT_REPOSITORY_VERSIONS = [
+    "debian-bookworm-8.0-amd64",
+    "ubuntu-jammy-8.0-amd64",
+    "ubuntu-jammy-8.0-arm64",
+    "ubuntu-noble-8.0-amd64",
+    "ubuntu-noble-8.0-arm64",
+]
+MONGODB_RPM_REPOSITORY_VERSIONS = [
+    "el-9-8.0-x86_64",
+]
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -577,6 +594,8 @@ def runtime_upstream_identity(
         return "ros1-packages", "repository-metadata"
     if tool_id == "mysql" and entry["raw_name"].startswith(("mysql", "mysql-repo")):
         return "mysql-community", "repository-metadata"
+    if tool_id == "mongodb" and entry["raw_name"].startswith("mongodb"):
+        return "mongodb-community", "repository-metadata"
     if tool_id == "podman-registry" and entry["raw_name"] in {"gcr", "ghcr", "quay"}:
         return f"{entry['raw_name']}.io", "container-registry"
     return entry["normalized_upstream"], entry["content_type"]
@@ -817,6 +836,17 @@ def candidate_endpoints(
         and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
     ):
         endpoint = MYSQL_ENDPOINTS[entry["provider_id"]]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "packages"]
+        ]
+    if (
+        tool_id == "mongodb"
+        and upstream_key == MONGODB_UPSTREAM
+        and entry["provider_id"] in MONGODB_ENDPOINTS
+        and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
+    ):
+        endpoint = MONGODB_ENDPOINTS[entry["provider_id"]]
         return [
             {"role": role, "protocol": "https", "url": endpoint}
             for role in ["index", "metadata", "packages"]
@@ -3199,6 +3229,81 @@ def runtime_properties(
             },
         ]
     elif (
+        tool_id == "mongodb"
+        and upstream_key == MONGODB_UPSTREAM
+        and entry["provider_id"] in MONGODB_ENDPOINTS
+        and entry["raw_name"].endswith("-apt-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = list(MONGODB_APT_REPOSITORY_VERSIONS)
+        delivery_mode = "mirror"
+        root = "/apt/{family}"
+        release_root = f"{root}/dists/{{release}}/mongodb-org/8.0"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": f"{release_root}/InRelease",
+                "expected_status": [200],
+                "contains": "Origin: mongodb",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": f"{release_root}/Release.gpg",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": f"{release_root}/{{component}}/binary-{{architecture}}/Packages",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "packages",
+                "method": "head",
+                "path": f"{release_root}/{{component}}/binary-{{architecture}}/{{package_name}}",
+                "expected_status": [200],
+            },
+        ]
+    elif (
+        tool_id == "mongodb"
+        and upstream_key == MONGODB_UPSTREAM
+        and entry["provider_id"] in MONGODB_ENDPOINTS
+        and entry["raw_name"].endswith("-rpm-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = list(MONGODB_RPM_REPOSITORY_VERSIONS)
+        delivery_mode = "mirror"
+        root = "/yum/el{release}-8.0"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": f"{root}/repodata/repomd.xml",
+                "expected_status": [200],
+                "contains": "<repomd",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": f"{root}/repodata/repomd.xml",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "packages",
+                "method": "head",
+                "path": f"{root}/RPMS/{{package_name}}",
+                "expected_status": [200],
+            },
+        ]
+    elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
@@ -3375,6 +3480,19 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                             "raw_name": f"{entry['raw_name']}-{surface}-runtime",
                         }
                     )
+            elif (
+                any(target["tool_id"] == "mongodb" for target in targets)
+                and entry["provider_id"] in MONGODB_ENDPOINTS
+                and entry["provider_id"] != "aliyun"
+                and entry["raw_name"] == "mongodb"
+            ):
+                for surface in ["apt", "rpm"]:
+                    planned_entries.append(
+                        {
+                            **entry,
+                            "raw_name": f"mongodb-{surface}-runtime",
+                        }
+                    )
             elif entry["raw_name"] == "elpa":
                 for archive, (family, _) in ELPA_ARCHIVES.items():
                     root = entry["public_endpoints"][0]["url"].rstrip("/")
@@ -3466,6 +3584,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "kubernetes-packages",
                         "leiningen",
                         "maven",
+                        "mongodb",
                         "mysql",
                         "nix",
                         "npm",
