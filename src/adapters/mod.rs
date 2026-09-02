@@ -11,6 +11,7 @@ mod cpan;
 mod cran;
 mod dart_pub;
 mod dnf;
+mod docker_ce;
 mod flatpak;
 mod flutter;
 mod fnm;
@@ -65,6 +66,7 @@ pub use cpan::CpanAdapter;
 pub use cran::CranAdapter;
 pub use dart_pub::DartPubAdapter;
 pub use dnf::DnfAdapter;
+pub use docker_ce::DockerCeAdapter;
 pub use flatpak::FlatpakAdapter;
 pub use flutter::FlutterAdapter;
 pub use fnm::FnmAdapter;
@@ -114,6 +116,7 @@ static COMPOSER: ComposerAdapter = ComposerAdapter;
 static CPAN: CpanAdapter = CpanAdapter;
 static CRAN: CranAdapter = CranAdapter;
 static DNF: DnfAdapter = DnfAdapter;
+static DOCKER_CE: DockerCeAdapter = DockerCeAdapter;
 static DART_PUB: DartPubAdapter = DartPubAdapter;
 static FLATPAK: FlatpakAdapter = FlatpakAdapter;
 static FNM: FnmAdapter = FnmAdapter;
@@ -156,6 +159,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
     vec![
         &APT,
         &DNF,
+        &DOCKER_CE,
         &YUM,
         &PACMAN,
         &ZYPPER,
