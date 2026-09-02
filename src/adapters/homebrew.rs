@@ -478,7 +478,7 @@ fn reviewed_version(version: &str) -> Result<(), AdapterError> {
         .next()
         .and_then(|value| value.parse::<u32>().ok())
         .ok_or_else(|| AdapterError::Unsupported(format!("unknown Homebrew version {version}")))?;
-    if matches!(major, 4 | 5 | 6) {
+    if matches!(major, 4..=6) {
         Ok(())
     } else {
         Err(AdapterError::Unsupported(format!(
