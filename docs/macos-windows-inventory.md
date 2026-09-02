@@ -80,6 +80,12 @@ similarly named packages come from the NuGet.org-oriented feed rather than a syn
 `community.chocolatey.org` source. No Chocolatey adapter candidate is therefore published from the
 six-provider inventory.
 
+The same generic NuGet service is not a PowerShell Gallery replacement. It currently exposes some
+same-named NuGet.org packages such as Pester, but has no `PowerShellGet` or
+`Microsoft.PowerShell.PSResourceGet` package index and does not publish the PSGallery repository
+registration/API contract. No PowerShellGet or PSResourceGet candidate can therefore preserve
+module metadata, trust, priority, and `.nupkg` resolution across the six providers.
+
 ## Existing adapters that need native extension
 
 The network protocols below already have a Linux adapter, but config discovery, executable names,
