@@ -65,7 +65,8 @@ Every tool has an independent Issue listed in the
 | Group | macOS | Windows | Typical scope | Candidate/validation rule |
 | --- | --- | --- | --- | --- |
 | pip | Implemented through the existing adapter; native release gate required | Implemented through the existing adapter; native release gate required | System/user; site explicit | Six complete Simple API candidates; native config precedence, virtual-environment path, encoding and client query are revalidated. |
-| uv, PDM, Poetry, Conda | Planned on x86_64/arm64 | Planned on x64/arm64 | User; project/site explicit | PyPI/Conda metadata and platform subdirs; client precedence and virtual environment paths are native. |
+| uv | Implemented through the existing adapter; native release gate required | Implemented through the existing adapter; native release gate required | User; project explicit | Six Simple API/wheel candidates; native system/user paths, project precedence and dry-run resolver are revalidated. |
+| PDM, Poetry, Conda | Planned on x86_64/arm64 | Planned on x64/arm64 | User; project/site explicit | PyPI/Conda metadata and platform subdirs; client precedence and virtual environment paths are native. |
 | npm, pnpm, Yarn, fnm | Planned on x86_64/arm64 | Planned on x64/arm64 | User; project explicit | Registry metadata/tarball or Node release asset must match client generation and architecture. |
 | nvm, pyenv | Planned for macOS only | Unix adapter not applicable | One user shell environment | nvm-windows/pyenv-win are different tools and have no validated six-provider source. |
 | Maven, Gradle, sbt, Leiningen | Planned on x86_64/arm64 | Planned on x64/arm64 | User; project explicit | Repository layouts and wrapper/tool distributions remain distinct; use native scripts and JVM. |

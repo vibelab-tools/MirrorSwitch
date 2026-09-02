@@ -8,7 +8,7 @@ use toml_edit::{ArrayOfTables, DocumentMut, Item, Table, value};
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -66,14 +66,14 @@ impl Adapter for UvAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("uv") {
             return Ok(None);
         }
         let project = project_dir(runtime)?;
         let version = run_uv(runtime, project.as_deref(), &["--version"], "uv --version")?;
         reviewed_version(&version)?;
-        let layout = config_layout(runtime, project.as_deref())?;
+        let layout = config_layout(context, runtime, project.as_deref())?;
         let mut evidence = vec![
             version.clone(),
             format!("system configuration path is {}", layout.system.display()),
@@ -109,7 +109,7 @@ impl Adapter for UvAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         reviewed_version(
             detected.version.as_deref().ok_or_else(|| {
@@ -122,7 +122,7 @@ impl Adapter for UvAdapter {
                 "uv project scope requires an explicit project directory".into(),
             ));
         }
-        let layout = config_layout(runtime, project.as_deref())?;
+        let layout = config_layout(context, runtime, project.as_deref())?;
         let selected = match scope {
             ConfigurationScope::User => layout.user.clone(),
             ConfigurationScope::Project => layout.project.clone().expect("validated project"),
@@ -199,7 +199,7 @@ impl Adapter for UvAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         Ok(SelectionRequest {
             tool_id: "uv".into(),
@@ -229,7 +229,7 @@ impl Adapter for UvAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let endpoint = selected_endpoint(selections)?;
         validate_policy(current)?;
@@ -242,13 +242,16 @@ impl Adapter for UvAdapter {
             })?;
         let target = selected_default(current, &document.path)?;
         validate_precedence(current, &document.path)?;
-        let new_contents = rewrite_config(
+        let mut new_contents = rewrite_config(
             utf8(&document.path, &document.contents)?,
             document.format == "uv-selected-pyproject",
             target.as_deref(),
             endpoint,
         )?
         .into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            new_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let existed = current.files.contains(&document.path);
         let changes = (new_contents != document.contents)
             .then(|| PlannedFileChange {
@@ -378,10 +381,18 @@ struct ConfigLayout {
     ignored_pyproject: Option<PathBuf>,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "uv adapter requires Linux".into(),
+            "uv on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "uv adapter requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -464,6 +475,7 @@ fn project_dir(runtime: &dyn Runtime) -> Result<Option<PathBuf>, AdapterError> {
 }
 
 fn config_layout(
+    context: &SystemContext,
     runtime: &dyn Runtime,
     project: Option<&Path>,
 ) -> Result<ConfigLayout, AdapterError> {
@@ -471,23 +483,33 @@ fn config_layout(
         AdapterError::Unsupported("uv user configuration requires a home directory".into())
     })?;
     validate_path(&home)?;
-    let user_root = runtime
-        .environment_variable("XDG_CONFIG_HOME")
-        .filter(|value| !value.trim().is_empty())
-        .map(PathBuf::from)
-        .unwrap_or_else(|| home.join(".config"));
+    let user_root = if context.os == OperatingSystem::Windows {
+        environment_path(runtime, "APPDATA")?
+    } else {
+        runtime
+            .environment_variable("XDG_CONFIG_HOME")
+            .filter(|value| !value.trim().is_empty())
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home.join(".config"))
+    };
     validate_path(&user_root)?;
-    let mut system = PathBuf::from("/etc/uv/uv.toml");
-    if let Some(roots) = runtime
-        .environment_variable("XDG_CONFIG_DIRS")
-        .filter(|value| !value.trim().is_empty())
-    {
-        for root in roots.split(':').filter(|value| !value.is_empty()) {
-            let candidate = PathBuf::from(root).join("uv/uv.toml");
-            validate_path(&candidate)?;
-            if runtime.read(&candidate)?.is_some() {
-                system = candidate;
-                break;
+    let mut system = if context.os == OperatingSystem::Windows {
+        environment_path(runtime, "ProgramData")?.join("uv/uv.toml")
+    } else {
+        PathBuf::from("/etc/uv/uv.toml")
+    };
+    if context.os != OperatingSystem::Windows {
+        if let Some(roots) = runtime
+            .environment_variable("XDG_CONFIG_DIRS")
+            .filter(|value| !value.trim().is_empty())
+        {
+            for root in roots.split(':').filter(|value| !value.is_empty()) {
+                let candidate = PathBuf::from(root).join("uv/uv.toml");
+                validate_path(&candidate)?;
+                if runtime.read(&candidate)?.is_some() {
+                    system = candidate;
+                    break;
+                }
             }
         }
     }
@@ -511,6 +533,14 @@ fn config_layout(
         project_is_pyproject,
         ignored_pyproject,
     })
+}
+
+fn environment_path(runtime: &dyn Runtime, name: &str) -> Result<PathBuf, AdapterError> {
+    runtime
+        .environment_variable(name)
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from)
+        .ok_or_else(|| AdapterError::Unsupported(format!("uv {name} is unavailable")))
 }
 
 fn config_sources(
@@ -951,6 +981,7 @@ fn rewrite_config(
     selected_name: Option<&str>,
     endpoint: &str,
 ) -> Result<String, AdapterError> {
+    let newline = if text.contains("\r\n") { "\r\n" } else { "\n" };
     let mut document = parse_document(Path::new("uv configuration"), text)?;
     let table: &mut dyn toml_edit::TableLike = if pyproject {
         if document.get("tool").is_none() {
@@ -971,7 +1002,7 @@ fn rewrite_config(
     let endpoint = format!("{}/", endpoint.trim_end_matches('/'));
     if selected_name == Some("") && table.get("index-url").is_some() {
         table.insert("index-url", value(endpoint));
-        return Ok(document.to_string());
+        return Ok(with_newline(document.to_string(), newline));
     }
     if table.get("index").is_none() {
         table.insert("index", Item::ArrayOfTables(ArrayOfTables::new()));
@@ -1009,7 +1040,15 @@ fn rewrite_config(
         index["default"] = value(true);
         indexes.push(index);
     }
-    Ok(document.to_string())
+    Ok(with_newline(document.to_string(), newline))
+}
+
+fn with_newline(text: String, newline: &str) -> String {
+    if newline == "\r\n" {
+        text.replace("\r\n", "\n").replace('\n', "\r\n")
+    } else {
+        text
+    }
 }
 
 fn selected_endpoint(selections: &[MirrorSelection]) -> Result<&str, AdapterError> {
@@ -1147,6 +1186,9 @@ fn verification_failure<T>(
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "uv configuration {} is not UTF-8",

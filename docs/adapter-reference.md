@@ -41,7 +41,7 @@ content remain unchanged and are reported.
 | `pip` | system/user/site | Linux/macOS/Windows `pip config` hierarchy plus fixed package query; native paths, text layout and environment/auth policy are preserved ([details](adapters/pip.md)) |
 | `pdm` | user/project | PDM source query; project scope explicit and source ordering preserved ([details](adapters/pdm.md)) |
 | `poetry` | project | Poetry resolver; package sources are project-local, not publishing repositories ([details](adapters/poetry.md)) |
-| `uv` | user/project | No-cache dry-run resolution; named/private project sources preserved ([details](adapters/uv.md)) |
+| `uv` | user/project | Linux/macOS/Windows no-cache dry-run resolution; native config roots and named/private project sources preserved ([details](adapters/uv.md)) |
 | `npm` | system/user/project | Registry metadata and tarball plus client query; scopes/auth preserved ([details](adapters/npm.md)) |
 | `pnpm` | user | Registry metadata/tarball and `pnpm view`; project/auth/TLS overrides block changes ([details](adapters/pnpm.md)) |
 | `yarn` | user/project | Classic/Berry-specific query; generations and configuration formats never cross ([details](adapters/yarn.md)) |

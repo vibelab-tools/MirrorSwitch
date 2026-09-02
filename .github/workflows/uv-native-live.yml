@@ -1,0 +1,217 @@
+name: uv macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "29 1 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: uv (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS x86_64
+            runner: macos-15-intel
+            python_arch: x64
+          - name: macOS arm64
+            runner: macos-15
+            python_arch: arm64
+          - name: Windows x86_64
+            runner: windows-2025
+            python_arch: x64
+          - name: Windows arm64
+            runner: windows-11-arm
+            python_arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          architecture: ${{ matrix.python_arch }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.7"
+          enable-cache: false
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic uv adapter boundary
+        run: cargo test --locked --test uv_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS paths, frontends, resolver, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"
+          boundary="$RUNNER_TEMP/mirrorswitch-uv-boundary"
+          export HOME="$boundary/home"
+          export XDG_CONFIG_HOME="$boundary/config"
+          export XDG_CONFIG_DIRS="$boundary/system"
+          export UV_PYTHON_DOWNLOADS=never
+          unset UV_CONFIG_FILE UV_NO_CONFIG UV_DEFAULT_INDEX UV_INDEX_URL UV_INDEX UV_EXTRA_INDEX_URL UV_INDEX_STRATEGY
+          project="$boundary/project"
+          user_config="$XDG_CONFIG_HOME/uv/uv.toml"
+          mkdir -p "$(dirname "$user_config")" "$XDG_CONFIG_DIRS" "$project"
+          printf 'index-strategy = "first-index"\n\n[[index]]\nname = "public"\nurl = "https://pypi.org/simple/"\ndefault = true\n' > "$user_config"
+          chmod 0600 "$user_config"
+          printf '[project]\nname = "native-probe"\nversion = "0.1.0"\nrequires-python = ">=3.13"\n' > "$project/pyproject.toml"
+          printf '{"version":1,"tools":[{"id":"uv","scope":"user"}]}\n' > "$project/request.json"
+
+          user_before=$(shasum -a 256 "$user_config" | awk '{print $1}')
+          project_before=$(shasum -a 256 "$project/pyproject.toml" | awk '{print $1}')
+          mode_before=$(stat -f '%Lp' "$user_config")
+          system_before=$(
+            for path in '/etc/uv/uv.toml' "$XDG_CONFIG_DIRS/uv/uv.toml"; do
+              if [ -f "$path" ]; then shasum -a 256 "$path"; fi
+            done
+          )
+
+          cd "$project"
+          "$binary" status --offline --json > status.json
+          "$binary" plan --offline --tool uv --scope uv=user --json > plan-cli.json
+          "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - <<'PY'
+          import json
+          status = json.load(open('status.json'))
+          assert [tool['adapter_key'] for tool in status['detected_tools'] if tool['adapter_key'] == 'uv'] == ['uv']
+          cli = json.load(open('plan-cli.json'))
+          config = json.load(open('plan-config.json'))
+          assert cli['ok'] and config['ok']
+          assert len(cli['plan']['tools']) == len(config['plan']['tools']) == 1
+          assert cli['plan']['tools'][0]['plan'] == config['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n' | "$binary" tui --offline --tool uv --scope uv=user > tui.txt
+          grep -E 'mirror=(aliyun|huaweicloud|nju|sjtug|tuna|ustc)' tui.txt
+
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          transaction_id=$(python3 - <<'PY'
+          import json
+          report = json.load(open('apply.json'))['result']
+          assert report['successful'] is True
+          applied = [tool for tool in report['tools'] if tool['status'] == 'applied']
+          assert len(applied) == 1
+          print(applied[0]['receipt']['transaction_id'])
+          PY
+          )
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json
+          python3 - <<'PY'
+          import json
+          report = json.load(open('idempotent.json'))['result']
+          assert report['successful'] is True
+          assert not [tool for tool in report['tools'] if tool['status'] == 'applied']
+          PY
+          "$binary" restore "$transaction_id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          result = json.load(open('restore.json'))
+          assert result['adapter_key'] == 'uv'
+          assert result['receipt']['verified'] is True
+          PY
+
+          test "$user_before" = "$(shasum -a 256 "$user_config" | awk '{print $1}')"
+          test "$project_before" = "$(shasum -a 256 "$project/pyproject.toml" | awk '{print $1}')"
+          test "$mode_before" = "$(stat -f '%Lp' "$user_config")"
+          system_after=$(
+            for path in '/etc/uv/uv.toml' "$XDG_CONFIG_DIRS/uv/uv.toml"; do
+              if [ -f "$path" ]; then shasum -a 256 "$path"; fi
+            done
+          )
+          test "$system_before" = "$system_after"
+      - name: Exercise Windows paths, frontends, resolver, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
+          $boundary = Join-Path $env:RUNNER_TEMP 'mirrorswitch-uv-boundary'
+          $env:APPDATA = Join-Path $boundary 'AppData/Roaming'
+          $env:LOCALAPPDATA = Join-Path $boundary 'AppData/Local'
+          $env:ProgramData = Join-Path $boundary 'ProgramData'
+          $env:UV_PYTHON_DOWNLOADS = 'never'
+          Remove-Item Env:UV_CONFIG_FILE, Env:UV_NO_CONFIG, Env:UV_DEFAULT_INDEX, Env:UV_INDEX_URL, Env:UV_INDEX, Env:UV_EXTRA_INDEX_URL, Env:UV_INDEX_STRATEGY -ErrorAction SilentlyContinue
+          $project = Join-Path $boundary 'project'
+          $userConfig = Join-Path $env:APPDATA 'uv/uv.toml'
+          New-Item -ItemType Directory -Force (Split-Path $userConfig), $env:LOCALAPPDATA, $env:ProgramData, $project | Out-Null
+          $text = "index-strategy = `"first-index`"`r`n`r`n[[index]]`r`nname = `"public`"`r`nurl = `"https://pypi.org/simple/`"`r`ndefault = true`r`n"
+          [System.IO.File]::WriteAllText($userConfig, $text, [System.Text.UTF8Encoding]::new($true))
+          "[project]`r`nname = `"native-probe`"`r`nversion = `"0.1.0`"`r`nrequires-python = `">=3.13`"`r`n" | Set-Content -Encoding utf8 (Join-Path $project 'pyproject.toml')
+          '{"version":1,"tools":[{"id":"uv","scope":"user"}]}' | Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+
+          $userBefore = (Get-FileHash $userConfig -Algorithm SHA256).Hash
+          $projectBefore = (Get-FileHash (Join-Path $project 'pyproject.toml') -Algorithm SHA256).Hash
+          $aclBefore = (Get-Acl $userConfig).Sddl
+          $systemConfig = Join-Path $env:ProgramData 'uv/uv.toml'
+          $systemBefore = if (Test-Path $systemConfig) { (Get-FileHash $systemConfig -Algorithm SHA256).Hash } else { '' }
+
+          Push-Location $project
+          try {
+            (& $binary status --offline --json) | Set-Content -Encoding utf8 status.json
+            (& $binary plan --offline --tool uv --scope uv=user --json) | Set-Content -Encoding utf8 plan-cli.json
+            (& $binary plan --offline --config request.json --json) | Set-Content -Encoding utf8 plan-config.json
+            $status = Get-Content status.json -Raw | ConvertFrom-Json
+            if (@($status.detected_tools | Where-Object adapter_key -eq 'uv').Count -ne 1) { throw 'uv adapter was not detected' }
+            $cli = Get-Content plan-cli.json -Raw | ConvertFrom-Json
+            $config = Get-Content plan-config.json -Raw | ConvertFrom-Json
+            if (-not $cli.ok -or -not $config.ok) { throw 'uv plan was not actionable' }
+            if (($cli.plan.tools[0].plan | ConvertTo-Json -Depth 100 -Compress) -ne ($config.plan.tools[0].plan | ConvertTo-Json -Depth 100 -Compress)) {
+              throw 'CLI and configuration frontends produced different uv plans'
+            }
+            @('', 'n') | & $binary tui --offline --tool uv --scope uv=user | Set-Content -Encoding utf8 tui.txt
+            if (-not ((Get-Content tui.txt) -match 'mirror=(aliyun|huaweicloud|nju|sjtug|tuna|ustc)')) { throw 'uv TUI mirror missing' }
+
+            (& $binary apply --offline --config request.json --yes --json) | Set-Content -Encoding utf8 apply.json
+            $apply = Get-Content apply.json -Raw | ConvertFrom-Json
+            if (-not $apply.result.successful) { throw 'uv apply or native resolution failed' }
+            $applied = @($apply.result.tools | Where-Object status -eq 'applied')
+            if ($applied.Count -ne 1) { throw 'uv transaction was not applied' }
+            $transactionId = $applied[0].receipt.transaction_id
+
+            (& $binary apply --offline --config request.json --yes --json) | Set-Content -Encoding utf8 idempotent.json
+            $idempotent = Get-Content idempotent.json -Raw | ConvertFrom-Json
+            if (-not $idempotent.result.successful -or @($idempotent.result.tools | Where-Object status -eq 'applied').Count -ne 0) {
+              throw 'second uv apply was not idempotent'
+            }
+            (& $binary restore $transactionId --yes --json) | Set-Content -Encoding utf8 restore.json
+            $restore = Get-Content restore.json -Raw | ConvertFrom-Json
+            if (-not $restore.receipt.verified -or $restore.adapter_key -ne 'uv') { throw 'adapter-aware uv restore failed' }
+          } finally {
+            Pop-Location
+          }
+
+          if ($userBefore -ne (Get-FileHash $userConfig -Algorithm SHA256).Hash) { throw 'UTF-8 BOM/CRLF uv config was not restored exactly' }
+          if ($projectBefore -ne (Get-FileHash (Join-Path $project 'pyproject.toml') -Algorithm SHA256).Hash) { throw 'project config changed' }
+          if ($aclBefore -ne (Get-Acl $userConfig).Sddl) { throw 'uv user config ACL changed' }
+          $systemAfter = if (Test-Path $systemConfig) { (Get-FileHash $systemConfig -Algorithm SHA256).Hash } else { '' }
+          if ($systemBefore -ne $systemAfter) { throw 'uv machine config changed' }
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: uv-native-boundary-${{ runner.os }}-${{ matrix.python_arch }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/mirrorswitch-uv-boundary/project/status.json
+            ${{ runner.temp }}/mirrorswitch-uv-boundary/project/plan-cli.json
+            ${{ runner.temp }}/mirrorswitch-uv-boundary/project/plan-config.json
+            ${{ runner.temp }}/mirrorswitch-uv-boundary/project/apply.json
+            ${{ runner.temp }}/mirrorswitch-uv-boundary/project/idempotent.json
+            ${{ runner.temp }}/mirrorswitch-uv-boundary/project/restore.json
+            ${{ runner.temp }}/mirrorswitch-uv-boundary/project/tui.txt
+          if-no-files-found: warn
+          retention-days: 7

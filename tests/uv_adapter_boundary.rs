@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::BTreeMap,
@@ -38,6 +38,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -68,6 +78,13 @@ fn install_uv(root: &Path, version: &str, selected_file: &str, query_exit: i32) 
 fn runtime(root: &Path, environment: BTreeMap<String, String>) -> OsRuntime {
     OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
         .with_home("/home/developer")
+        .with_project_dir("/work/project")
+        .with_environment(environment)
+}
+
+fn native_runtime(root: &Path, home: &str, environment: BTreeMap<String, String>) -> OsRuntime {
+    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home(home)
         .with_project_dir("/work/project")
         .with_environment(environment)
 }
@@ -480,6 +497,155 @@ fn versions_environment_overrides_and_unsafe_index_models_are_rejected() {
 }
 
 #[test]
+fn macos_and_windows_use_native_config_roots_and_preserve_text_layout() {
+    struct Case {
+        os: OperatingSystem,
+        architecture: Architecture,
+        home: &'static str,
+        system: &'static str,
+        user: &'static str,
+        environment: BTreeMap<String, String>,
+        bom: bool,
+        newline: &'static str,
+    }
+
+    let cases = [
+        Case {
+            os: OperatingSystem::Macos,
+            architecture: Architecture::X86_64,
+            home: "/Users/test",
+            system: "/etc/uv/uv.toml",
+            user: "/Users/test/.config/uv/uv.toml",
+            environment: BTreeMap::new(),
+            bom: false,
+            newline: "\n",
+        },
+        Case {
+            os: OperatingSystem::Windows,
+            architecture: Architecture::Arm64,
+            home: "/Users/test",
+            system: "/ProgramData/uv/uv.toml",
+            user: "/Users/test/AppData/Roaming/uv/uv.toml",
+            environment: BTreeMap::from([
+                ("APPDATA".into(), "/Users/test/AppData/Roaming".into()),
+                ("ProgramData".into(), "/ProgramData".into()),
+            ]),
+            bom: true,
+            newline: "\r\n",
+        },
+    ];
+
+    for case in cases {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_uv(root, "0.12.7", case.user, 0);
+        let system_contents = b"[[index]]\nname = \"system-private\"\nurl = \"https://packages.invalid.example/simple/\"\nexplicit = true\n";
+        let system = write(root, case.system, system_contents);
+        let project_contents = b"[project]\nname = \"native-probe\"\nversion = \"0.1.0\"\nrequires-python = \">=3.12\"\n\n[tool.uv.sources]\nprivate-package = { index = \"corp\" }\n\n[[tool.uv.index]]\nname = \"corp\"\nurl = \"https://reader:secret@packages.invalid.example/simple/\"\nexplicit = true\n";
+        let project = write(root, "/work/project/pyproject.toml", project_contents);
+        let text = format!(
+            "index-strategy = \"first-index\"{0}native-policy = \"keep\"{0}{0}[[index]]{0}name = \"public\"{0}url = \"https://pypi.org/simple/\"{0}default = true{0}",
+            case.newline
+        );
+        let mut original = text.into_bytes();
+        if case.bom {
+            original.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let user = write(root, case.user, &original);
+        let context = native_context(root, case.os, case.architecture);
+        let adapter = UvAdapter;
+        let mut runtime = native_runtime(root, case.home, case.environment);
+
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        assert_eq!(detected.executable.as_deref(), Some(Path::new("uv")));
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let selected = current
+            .documents
+            .iter()
+            .find(|document| document.format == "uv-selected-standalone")
+            .unwrap();
+        assert_eq!(selected.path, PathBuf::from(case.user));
+        assert!(!serde_json::to_string(&current).unwrap().contains("secret"));
+
+        let chosen = [selection()];
+        let cli = adapter.plan(&context, &current, &chosen).unwrap();
+        let config = adapter.plan(&context, &current, &chosen).unwrap();
+        let tui = adapter.plan(&context, &current, &chosen).unwrap();
+        assert_eq!(cli, config);
+        assert_eq!(config, tui);
+        assert_eq!(cli.changes[0].target, user);
+        assert_eq!(
+            cli.changes[0].new_contents.starts_with(&[0xef, 0xbb, 0xbf]),
+            case.bom
+        );
+        let rendered = std::str::from_utf8(
+            cli.changes[0]
+                .new_contents
+                .strip_prefix(&[0xef, 0xbb, 0xbf])
+                .unwrap_or(&cli.changes[0].new_contents),
+        )
+        .unwrap();
+        assert!(rendered.contains(&format!("url = \"{USTC}\"")));
+        assert!(rendered.contains("native-policy = \"keep\""));
+        assert!(!rendered.replace(case.newline, "").contains('\n'));
+
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("native uv user configuration should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &chosen)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(user).unwrap(), original);
+        assert_eq!(fs::read(system).unwrap(), system_contents);
+        assert_eq!(fs::read(project).unwrap(), project_contents);
+    }
+
+    let directory = tempdir().unwrap();
+    install_uv(
+        directory.path(),
+        "0.12.7",
+        "/Users/test/.config/uv/uv.toml",
+        0,
+    );
+    let mut context = native_context(
+        directory.path(),
+        OperatingSystem::Macos,
+        Architecture::Arm64,
+    );
+    context.environment = ExecutionEnvironment::Container;
+    let runtime = native_runtime(directory.path(), "/Users/test", BTreeMap::new());
+    assert!(
+        UvAdapter
+            .detect(&context, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("native host")
+    );
+}
+
+#[test]
 fn embedded_catalog_has_six_complete_uv_candidates() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -495,7 +661,12 @@ fn embedded_catalog_has_six_complete_uv_candidates() {
                 candidate.delivery_mode,
                 DeliveryMode::Mirror | DeliveryMode::Proxy
             )
-            && candidate.compatibility.operating_systems == [OperatingSystem::Linux]
+            && candidate.compatibility.operating_systems
+                == [
+                    OperatingSystem::Linux,
+                    OperatingSystem::Macos,
+                    OperatingSystem::Windows,
+                ]
             && candidate.compatibility.architectures == [Architecture::X86_64, Architecture::Arm64]
             && candidate
                 .endpoints
