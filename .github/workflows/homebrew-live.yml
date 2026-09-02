@@ -46,6 +46,15 @@ jobs:
           profile_before=$(shasum -a 256 "$profile" | awk '{print $1}')
           git_before=$(shasum -a 256 "$repository/.git/config" | awk '{print $1}')
 
+          "$binary" status --offline --json > status.json
+          python3 - <<'PY'
+          import json
+          status = json.load(open("status.json"))
+          print({
+              "tools": [item["adapter_key"] for item in status["detected_tools"] if item["adapter_key"] == "homebrew"],
+              "notices": [item for item in status["notices"] if item["subject"] == "homebrew"],
+          })
+          PY
           "$binary" plan --offline --tool homebrew --json > plan.json
           python3 - <<'PY'
           import json
@@ -65,7 +74,6 @@ jobs:
           print(applied[0]["receipt"]["transaction_id"])
           PY
           )
-          "$binary" status --offline --json > status.json
           printf '\nn\n' | "$binary" tui --offline --tool homebrew > tui.txt
           grep -F 'mirror=ustc' tui.txt
           "$binary" restore "$transaction_id" --yes --json > restore.json

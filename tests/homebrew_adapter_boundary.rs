@@ -147,6 +147,18 @@ fn zsh_api_mode_is_consistent_idempotent_and_reversible() {
     let mut runtime = runtime(directory.path(), Architecture::X86_64, "/bin/zsh", profile);
     let adapter = HomebrewAdapter;
     let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+    assert!(
+        detected
+            .evidence
+            .iter()
+            .any(|value| value == "brew repository origin is official")
+    );
+    assert!(
+        detected
+            .evidence
+            .iter()
+            .all(|value| !value.contains("github.com"))
+    );
     let current = adapter
         .read_current(&context, &runtime, &detected, ConfigurationScope::User)
         .unwrap();

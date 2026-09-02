@@ -87,6 +87,14 @@ impl Adapter for HomebrewAdapter {
         } else {
             "git-unavailable".into()
         };
+        let git_remote_state = if normalize_url(&git_remote) == normalize_url(OFFICIAL_GIT_ENDPOINT)
+        {
+            "official"
+        } else if normalize_url(&git_remote) == normalize_url(GIT_ENDPOINT) {
+            "reviewed-mirror"
+        } else {
+            "custom-or-unavailable"
+        };
         Ok(Some(DetectedTool {
             tool_id: "homebrew".into(),
             executable: Some(PathBuf::from("brew")),
@@ -95,7 +103,7 @@ impl Adapter for HomebrewAdapter {
                 format!("Homebrew {version}"),
                 format!("prefix is {prefix}"),
                 format!("brew repository is {repository}"),
-                format!("brew repository origin is {git_remote}"),
+                format!("brew repository origin is {git_remote_state}"),
                 format!("persistent shell profile is {}", layout.profile.display()),
                 format!("shell is {}", layout.shell.name()),
                 environment_evidence(runtime, "HOMEBREW_BREW_GIT_REMOTE"),
