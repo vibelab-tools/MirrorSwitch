@@ -6,14 +6,14 @@ use std::{
 };
 
 use mirrorswitch::{
-    MirrorCatalog, Runtime,
+    MirrorCatalog,
     adapters::{compiled_adapter_allowlist, compiled_adapters},
     catalog::ConfigurationScope,
     catalog_update::{CatalogUpdater, EMBEDDED_CATALOG},
     detection::{HostDetectionOptions, detect_host},
     frontend::{
         FrontendSource, RequestInput, apply_detection_overrides, apply_execution,
-        load_configuration, normalize_request, prepare_execution,
+        load_configuration, normalize_request, prepare_execution, restore_execution,
     },
     selection::HttpCandidateProber,
     tui,
@@ -225,15 +225,19 @@ fn restore(parsed: &Arguments) -> Result<u8, CliError> {
         return Err(usage(parsed, "restore accepts one transaction ID"));
     }
     let options = HostDetectionOptions::current();
+    let context = detect_host(&options, &[])
+        .map_err(|error| cli(parsed, error))?
+        .context;
+    let adapters = compiled_adapters();
     let mut runtime = options.runtime();
-    let receipt = runtime
-        .restore_transaction(id)
+    let restored = restore_execution(&context, id, &adapters, &mut runtime)
         .map_err(|error| cli(parsed, error))?;
+    let verified = restored.receipt.verified;
     output(
         parsed,
-        &json!({"ok": receipt.verified, "command": "restore", "receipt": receipt}),
+        &json!({"ok": restored.receipt.verified, "command": "restore", "adapter_key": restored.adapter_key, "receipt": restored.receipt, "adapter": restored.adapter}),
     )?;
-    Ok(if receipt.verified { 0 } else { 3 })
+    Ok(if verified { 0 } else { 3 })
 }
 
 fn output<T: Serialize>(parsed: &Arguments, value: &T) -> Result<u8, CliError> {

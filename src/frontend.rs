@@ -12,9 +12,9 @@ use crate::{
     catalog::{ConfigurationScope, MirrorCatalog},
     context::SystemContext,
     detection::{DetectionReport, OverrideSource},
-    plan::{ChangePlan, ChangePlanPreview},
+    plan::{ChangePlan, ChangePlanPreview, RestoreResult},
     selection::{CandidateProber, MirrorSelector, SelectionError, SelectionOutcome},
-    transaction::{ApplyOutcome, TransactionReceipt},
+    transaction::{ApplyOutcome, RestoreReceipt, TransactionReceipt},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -378,6 +378,44 @@ pub struct ApplyReport {
     pub tools: Vec<ApplyToolReport>,
     pub skipped: Vec<SkippedTool>,
     pub successful: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct RestoreReport {
+    pub adapter_key: String,
+    pub receipt: RestoreReceipt,
+    pub adapter: RestoreResult,
+}
+
+pub fn restore_execution(
+    context: &SystemContext,
+    transaction_id: &str,
+    adapters: &[&dyn Adapter],
+    runtime: &mut dyn Runtime,
+) -> Result<RestoreReport, FrontendError> {
+    let receipt = runtime.transaction_receipt(transaction_id)?;
+    let [participant] = receipt.participants.as_slice() else {
+        return Err(AdapterError::InvalidConfiguration(
+            "explicit restore requires a transaction with exactly one adapter participant".into(),
+        )
+        .into());
+    };
+    let adapter = adapters
+        .iter()
+        .find(|adapter| {
+            adapter.key() == participant.adapter_key && adapter.tool_id() == participant.tool_id
+        })
+        .ok_or_else(|| FrontendError::AdapterMissing(participant.adapter_key.clone()))?;
+    let result = adapter.restore(context, runtime, &receipt)?;
+    Ok(RestoreReport {
+        adapter_key: participant.adapter_key.clone(),
+        receipt: RestoreReceipt {
+            transaction_id: receipt.transaction_id,
+            restored_files: receipt.changed_files,
+            verified: result.restored,
+        },
+        adapter: result,
+    })
 }
 
 #[derive(Clone, Debug, Serialize)]

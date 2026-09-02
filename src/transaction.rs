@@ -329,6 +329,32 @@ impl<F: FileSystem> TransactionEngine<F> {
         })
     }
 
+    pub fn receipt(&self, transaction_id: &str) -> Result<TransactionReceipt, TransactionError> {
+        validate_transaction_id(transaction_id)?;
+        let transaction_dir = self.state_root.join(transaction_id);
+        let manifest = self.read_manifest(&transaction_dir)?;
+        if manifest.transaction_id != transaction_id {
+            return Err(TransactionError::InvalidManifest(
+                "transaction identifier does not match directory".into(),
+            ));
+        }
+        if !matches!(manifest.status, TransactionStatus::Applied) {
+            return Err(TransactionError::InvalidManifest(
+                "transaction is not in the applied state".into(),
+            ));
+        }
+        Ok(TransactionReceipt {
+            transaction_id: transaction_id.into(),
+            participants: manifest.participants,
+            changed_files: manifest.records.len(),
+            changed_targets: manifest
+                .records
+                .into_iter()
+                .map(|record| record.target)
+                .collect(),
+        })
+    }
+
     fn rollback_records(&self, transaction_dir: &Path, records: &[BackupRecord]) -> RollbackReport {
         let mut report = RollbackReport::default();
         for record in records.iter().rev() {

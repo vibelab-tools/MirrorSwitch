@@ -703,6 +703,17 @@ impl Runtime for OsRuntime {
         .restore(transaction_id)
         .map_err(|error| AdapterError::Runtime(error.to_string()))
     }
+
+    fn transaction_receipt(
+        &self,
+        transaction_id: &str,
+    ) -> Result<crate::transaction::TransactionReceipt, AdapterError> {
+        TransactionEngine::new(self.transaction_root.clone().unwrap_or_else(|| {
+            physical_path(&self.root, Path::new("/var/lib/mirrorswitch/transactions"))
+        }))
+        .receipt(transaction_id)
+        .map_err(|error| AdapterError::Runtime(error.to_string()))
+    }
 }
 
 fn detect_related_tools(

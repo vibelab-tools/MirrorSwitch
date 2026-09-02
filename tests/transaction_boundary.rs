@@ -93,6 +93,7 @@ fn apply_is_idempotent_and_selected_snapshot_restores_with_permissions() {
     let ApplyOutcome::Applied(receipt) = engine.apply(&transaction).unwrap() else {
         panic!("the initial apply must write files");
     };
+    assert_eq!(engine.receipt(&receipt.transaction_id).unwrap(), receipt);
     assert_eq!(receipt.changed_files, 2);
     assert_eq!(receipt.changed_targets, [first.clone(), second.clone()]);
     assert_eq!(fs::read(&first).unwrap(), b"token=first-new\nkeep=true\n");
@@ -126,6 +127,13 @@ fn apply_is_idempotent_and_selected_snapshot_restores_with_permissions() {
     assert_eq!(fs::read(&first).unwrap(), b"token=first-old\nkeep=true\n");
     assert_eq!(fs::read(&second).unwrap(), b"token=second-old\n");
     assert_eq!(current_mode(&first), transaction.changes[0].old_mode);
+    assert!(
+        engine
+            .receipt(&receipt.transaction_id)
+            .unwrap_err()
+            .to_string()
+            .contains("not in the applied state")
+    );
 }
 
 #[test]

@@ -53,3 +53,17 @@ The Windows manifest does not serialize file contents, credentials, or security 
 transaction directory inherits the current user's LocalAppData ACL. v0.2 does not claim arbitrary
 ACL, alternate data stream, or extended-attribute restoration; an adapter that requires those
 properties must reject the target before planning until a native preservation boundary exists.
+
+## Adapter-aware explicit restore
+
+`mirrorswitch restore` first inspects an applied transaction manifest without changing its targets.
+The receipt must name exactly one compiled adapter and the recorded tool identity must agree with
+that adapter. The CLI then calls the adapter's restore boundary instead of bypassing it. Existing
+file-backed adapters still delegate directly to the transaction engine, so the stable
+`receipt.transaction_id`, `restored_files`, and `verified` JSON fields are unchanged.
+
+This ordering also supports command-managed state. Such an adapter stores only the minimum private,
+non-credential recovery description as a transactional file. During explicit restore it reads and
+validates that description, restores the external command state, and only then asks the transaction
+engine to restore or remove the recovery file. An unknown adapter, multiple participants, a corrupt
+manifest, or a transaction that is no longer applied fails before adapter dispatch.

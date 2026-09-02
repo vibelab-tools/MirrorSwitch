@@ -59,6 +59,14 @@ pub trait Runtime {
             "transaction restore is unavailable in this runtime".into(),
         ))
     }
+    fn transaction_receipt(
+        &self,
+        _transaction_id: &str,
+    ) -> Result<TransactionReceipt, AdapterError> {
+        Err(AdapterError::Unsupported(
+            "transaction inspection is unavailable in this runtime".into(),
+        ))
+    }
 }
 
 /// Contract implemented by every tool adapter compiled into MirrorSwitch.
