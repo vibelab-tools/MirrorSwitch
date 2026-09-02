@@ -5,6 +5,8 @@ use std::{
     process::Output,
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
@@ -63,11 +65,19 @@ impl Adapter for RustupAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("rustup") {
             return Ok(None);
         }
-        if !runtime.command_exists("sh") {
+        if context.os == OperatingSystem::Windows {
+            for command in ["reg.exe", "cmd.exe"] {
+                if !runtime.command_exists(command) {
+                    return Err(AdapterError::Unsupported(format!(
+                        "rustup Windows verification requires {command}"
+                    )));
+                }
+            }
+        } else if !runtime.command_exists("sh") {
             return Err(AdapterError::Unsupported(
                 "rustup verification requires a POSIX sh".into(),
             ));
@@ -92,7 +102,7 @@ impl Adapter for RustupAdapter {
                 format!("installed components are {components}"),
                 format!("installed targets are {targets}"),
                 format!(
-                    "selected {} environment file is {}",
+                    "selected {} state is {}",
                     layout.shell.name(),
                     layout.profile.display()
                 ),
@@ -115,7 +125,7 @@ impl Adapter for RustupAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "rustup" {
             return Err(AdapterError::InvalidConfiguration(
@@ -129,6 +139,9 @@ impl Adapter for RustupAdapter {
             ));
         }
         let layout = config_layout(context, runtime)?;
+        if layout.shell == ShellKind::WindowsRegistry {
+            return windows_current(runtime, &layout);
+        }
         let observed = runtime.read(&layout.profile)?;
         let exists = observed.is_some();
         let contents = observed.unwrap_or_default();
@@ -176,7 +189,7 @@ impl Adapter for RustupAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         reviewed_version(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("rustup version is missing".into())
@@ -189,7 +202,10 @@ impl Adapter for RustupAdapter {
             tool_version: detected.version.clone(),
             required_upstreams: vec![RUSTUP_UPSTREAM.into()],
             repository_versions: BTreeMap::new(),
-            probe_contexts: BTreeMap::from([(RUSTUP_UPSTREAM.into(), rustup_probe_contexts())]),
+            probe_contexts: BTreeMap::from([(
+                RUSTUP_UPSTREAM.into(),
+                rustup_probe_contexts(context),
+            )]),
             required_compatibility_evidence: vec![
                 CompatibilityDimension::OperatingSystem,
                 CompatibilityDimension::Architecture,
@@ -210,10 +226,13 @@ impl Adapter for RustupAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         let (dist, update) = selected_pair(selections)?;
+        if context.os == OperatingSystem::Windows {
+            return windows_plan(context, current, dist, update);
+        }
         let document = current
             .documents
             .iter()
@@ -255,10 +274,13 @@ impl Adapter for RustupAdapter {
 
     fn apply(
         &self,
-        _context: &SystemContext,
+        context: &SystemContext,
         runtime: &mut dyn Runtime,
         plan: &ChangePlan,
     ) -> Result<ApplyOutcome, AdapterError> {
+        if context.os == OperatingSystem::Windows {
+            return windows_apply(runtime, plan);
+        }
         runtime.apply_plan(plan)
     }
 
@@ -268,6 +290,9 @@ impl Adapter for RustupAdapter {
         runtime: &mut dyn Runtime,
         receipt: &TransactionReceipt,
     ) -> Result<VerificationResult, AdapterError> {
+        if context.os == OperatingSystem::Windows {
+            return windows_verify(context, runtime, receipt);
+        }
         let result = (|| {
             let layout = config_layout(context, runtime)?;
             let target = rooted(&context.root, &layout.profile);
@@ -299,7 +324,7 @@ impl Adapter for RustupAdapter {
                     "managed rustup mirror block is not canonical".into(),
                 ));
             }
-            let check = run_with_mirrors(runtime, &dist, &update, &["check"])?;
+            let check = run_with_mirrors(context, runtime, &dist, &update, &["check"])?;
             if !matches!(check.status.code(), Some(0 | 100)) {
                 return Err(AdapterError::Verification(format!(
                     "rustup check failed with status {}",
@@ -311,7 +336,7 @@ impl Adapter for RustupAdapter {
                     "rustup check returned no toolchain or update evidence".into(),
                 ));
             }
-            let profile = run_with_mirrors(runtime, &dist, &update, &["show", "profile"])?;
+            let profile = run_with_mirrors(context, runtime, &dist, &update, &["show", "profile"])?;
             if !profile.status.success() {
                 return Err(AdapterError::Verification(format!(
                     "rustup show profile failed with status {}",
@@ -339,10 +364,13 @@ impl Adapter for RustupAdapter {
 
     fn restore(
         &self,
-        _context: &SystemContext,
+        context: &SystemContext,
         runtime: &mut dyn Runtime,
         receipt: &TransactionReceipt,
     ) -> Result<RestoreResult, AdapterError> {
+        if context.os == OperatingSystem::Windows {
+            return windows_restore(context, runtime, receipt);
+        }
         let restored = runtime.restore_transaction(&receipt.transaction_id)?;
         Ok(RestoreResult {
             restored: restored.verified,
@@ -358,6 +386,7 @@ impl Adapter for RustupAdapter {
 enum ShellKind {
     Posix,
     Fish,
+    WindowsRegistry,
 }
 
 impl ShellKind {
@@ -365,6 +394,7 @@ impl ShellKind {
         match self {
             Self::Posix => "POSIX shell",
             Self::Fish => "fish",
+            Self::WindowsRegistry => "Windows user environment",
         }
     }
 }
@@ -393,11 +423,55 @@ struct ParsedProfile {
     sources: Vec<ConfiguredSource>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct WindowsRecoveryState {
+    schema_version: u32,
+    original_dist: Option<String>,
+    original_update: Option<String>,
+    selected_dist: String,
+    selected_update: String,
+}
+
+impl WindowsRecoveryState {
+    fn validate(&self) -> Result<(), AdapterError> {
+        if self.schema_version != 1 || !reviewed_pair(&self.selected_dist, &self.selected_update) {
+            return Err(AdapterError::InvalidConfiguration(
+                "rustup Windows recovery state has an invalid selected pair".into(),
+            ));
+        }
+        match (&self.original_dist, &self.original_update) {
+            (None, None) => Ok(()),
+            (Some(dist), Some(update)) if reviewed_pair(dist, update) => Ok(()),
+            _ => Err(AdapterError::InvalidConfiguration(
+                "rustup Windows recovery state has an incomplete or unreviewed original pair"
+                    .into(),
+            )),
+        }
+    }
+}
+
 fn config_layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layout, AdapterError> {
     let home = runtime
         .home_dir()
         .ok_or_else(|| AdapterError::Unsupported("rustup requires a detected user home".into()))?;
     validate_path(&home, "home")?;
+    if context.os == OperatingSystem::Windows {
+        let local_app_data = runtime
+            .environment_variable("LOCALAPPDATA")
+            .filter(|value| !value.trim().is_empty())
+            .map(PathBuf::from)
+            .ok_or_else(|| {
+                AdapterError::Unsupported(
+                    "rustup Windows environment recovery requires LOCALAPPDATA".into(),
+                )
+            })?;
+        validate_path(&local_app_data, "LOCALAPPDATA")?;
+        return Ok(Layout {
+            shell: ShellKind::WindowsRegistry,
+            profile: local_app_data.join("MirrorSwitch/rustup/environment-recovery.json"),
+        });
+    }
     let shell_name = runtime
         .environment_variable("SHELL")
         .and_then(|value| Path::new(&value).file_name().map(|name| name.to_owned()))
@@ -418,6 +492,433 @@ fn config_layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layou
     };
     let profile = selected_profile(context, runtime, &home, &shell_name, shell)?;
     Ok(Layout { shell, profile })
+}
+
+fn windows_current(
+    runtime: &dyn Runtime,
+    layout: &Layout,
+) -> Result<CurrentConfiguration, AdapterError> {
+    let observed = runtime.read(&layout.profile)?;
+    let exists = observed.is_some();
+    let contents = observed.unwrap_or_default();
+    let mut sources = vec![shell_source(&layout.profile, ShellKind::WindowsRegistry)];
+    if exists && !contents.is_empty() {
+        sources.push(policy_source("windows-recovery-active", &layout.profile));
+    }
+    for variable in [DIST_VARIABLE, UPDATE_VARIABLE, DEPRECATED_VARIABLE] {
+        if let Some(value) = query_windows_variable(runtime, variable)? {
+            sources.push(configured_source(
+                &value,
+                if variable == DEPRECATED_VARIABLE {
+                    "deprecated-shell-profile"
+                } else {
+                    "managed-shell-profile"
+                },
+                variable,
+                Path::new("HKCU\\Environment"),
+                ShellKind::WindowsRegistry,
+            ));
+        }
+        if let Some(value) = runtime
+            .environment_variable(variable)
+            .filter(|value| !value.is_empty())
+        {
+            sources.push(configured_source(
+                &value,
+                if variable == DEPRECATED_VARIABLE {
+                    "deprecated-environment-override"
+                } else {
+                    "environment-override"
+                },
+                variable,
+                Path::new(":env:"),
+                ShellKind::WindowsRegistry,
+            ));
+        }
+    }
+    Ok(CurrentConfiguration {
+        tool_id: "rustup".into(),
+        scope: ConfigurationScope::User,
+        sources,
+        files: exists
+            .then_some(layout.profile.clone())
+            .into_iter()
+            .collect(),
+        documents: vec![ConfigurationDocument {
+            path: layout.profile.clone(),
+            format: "rustup-windows-recovery".into(),
+            contents,
+        }],
+    })
+}
+
+fn windows_plan(
+    context: &SystemContext,
+    current: &CurrentConfiguration,
+    dist: &str,
+    update: &str,
+) -> Result<ChangePlan, AdapterError> {
+    let (original_dist, original_update) = windows_registry_values(current)?;
+    let document = current
+        .documents
+        .iter()
+        .find(|document| document.format == "rustup-windows-recovery")
+        .ok_or_else(|| {
+            AdapterError::InvalidConfiguration("rustup Windows recovery document is missing".into())
+        })?;
+    let selected_is_current =
+        original_dist.as_deref() == Some(dist) && original_update.as_deref() == Some(update);
+    if !document.contents.is_empty() {
+        let active: WindowsRecoveryState =
+            serde_json::from_slice(&document.contents).map_err(|error| {
+                AdapterError::InvalidConfiguration(format!(
+                    "rustup Windows recovery state is invalid: {error}"
+                ))
+            })?;
+        active.validate()?;
+        if selected_is_current && active.selected_dist == dist && active.selected_update == update {
+            return Ok(ChangePlan {
+                adapter_key: "rustup".into(),
+                tool_id: "rustup".into(),
+                scope: ConfigurationScope::User,
+                changes: Vec::new(),
+                requires_elevation: false,
+                service_impact: ServiceImpact::None,
+            });
+        }
+        return Err(AdapterError::Conflict(
+            "a previous rustup Windows recovery state is active; restore it first".into(),
+        ));
+    }
+    if selected_is_current {
+        return Ok(ChangePlan {
+            adapter_key: "rustup".into(),
+            tool_id: "rustup".into(),
+            scope: ConfigurationScope::User,
+            changes: Vec::new(),
+            requires_elevation: false,
+            service_impact: ServiceImpact::None,
+        });
+    }
+    let state = WindowsRecoveryState {
+        schema_version: 1,
+        original_dist,
+        original_update,
+        selected_dist: dist.into(),
+        selected_update: update.into(),
+    };
+    state.validate()?;
+    let contents = serde_json::to_vec_pretty(&state).map_err(|error| {
+        AdapterError::Runtime(format!(
+            "could not serialize rustup Windows recovery state: {error}"
+        ))
+    })?;
+    Ok(ChangePlan {
+        adapter_key: "rustup".into(),
+        tool_id: "rustup".into(),
+        scope: ConfigurationScope::User,
+        changes: vec![PlannedFileChange {
+            target: rooted(&context.root, &document.path),
+            old_contents: current.files.contains(&document.path).then(Vec::new),
+            old_mode: None,
+            new_contents: contents,
+            new_mode: None,
+            summary: "record private rustup Windows user-environment recovery state before updating the paired registry values".into(),
+        }],
+        requires_elevation: false,
+        service_impact: ServiceImpact::None,
+    })
+}
+
+fn windows_registry_values(
+    current: &CurrentConfiguration,
+) -> Result<(Option<String>, Option<String>), AdapterError> {
+    let value = |variable: &str| -> Result<Option<String>, AdapterError> {
+        let matches = current
+            .sources
+            .iter()
+            .filter(|source| {
+                metadata(source, "kind") == Some("managed-shell-profile")
+                    && metadata(source, "variable") == Some(variable)
+            })
+            .collect::<Vec<_>>();
+        if matches.len() > 1 {
+            return Err(AdapterError::InvalidConfiguration(format!(
+                "rustup Windows environment has duplicate {variable} state"
+            )));
+        }
+        Ok(matches.first().map(|source| source.url.clone()))
+    };
+    Ok((value(DIST_VARIABLE)?, value(UPDATE_VARIABLE)?))
+}
+
+fn windows_apply(
+    runtime: &mut dyn Runtime,
+    plan: &ChangePlan,
+) -> Result<ApplyOutcome, AdapterError> {
+    if plan.adapter_key == "rustup" && plan.tool_id == "rustup" && plan.changes.is_empty() {
+        return runtime.apply_plan(plan);
+    }
+    if plan.adapter_key != "rustup" || plan.tool_id != "rustup" || plan.changes.len() != 1 {
+        return Err(AdapterError::InvalidConfiguration(
+            "rustup Windows apply requires one recovery-state plan".into(),
+        ));
+    }
+    let state: WindowsRecoveryState = serde_json::from_slice(&plan.changes[0].new_contents)
+        .map_err(|error| {
+            AdapterError::InvalidConfiguration(format!(
+                "rustup Windows recovery state is invalid: {error}"
+            ))
+        })?;
+    state.validate()?;
+    let outcome = runtime.apply_plan(plan)?;
+    let ApplyOutcome::Applied(receipt) = &outcome else {
+        return Ok(outcome);
+    };
+    if let Err(error) = set_windows_pair(runtime, &state.selected_dist, &state.selected_update) {
+        let registry_restored = restore_windows_pair(runtime, &state).is_ok();
+        let state_restored =
+            registry_restored && runtime.restore_transaction(&receipt.transaction_id).is_ok();
+        return Err(AdapterError::Runtime(format!(
+            "rustup Windows environment update failed: {error}; registry restored: {registry_restored}; recovery file restored: {state_restored}"
+        )));
+    }
+    Ok(outcome)
+}
+
+fn windows_verify(
+    context: &SystemContext,
+    runtime: &mut dyn Runtime,
+    receipt: &TransactionReceipt,
+) -> Result<VerificationResult, AdapterError> {
+    let state = read_windows_recovery(context, runtime, receipt)?;
+    let result = (|| {
+        if query_windows_variable(runtime, DIST_VARIABLE)?.as_deref()
+            != Some(state.selected_dist.as_str())
+            || query_windows_variable(runtime, UPDATE_VARIABLE)?.as_deref()
+                != Some(state.selected_update.as_str())
+        {
+            return Err(AdapterError::Verification(
+                "rustup Windows user environment did not retain the selected pair".into(),
+            ));
+        }
+        let check = run_with_mirrors(
+            context,
+            runtime,
+            &state.selected_dist,
+            &state.selected_update,
+            &["check"],
+        )?;
+        if !matches!(check.status.code(), Some(0 | 100))
+            || combined_output(&check).trim().is_empty()
+        {
+            return Err(AdapterError::Verification(format!(
+                "rustup check failed with status {}",
+                check.status
+            )));
+        }
+        let profile = run_with_mirrors(
+            context,
+            runtime,
+            &state.selected_dist,
+            &state.selected_update,
+            &["show", "profile"],
+        )?;
+        let profile = stdout(&profile, "rustup show profile")?;
+        if !matches!(profile.as_str(), "minimal" | "default" | "complete") {
+            return Err(AdapterError::Verification(
+                "rustup show profile returned an unrecognized value".into(),
+            ));
+        }
+        Ok(VerificationResult {
+            valid: true,
+            summary: format!(
+                "rustup check validated Windows user environment {} and {} with profile {profile}",
+                state.selected_dist, state.selected_update
+            ),
+        })
+    })();
+    if let Err(error) = result {
+        let registry_restored = restore_windows_pair(runtime, &state).is_ok();
+        let state_restored =
+            registry_restored && runtime.restore_transaction(&receipt.transaction_id).is_ok();
+        return Err(AdapterError::Verification(format!(
+            "{error}; registry restored: {registry_restored}; recovery file restored: {state_restored}"
+        )));
+    }
+    result
+}
+
+fn windows_restore(
+    context: &SystemContext,
+    runtime: &mut dyn Runtime,
+    receipt: &TransactionReceipt,
+) -> Result<RestoreResult, AdapterError> {
+    let state = read_windows_recovery(context, runtime, receipt)?;
+    restore_windows_pair(runtime, &state)?;
+    let restored = runtime.restore_transaction(&receipt.transaction_id)?;
+    Ok(RestoreResult {
+        restored: restored.verified,
+        summary: "restored the previous rustup Windows user environment and recovery file".into(),
+    })
+}
+
+fn read_windows_recovery(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+    receipt: &TransactionReceipt,
+) -> Result<WindowsRecoveryState, AdapterError> {
+    if receipt.participants.len() != 1
+        || receipt.participants[0].adapter_key != "rustup"
+        || receipt.changed_targets.len() != 1
+    {
+        return Err(AdapterError::InvalidConfiguration(
+            "rustup Windows receipt does not identify one recovery state".into(),
+        ));
+    }
+    let target = if context.root == Path::new("/") {
+        receipt.changed_targets[0].clone()
+    } else {
+        PathBuf::from("/").join(
+            receipt.changed_targets[0]
+                .strip_prefix(&context.root)
+                .map_err(|_| {
+                    AdapterError::InvalidConfiguration(
+                        "rustup Windows receipt target is outside the context root".into(),
+                    )
+                })?,
+        )
+    };
+    let contents = runtime
+        .read(&target)?
+        .ok_or_else(|| AdapterError::Runtime("rustup Windows recovery state is missing".into()))?;
+    let state: WindowsRecoveryState = serde_json::from_slice(&contents).map_err(|error| {
+        AdapterError::InvalidConfiguration(format!(
+            "rustup Windows recovery state is invalid: {error}"
+        ))
+    })?;
+    state.validate()?;
+    Ok(state)
+}
+
+fn query_windows_variable(
+    runtime: &dyn Runtime,
+    variable: &str,
+) -> Result<Option<String>, AdapterError> {
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "query".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            variable.into(),
+        ],
+    )?;
+    if output.status.code() == Some(1) {
+        return Ok(None);
+    }
+    if !output.status.success() {
+        return Err(AdapterError::Runtime(format!(
+            "reg.exe query {variable} failed with status {}",
+            output.status
+        )));
+    }
+    let text = String::from_utf8(output.stdout)
+        .map_err(|_| AdapterError::Runtime("reg.exe returned non-UTF-8 output".into()))?;
+    let line = text
+        .lines()
+        .map(str::trim)
+        .find(|line| line.starts_with(variable))
+        .ok_or_else(|| {
+            AdapterError::InvalidConfiguration(format!("reg.exe returned no {variable} value"))
+        })?;
+    let rest = line[variable.len()..].trim_start();
+    let split = rest.find(char::is_whitespace).ok_or_else(|| {
+        AdapterError::InvalidConfiguration(format!("reg.exe returned malformed {variable} state"))
+    })?;
+    let kind = &rest[..split];
+    let value = rest[split..].trim();
+    if kind != "REG_SZ" || value.is_empty() || value.chars().any(char::is_whitespace) {
+        return Err(AdapterError::Unsupported(format!(
+            "rustup Windows {variable} must be a non-empty REG_SZ URL"
+        )));
+    }
+    Ok(Some(value.into()))
+}
+
+fn set_windows_pair(runtime: &dyn Runtime, dist: &str, update: &str) -> Result<(), AdapterError> {
+    set_windows_variable(runtime, DIST_VARIABLE, dist)?;
+    set_windows_variable(runtime, UPDATE_VARIABLE, update)?;
+    Ok(())
+}
+
+fn restore_windows_pair(
+    runtime: &dyn Runtime,
+    state: &WindowsRecoveryState,
+) -> Result<(), AdapterError> {
+    restore_windows_variable(runtime, DIST_VARIABLE, state.original_dist.as_deref())?;
+    restore_windows_variable(runtime, UPDATE_VARIABLE, state.original_update.as_deref())
+}
+
+fn restore_windows_variable(
+    runtime: &dyn Runtime,
+    variable: &str,
+    value: Option<&str>,
+) -> Result<(), AdapterError> {
+    match value {
+        Some(value) => set_windows_variable(runtime, variable, value),
+        None => delete_windows_variable(runtime, variable),
+    }
+}
+
+fn set_windows_variable(
+    runtime: &dyn Runtime,
+    variable: &str,
+    value: &str,
+) -> Result<(), AdapterError> {
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "add".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            variable.into(),
+            "/t".into(),
+            "REG_SZ".into(),
+            "/d".into(),
+            value.into(),
+            "/f".into(),
+        ],
+    )?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(AdapterError::Runtime(format!(
+            "reg.exe add {variable} failed with status {}",
+            output.status
+        )))
+    }
+}
+
+fn delete_windows_variable(runtime: &dyn Runtime, variable: &str) -> Result<(), AdapterError> {
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "delete".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            variable.into(),
+            "/f".into(),
+        ],
+    )?;
+    if output.status.success() || output.status.code() == Some(1) {
+        Ok(())
+    } else {
+        Err(AdapterError::Runtime(format!(
+            "reg.exe delete {variable} failed with status {}",
+            output.status
+        )))
+    }
 }
 
 fn selected_profile(
@@ -602,25 +1103,56 @@ fn display_list(values: &[String]) -> String {
     }
 }
 
-fn rustup_probe_contexts() -> Vec<BTreeMap<String, String>> {
-    [
-        (
-            "x86_64-unknown-linux-gnu",
-            "4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10",
-        ),
-        (
-            "aarch64-unknown-linux-gnu",
-            "9732d6c5e2a098d3521fca8145d826ae0aaa067ef2385ead08e6feac88fa5792",
-        ),
-    ]
-    .into_iter()
-    .map(|(host, rustup_sha256)| {
-        BTreeMap::from([
-            ("host".into(), host.into()),
-            ("rustup_sha256".into(), rustup_sha256.into()),
-        ])
-    })
-    .collect()
+fn rustup_probe_contexts(context: &SystemContext) -> Vec<BTreeMap<String, String>> {
+    let contexts: &[(&str, &str, &str)] = match context.os {
+        OperatingSystem::Linux => &[
+            (
+                "x86_64-unknown-linux-gnu",
+                "rustup-init",
+                "4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10",
+            ),
+            (
+                "aarch64-unknown-linux-gnu",
+                "rustup-init",
+                "9732d6c5e2a098d3521fca8145d826ae0aaa067ef2385ead08e6feac88fa5792",
+            ),
+        ],
+        OperatingSystem::Macos => match context.architecture {
+            Architecture::X86_64 => &[(
+                "x86_64-apple-darwin",
+                "rustup-init",
+                "33cf85df9142bc6d29cbc62fa5ca1d4c29622cddb55213a4c1a43c457fb9b2d7",
+            )],
+            Architecture::Arm64 => &[(
+                "aarch64-apple-darwin",
+                "rustup-init",
+                "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1",
+            )],
+        },
+        OperatingSystem::Windows => match context.architecture {
+            Architecture::X86_64 => &[(
+                "x86_64-pc-windows-msvc",
+                "rustup-init.exe",
+                "86478e53f769379d7f0ebfa7c9aa97cb76ca92233f79aa2cc0dbee2efaac73c7",
+            )],
+            Architecture::Arm64 => &[(
+                "aarch64-pc-windows-msvc",
+                "rustup-init.exe",
+                "3af309e6c3062aa11df0e932954f69d13b734d8a431e593812f3ecd9ff9e6ef6",
+            )],
+        },
+    };
+    contexts
+        .iter()
+        .copied()
+        .map(|(host, installer, rustup_sha256)| {
+            BTreeMap::from([
+                ("host".into(), host.into()),
+                ("installer".into(), installer.into()),
+                ("rustup_sha256".into(), rustup_sha256.into()),
+            ])
+        })
+        .collect()
 }
 
 fn parse_profile(text: &str, path: &Path, shell: ShellKind) -> Result<ParsedProfile, AdapterError> {
@@ -760,6 +1292,11 @@ fn assignment(line: &str, shell: ShellKind) -> Result<Option<(&str, &str)>, Adap
             }
             Some((variable, value))
         }
+        ShellKind::WindowsRegistry => {
+            return Err(AdapterError::InvalidConfiguration(
+                "Windows rustup environment is not a shell profile".into(),
+            ));
+        }
     };
     let Some((variable, raw)) = parsed else {
         if contains_variable(line) {
@@ -880,12 +1417,21 @@ fn render_managed(dist: &str, update: &str, newline: &str, shell: ShellKind) -> 
         ShellKind::Fish => {
             format!("set -gx {DIST_VARIABLE} '{dist}'{newline}set -gx {UPDATE_VARIABLE} '{update}'")
         }
+        ShellKind::WindowsRegistry => unreachable!("Windows uses registry-backed recovery state"),
     };
     format!("{MANAGED_BEGIN}{newline}{assignments}{newline}{MANAGED_END}{newline}")
 }
 
 fn validate_policy(current: &CurrentConfiguration) -> Result<(), AdapterError> {
     let managed = managed_pair_from_sources(current)?;
+    if managed
+        .as_ref()
+        .is_some_and(|(dist, update)| !reviewed_pair(dist, update))
+    {
+        return Err(AdapterError::Unsupported(
+            "persistent rustup mirror variables contain an unreviewed endpoint pair".into(),
+        ));
+    }
     let mut environment = BTreeMap::new();
     for source in &current.sources {
         match metadata(source, "kind") {
@@ -979,6 +1525,7 @@ fn shell_from_sources(current: &CurrentConfiguration) -> Result<ShellKind, Adapt
     match value {
         "posix" => Ok(ShellKind::Posix),
         "fish" => Ok(ShellKind::Fish),
+        "windows-registry" => Ok(ShellKind::WindowsRegistry),
         _ => Err(AdapterError::InvalidConfiguration(
             "rustup shell evidence is unrecognized".into(),
         )),
@@ -1070,6 +1617,7 @@ fn configured_source(
                     match shell {
                         ShellKind::Posix => "posix",
                         ShellKind::Fish => "fish",
+                        ShellKind::WindowsRegistry => "windows-registry",
                     }
                     .into(),
                 ],
@@ -1092,10 +1640,23 @@ fn shell_source(path: &Path, shell: ShellKind) -> ConfiguredSource {
                     match shell {
                         ShellKind::Posix => "posix",
                         ShellKind::Fish => "fish",
+                        ShellKind::WindowsRegistry => "windows-registry",
                     }
                     .into(),
                 ],
             ),
+        ]),
+    }
+}
+
+fn policy_source(kind: &str, path: &Path) -> ConfiguredSource {
+    ConfiguredSource {
+        upstream_id: None,
+        url: format!("rustup-policy:{kind}"),
+        enabled: true,
+        metadata: BTreeMap::from([
+            ("kind".into(), vec![kind.into()]),
+            ("config_path".into(), vec![path.display().to_string()]),
         ]),
     }
 }
@@ -1135,6 +1696,7 @@ fn invoke_rustup(runtime: &dyn Runtime, arguments: &[&str]) -> Result<Output, Ad
 }
 
 fn run_with_mirrors(
+    context: &SystemContext,
     runtime: &dyn Runtime,
     dist: &str,
     update: &str,
@@ -1144,6 +1706,27 @@ fn run_with_mirrors(
         return Err(AdapterError::Verification(
             "rustup verification received an unreviewed endpoint pair".into(),
         ));
+    }
+    if context.os == OperatingSystem::Windows {
+        let mut command =
+            format!("set \"{DIST_VARIABLE}={dist}\"&& set \"{UPDATE_VARIABLE}={update}\"&& rustup");
+        for argument in arguments {
+            if !argument
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+            {
+                return Err(AdapterError::Verification(
+                    "rustup Windows verification argument is unsafe".into(),
+                ));
+            }
+            command.push(' ');
+            command.push_str(argument);
+        }
+        let command_arguments = vec!["/D".into(), "/S".into(), "/C".into(), command];
+        return match runtime.project_dir() {
+            Some(directory) => runtime.run_in(&directory, "cmd.exe", &command_arguments),
+            None => runtime.run("cmd.exe", &command_arguments),
+        };
     }
     let mut command = format!(
         "export {DIST_VARIABLE}={}; export {UPDATE_VARIABLE}={}; rustup",
@@ -1190,15 +1773,18 @@ fn environment_state(runtime: &dyn Runtime, variable: &str) -> &'static str {
     }
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "rustup v0.1 supports Linux x86_64 and arm64 only".into(),
+            "rustup on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "rustup requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -1207,7 +1793,7 @@ fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
 fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
     if scope != ConfigurationScope::User {
         return Err(AdapterError::Unsupported(
-            "rustup v0.1 writes only one selected user environment file".into(),
+            "rustup writes only one selected user environment target".into(),
         ));
     }
     Ok(())

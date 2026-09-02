@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+b13f120f54b2",
-  "content_revision": 20260902232355,
-  "generated_at": "2026-09-02T23:23:55Z",
+  "content_version": "2026.08.28+63cab02bffa6",
+  "content_revision": 20260902234240,
+  "generated_at": "2026-09-02T23:42:40Z",
   "providers": [
     {
       "id": "aliyun",
@@ -2424,6 +2424,128 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "00a3911aa66b29e0d7b0b013",
+      "provider_id": "huaweicloud",
+      "upstream_id": "rust-toolchain--release-artifacts",
+      "tool_id": "rustup",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rustup"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/rustup/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/rustup/rustup/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/dist/2026-08-20/channel-rust-stable.toml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "4a49195d2e5b4e5efd922e8a670ec40376c14b772233a46273ac9b8d5e810127"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/dist/2026-08-20/channel-rust-stable.toml.sha256",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "4a49195d2e5b4e5efd922e8a670ec40376c14b772233a46273ac9b8d5e810127"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/dist/2026-08-20/rustc-1.98.0-{host}.tar.xz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/dist/2026-08-20/cargo-1.98.0-{host}.tar.xz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/dist/2026-08-20/rust-std-1.98.0-{host}.tar.xz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/release-stable.toml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "schema-version = '1'"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/1.29.0/{host}/{installer}.sha256",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{rustup_sha256}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/archive/1.29.0/{host}/{installer}",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -9832,126 +9954,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "394b49882c112813447dbeb6",
-      "provider_id": "huaweicloud",
-      "upstream_id": "rust-toolchain--release-artifacts",
-      "tool_id": "rustup",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "rustup"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/rustup/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/rustup/rustup/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "releases",
-          "method": "get",
-          "path": "/dist/2026-08-20/channel-rust-stable.toml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "sha256": "4a49195d2e5b4e5efd922e8a670ec40376c14b772233a46273ac9b8d5e810127"
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "get",
-          "path": "/dist/2026-08-20/channel-rust-stable.toml.sha256",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "4a49195d2e5b4e5efd922e8a670ec40376c14b772233a46273ac9b8d5e810127"
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/dist/2026-08-20/rustc-1.98.0-{host}.tar.xz",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/dist/2026-08-20/cargo-1.98.0-{host}.tar.xz",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/dist/2026-08-20/rust-std-1.98.0-{host}.tar.xz",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/release-stable.toml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "schema-version = '1'"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/archive/1.29.0/{host}/rustup-init.sha256",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{rustup_sha256}"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/archive/1.29.0/{host}/rustup-init",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "3979c6e7b7982fa6fe85879c",
       "provider_id": "aliyun",
       "upstream_id": "crates.io-index--language-registry",
@@ -13828,126 +13830,6 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "57b30605eb6fbd8bf258bdec",
-      "provider_id": "ustc",
-      "upstream_id": "rust-toolchain--release-artifacts",
-      "tool_id": "rustup",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "rust-static"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/rust-static/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/rust-static/rustup/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "releases",
-          "method": "get",
-          "path": "/dist/2026-08-20/channel-rust-stable.toml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "sha256": "3f7d139b73bbbd0004ef6e58b430831c68cdad2b1f64ee2eb35d54c09199489a"
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "get",
-          "path": "/dist/2026-08-20/channel-rust-stable.toml.sha256",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "3f7d139b73bbbd0004ef6e58b430831c68cdad2b1f64ee2eb35d54c09199489a"
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/dist/2026-08-20/rustc-1.98.0-{host}.tar.xz",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/dist/2026-08-20/cargo-1.98.0-{host}.tar.xz",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/dist/2026-08-20/rust-std-1.98.0-{host}.tar.xz",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/release-stable.toml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "schema-version = '1'"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/archive/1.29.0/{host}/rustup-init.sha256",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{rustup_sha256}"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/archive/1.29.0/{host}/rustup-init",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/rust-static.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -33162,6 +33044,128 @@
       ],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "e728906b7e198ff468a68878",
+      "provider_id": "ustc",
+      "upstream_id": "rust-toolchain--release-artifacts",
+      "tool_id": "rustup",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "rust-static"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/rust-static/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/rust-static/rustup/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/dist/2026-08-20/channel-rust-stable.toml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "3f7d139b73bbbd0004ef6e58b430831c68cdad2b1f64ee2eb35d54c09199489a"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/dist/2026-08-20/channel-rust-stable.toml.sha256",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "3f7d139b73bbbd0004ef6e58b430831c68cdad2b1f64ee2eb35d54c09199489a"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/dist/2026-08-20/rustc-1.98.0-{host}.tar.xz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/dist/2026-08-20/cargo-1.98.0-{host}.tar.xz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/dist/2026-08-20/rust-std-1.98.0-{host}.tar.xz",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/release-stable.toml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "schema-version = '1'"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/archive/1.29.0/{host}/{installer}.sha256",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{rustup_sha256}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/archive/1.29.0/{host}/{installer}",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/rust-static.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

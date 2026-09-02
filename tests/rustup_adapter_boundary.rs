@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     cell::RefCell,
@@ -33,6 +33,13 @@ const USTC_DIST: &str = "https://mirrors.ustc.edu.cn/rust-static/";
 const USTC_UPDATE: &str = "https://mirrors.ustc.edu.cn/rust-static/rustup/";
 const X64_RUSTUP_SHA: &str = "4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10";
 const ARM64_RUSTUP_SHA: &str = "9732d6c5e2a098d3521fca8145d826ae0aaa067ef2385ead08e6feac88fa5792";
+const X64_MAC_RUSTUP_SHA: &str = "33cf85df9142bc6d29cbc62fa5ca1d4c29622cddb55213a4c1a43c457fb9b2d7";
+const ARM64_MAC_RUSTUP_SHA: &str =
+    "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1";
+const X64_WINDOWS_RUSTUP_SHA: &str =
+    "86478e53f769379d7f0ebfa7c9aa97cb76ca92233f79aa2cc0dbee2efaac73c7";
+const ARM64_WINDOWS_RUSTUP_SHA: &str =
+    "3af309e6c3062aa11df0e932954f69d13b734d8a431e593812f3ecd9ff9e6ef6";
 
 fn context(
     root: &Path,
@@ -49,6 +56,16 @@ fn context(
             version_codename: Some("bookworm".into()),
             id_like: Vec::new(),
         }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
         root: root.to_path_buf(),
     }
 }
@@ -110,6 +127,62 @@ esac
             ),
         );
     }
+}
+
+fn install_windows_commands(root: &Path, check_exit: i32) -> PathBuf {
+    let registry = root.join("registry");
+    fs::create_dir_all(&registry).unwrap();
+    executable(
+        root,
+        "/usr/bin/reg.exe",
+        format!(
+            r#"#!/bin/sh
+root='{registry}'
+operation=$1
+variable=$4
+file="$root/$variable"
+case "$operation" in
+  query)
+    [ -f "$file" ] || exit 1
+    printf '%s\n' 'HKEY_CURRENT_USER\Environment' "    $variable    REG_SZ    $(cat "$file")"
+    ;;
+  add)
+    value=''
+    previous=''
+    for argument in "$@"; do
+      if [ "$previous" = data ]; then value=$argument; fi
+      if [ "$argument" = /d ]; then previous=data; else previous=''; fi
+    done
+    [ -n "$value" ] || exit 2
+    printf '%s' "$value" > "$file"
+    ;;
+  delete)
+    [ -f "$file" ] || exit 1
+    rm "$file"
+    ;;
+  *) exit 3 ;;
+esac
+"#,
+            registry = registry.display(),
+        ),
+    );
+    executable(
+        root,
+        "/usr/bin/cmd.exe",
+        format!(
+            r#"#!/bin/sh
+[ "$1 $2 $3" = '/D /S /C' ] || exit 4
+printf '%s' "$4" | grep -q 'RUSTUP_DIST_SERVER=https://' || exit 5
+printf '%s' "$4" | grep -q 'RUSTUP_UPDATE_ROOT=https://' || exit 6
+case "$4" in
+  *'rustup check') printf '%s\n' 'stable-aarch64-pc-windows-msvc - Up to date'; exit {check_exit} ;;
+  *'rustup show profile') printf '%s\n' 'default' ;;
+  *) exit 7 ;;
+esac
+"#,
+        ),
+    );
+    registry
 }
 
 fn environment(shell: &str) -> BTreeMap<String, String> {
@@ -383,8 +456,16 @@ fn catalog_requires_distribution_components_update_binary_and_checksums_before_l
         }));
         assert!(candidate.probes.iter().any(|probe| {
             probe.endpoint_role == EndpointRole::Artifacts
-                && probe.path.contains("rustup-init.sha256")
+                && probe.path.contains("{installer}.sha256")
         }));
+        assert_eq!(
+            candidate.compatibility.operating_systems,
+            [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows,
+            ]
+        );
     }
 
     let catalog = synthetic_catalog();
@@ -439,6 +520,191 @@ fn catalog_requires_distribution_components_update_binary_and_checksums_before_l
                 if reason.contains("metadata marker")
         )
     }));
+}
+
+#[test]
+fn macos_probe_triples_and_windows_registry_transaction_are_native() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_rustup(root, "1.29.0", 0, true);
+    write(root, "/work/project/.keep", b"");
+    let adapter = RustupAdapter;
+    let macos = native_context(root, OperatingSystem::Macos, Architecture::Arm64);
+    let mac_runtime = runtime(root, environment("/bin/zsh"));
+    let detected = adapter.detect(&macos, &mac_runtime).unwrap().unwrap();
+    let current = adapter
+        .read_current(&macos, &mac_runtime, &detected, ConfigurationScope::User)
+        .unwrap();
+    let request = adapter
+        .selection_request(&macos, &detected, &current)
+        .unwrap();
+    assert_eq!(
+        request.probe_contexts[RUSTUP_UPSTREAM]
+            .iter()
+            .map(|values| {
+                (
+                    values["host"].as_str(),
+                    values["installer"].as_str(),
+                    values["rustup_sha256"].as_str(),
+                )
+            })
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from([("aarch64-apple-darwin", "rustup-init", ARM64_MAC_RUSTUP_SHA,)])
+    );
+    let macos_x64 = native_context(root, OperatingSystem::Macos, Architecture::X86_64);
+    let x64_request = adapter
+        .selection_request(&macos_x64, &detected, &current)
+        .unwrap();
+    assert_eq!(
+        x64_request.probe_contexts[RUSTUP_UPSTREAM][0]["rustup_sha256"],
+        X64_MAC_RUSTUP_SHA
+    );
+
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_rustup(root, "1.29.0", 0, false);
+    let registry = install_windows_commands(root, 0);
+    fs::write(
+        registry.join(DIST_VARIABLE),
+        USTC_DIST.trim_end_matches('/'),
+    )
+    .unwrap();
+    fs::write(
+        registry.join(UPDATE_VARIABLE),
+        USTC_UPDATE.trim_end_matches('/'),
+    )
+    .unwrap();
+    write(root, "/work/project/.keep", b"");
+    let windows = native_context(root, OperatingSystem::Windows, Architecture::Arm64);
+    let environment = BTreeMap::from([(
+        "LOCALAPPDATA".into(),
+        "/home/developer/AppData/Local".into(),
+    )]);
+    let mut runtime = runtime(root, environment);
+    let detected = adapter.detect(&windows, &runtime).unwrap().unwrap();
+    let current = adapter
+        .read_current(&windows, &runtime, &detected, ConfigurationScope::User)
+        .unwrap();
+    assert!(
+        current
+            .documents
+            .iter()
+            .any(|document| document.format == "rustup-windows-recovery")
+    );
+    let request = adapter
+        .selection_request(&windows, &detected, &current)
+        .unwrap();
+    assert_eq!(
+        request.probe_contexts[RUSTUP_UPSTREAM]
+            .iter()
+            .map(|values| {
+                (
+                    values["host"].as_str(),
+                    values["installer"].as_str(),
+                    values["rustup_sha256"].as_str(),
+                )
+            })
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from([(
+            "aarch64-pc-windows-msvc",
+            "rustup-init.exe",
+            ARM64_WINDOWS_RUSTUP_SHA,
+        )])
+    );
+    let windows_x64 = native_context(root, OperatingSystem::Windows, Architecture::X86_64);
+    let x64_request = adapter
+        .selection_request(&windows_x64, &detected, &current)
+        .unwrap();
+    assert_eq!(
+        x64_request.probe_contexts[RUSTUP_UPSTREAM][0]["rustup_sha256"],
+        X64_WINDOWS_RUSTUP_SHA
+    );
+    let selected = [selection(HUAWEI_DIST, HUAWEI_UPDATE)];
+    let plan = adapter.plan(&windows, &current, &selected).unwrap();
+    assert_eq!(plan.changes.len(), 1);
+    assert!(!format!("{plan:?}").contains("HKCU"));
+    let ApplyOutcome::Applied(receipt) = adapter.apply(&windows, &mut runtime, &plan).unwrap()
+    else {
+        panic!("Windows rustup environment should change")
+    };
+    assert_eq!(
+        fs::read_to_string(registry.join(DIST_VARIABLE)).unwrap(),
+        HUAWEI_DIST.trim_end_matches('/')
+    );
+    assert!(
+        adapter
+            .verify(&windows, &mut runtime, &receipt)
+            .unwrap()
+            .valid
+    );
+    let updated = adapter
+        .read_current(&windows, &runtime, &detected, ConfigurationScope::User)
+        .unwrap();
+    let unchanged = adapter.plan(&windows, &updated, &selected).unwrap();
+    assert!(unchanged.changes.is_empty());
+    assert_eq!(
+        adapter.apply(&windows, &mut runtime, &unchanged).unwrap(),
+        ApplyOutcome::Unchanged
+    );
+    assert!(
+        adapter
+            .restore(&windows, &mut runtime, &receipt)
+            .unwrap()
+            .restored
+    );
+    assert_eq!(
+        fs::read_to_string(registry.join(DIST_VARIABLE)).unwrap(),
+        USTC_DIST.trim_end_matches('/')
+    );
+    assert_eq!(
+        fs::read_to_string(registry.join(UPDATE_VARIABLE)).unwrap(),
+        USTC_UPDATE.trim_end_matches('/')
+    );
+    assert!(
+        !root
+            .join("home/developer/AppData/Local/MirrorSwitch/rustup/environment-recovery.json")
+            .exists()
+    );
+}
+
+#[test]
+fn failed_windows_rustup_check_restores_registry_and_recovery_file() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_rustup(root, "1.29.0", 74, false);
+    let registry = install_windows_commands(root, 74);
+    write(root, "/work/project/.keep", b"");
+    let context = native_context(root, OperatingSystem::Windows, Architecture::X86_64);
+    let mut runtime = runtime(
+        root,
+        BTreeMap::from([(
+            "LOCALAPPDATA".into(),
+            "/home/developer/AppData/Local".into(),
+        )]),
+    );
+    let adapter = RustupAdapter;
+    let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+    let current = adapter
+        .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+        .unwrap();
+    let plan = adapter
+        .plan(&context, &current, &[selection(HUAWEI_DIST, HUAWEI_UPDATE)])
+        .unwrap();
+    let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+    else {
+        panic!("Windows rustup environment should change")
+    };
+    let error = adapter
+        .verify(&context, &mut runtime, &receipt)
+        .unwrap_err();
+    assert!(error.to_string().contains("registry restored: true"));
+    assert!(!registry.join(DIST_VARIABLE).exists());
+    assert!(!registry.join(UPDATE_VARIABLE).exists());
+    assert!(
+        !root
+            .join("home/developer/AppData/Local/MirrorSwitch/rustup/environment-recovery.json")
+            .exists()
+    );
 }
 
 #[test]
@@ -545,14 +811,15 @@ fn unsupported_version_platform_scope_and_missing_commands_are_inert() {
             .contains("1.24+")
     );
 
-    let mut windows = supported.clone();
-    windows.os = OperatingSystem::Windows;
+    let mut macos_container = supported.clone();
+    macos_container.os = OperatingSystem::Macos;
+    macos_container.environment = ExecutionEnvironment::Container;
     assert!(
         adapter
-            .detect(&windows, &installed)
+            .detect(&macos_container, &installed)
             .unwrap_err()
             .to_string()
-            .contains("Linux")
+            .contains("native host")
     );
 
     let no_shell = tempdir().unwrap();
@@ -587,3 +854,4 @@ fn unsupported_version_platform_scope_and_missing_commands_are_inert() {
 }
 
 const DIST_VARIABLE: &str = "RUSTUP_DIST_SERVER";
+const UPDATE_VARIABLE: &str = "RUSTUP_UPDATE_ROOT";

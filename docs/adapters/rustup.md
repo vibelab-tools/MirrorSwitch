@@ -1,7 +1,8 @@
 # rustup adapter
 
-The rustup adapter supports the reviewed rustup 1.24+ environment model on Linux `x86_64` and
-`arm64`. It records the rustup version and home, active toolchain, default installation profile,
+The rustup adapter supports the reviewed rustup 1.24+ environment model on Linux, macOS, and
+native Windows hosts using `x86_64` or `arm64`. It records the rustup version and home, active
+toolchain, default installation profile,
 installed components, installed targets, project-aware toolchain selection, and the effective
 mirror environment. This follows the official rustup documentation for
 [environment variables](https://rust-lang.github.io/rustup/environment-variables.html),
@@ -9,19 +10,25 @@ mirror environment. This follows the official rustup documentation for
 [profiles](https://rust-lang.github.io/rustup/concepts/profiles.html), and
 [components](https://rust-lang.github.io/rustup/concepts/components.html).
 
-rustup has no persistent mirror configuration file. MirrorSwitch therefore writes one managed
-block to an explicitly selected or shell-specific user environment file: `.bashrc`, `.zshrc`,
-`.profile`, a container `BASH_ENV`, or a dedicated fish `conf.d` file. The block keeps
+rustup has no persistent mirror configuration file. On Linux and macOS, MirrorSwitch writes one
+managed block to an explicitly selected or shell-specific user environment file: `.bashrc`,
+`.zshrc`, `.profile`, a container `BASH_ENV`, or a dedicated fish `conf.d` file. The block keeps
 `RUSTUP_DIST_SERVER` and `RUSTUP_UPDATE_ROOT` as a provider-matched pair. Existing assignments
 outside that block, conflicting process overrides, complex shell expressions, a profile outside
 the selected home, and deprecated `RUSTUP_DIST_ROOT` configuration block the plan. Toolchains,
 project `rust-toolchain` files, profile, components, targets, and unrelated shell content are never
 changed.
 
+Windows never receives Unix shell syntax. The adapter manages the two `REG_SZ` values under
+`HKCU\Environment`, records the previous pair in a private `%LOCALAPPDATA%` recovery file before
+calling `reg.exe`, verifies through a clean `cmd.exe` invocation, and restores both registry values
+through the adapter-aware transaction path. Partial, unreviewed, expanded, or process-conflicting
+values are left unchanged.
+
 Distribution and self-update roots are independent catalog endpoints. A complete candidate must
 serve the reviewed Rust 1.98.0 channel manifest and its SHA-256 sidecar; the `rustc`, `cargo`, and
-`rust-std` assets for both `x86_64-unknown-linux-gnu` and `aarch64-unknown-linux-gnu`; the rustup
-release pointer; and rustup 1.29.0 installers plus their architecture-specific checksum files.
+`rust-std` assets for the Linux, Darwin, or Windows host triples; the rustup release pointer; and
+rustup 1.29.0 `rustup-init` or `rustup-init.exe` installers plus their architecture-specific checksums.
 Those checks run before latency contributes to selection.
 
 The six-provider inventory includes rustup or rust-static records from Alibaba Cloud, Huawei
