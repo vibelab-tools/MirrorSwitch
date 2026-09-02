@@ -30,6 +30,7 @@ content remain unchanged and are reported.
 | `flatpak` | system/user | Architecture-specific `remote-ls`; existing mapped Flathub remote only ([details](adapters/flatpak.md)) |
 | `opkg` | system | Feed signature/update/query; exact release/target/subtarget/package architecture ([details](adapters/opkg.md)) |
 | `macports` | system | Paired signed ports tree and binary archive; Darwin/architecture-specific `archivefetch` ([details](adapters/macports.md)) |
+| `msys2` | system | Installation-local signed MSYS/MinGW databases and package download; never Arch Linux paths ([details](adapters/msys2.md)) |
 
 ## Language, build, and editor tools
 

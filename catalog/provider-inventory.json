@@ -169,7 +169,7 @@
           ]
         }
       ],
-      "included_entries": 122
+      "included_entries": 123
     }
   ],
   "entries": [
@@ -48253,6 +48253,50 @@
         "reason": "A tool-specific metadata/artifact probe is required before this entry can become supported."
       },
       "provider_metadata": {}
+    },
+    {
+      "id": "sjtug:2d37e89ea62c28ab4eff",
+      "provider_id": "sjtug",
+      "raw_name": "msys2",
+      "normalized_upstream": "msys2",
+      "source_url": "https://github.com/msys2/MSYS2-packages/blob/master/pacman-mirrors/mirrorlist.msys",
+      "observed_at": "2026-08-28T10:52:05Z",
+      "public_endpoints": [
+        {
+          "url": "https://mirrors.sjtug.sjtu.edu.cn/msys2/",
+          "protocol": "https",
+          "derivation": "upstream-official-mirror-list"
+        }
+      ],
+      "content_type": "static-files",
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "distributions": [],
+        "versions": [],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "evidence": "MSYS2's official mirror list publishes the SJTUG endpoint; both x86_64 and clangarm64 repository objects were validated."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "msys2",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/102"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "MSYS2 package database, package, and signature probes are supplied by the adapter catalog generator."
+      },
+      "provider_metadata": {
+        "official_mirrorlist": "https://github.com/msys2/MSYS2-packages/blob/master/pacman-mirrors/mirrorlist.msys"
+      }
     }
   ],
   "content_probes": [

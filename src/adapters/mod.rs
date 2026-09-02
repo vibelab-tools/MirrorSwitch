@@ -36,6 +36,7 @@ mod macports;
 mod mariadb;
 mod maven;
 mod mongodb;
+mod msys2;
 mod mysql;
 mod nginx;
 mod nix;
@@ -109,6 +110,7 @@ pub use macports::MacPortsAdapter;
 pub use mariadb::MariaDbAdapter;
 pub use maven::MavenAdapter;
 pub use mongodb::MongoDbAdapter;
+pub use msys2::Msys2Adapter;
 pub use mysql::MySqlAdapter;
 pub use nginx::NginxAdapter;
 pub use nix::{NixAdapter, NixMacosAdapter};
@@ -179,6 +181,7 @@ static MARIADB: MariaDbAdapter = MariaDbAdapter;
 static MAVEN: MavenAdapter = MavenAdapter;
 static MONGODB: MongoDbAdapter = MongoDbAdapter;
 static MYSQL: MySqlAdapter = MySqlAdapter;
+static MSYS2: Msys2Adapter = Msys2Adapter;
 static NGINX: NginxAdapter = NginxAdapter;
 static NIX: NixAdapter = NixAdapter;
 static NIX_MACOS: NixMacosAdapter = NixMacosAdapter;
@@ -247,6 +250,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &MAVEN,
         &MONGODB,
         &MYSQL,
+        &MSYS2,
         &NGINX,
         &NVM,
         &FNM,

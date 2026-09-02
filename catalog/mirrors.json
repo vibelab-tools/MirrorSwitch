@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+0a0ce4c31968",
-  "content_revision": 20260902190506,
-  "generated_at": "2026-09-02T19:05:06Z",
+  "content_version": "2026.08.28+aa7745b25899",
+  "content_revision": 20260902193824,
+  "generated_at": "2026-09-02T19:38:24Z",
   "providers": [
     {
       "id": "aliyun",
@@ -1981,12 +1981,10 @@
       "id": "msys2",
       "adapter_key": "msys2",
       "display_name": "msys2",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/102",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "system"
       ],
       "composition": "single"
     },
@@ -2812,40 +2810,6 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "02f8aefc87c6821e3e0191c7",
-      "provider_id": "ustc",
-      "upstream_id": "msys2--static-files",
-      "tool_id": "msys2",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "msys2"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/msys2/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/msys2.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -4917,40 +4881,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "13252763d3248eacb4197e6f",
-      "provider_id": "aliyun",
-      "upstream_id": "msys2--static-files",
-      "tool_id": "msys2",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "msys2"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/msys2/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "14119ee1aedecd3764d3eefc",
       "provider_id": "sjtug",
       "upstream_id": "docker-ce--repository-metadata",
@@ -5754,6 +5684,123 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "18084be3aaf4bbabecace91e",
+      "provider_id": "tuna",
+      "upstream_id": "msys2--static-files",
+      "tool_id": "msys2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "msys2"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/msys2"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/msys2"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/msys/{msys_arch}/msys.db",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/msys/{msys_arch}/msys.db.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/msys/{msys_arch}/{msys_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{msys_package_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/msys/{msys_arch}/{msys_package}.sig",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{msys_signature_digest}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mingw/{mingw_repo}/{mingw_repo}.db",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mingw/{mingw_repo}/{mingw_repo}.db.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/mingw/{mingw_repo}/{mingw_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{mingw_package_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/mingw/{mingw_repo}/{mingw_package}.sig",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{mingw_signature_digest}"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -13927,6 +13974,123 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "569ec636039044b181925e61",
+      "provider_id": "aliyun",
+      "upstream_id": "msys2--static-files",
+      "tool_id": "msys2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "msys2"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/msys2"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/msys2"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/msys/{msys_arch}/msys.db",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/msys/{msys_arch}/msys.db.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/msys/{msys_arch}/{msys_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{msys_package_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/msys/{msys_arch}/{msys_package}.sig",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{msys_signature_digest}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mingw/{mingw_repo}/{mingw_repo}.db",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mingw/{mingw_repo}/{mingw_repo}.db.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/mingw/{mingw_repo}/{mingw_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{mingw_package_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/mingw/{mingw_repo}/{mingw_package}.sig",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{mingw_signature_digest}"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "56cbb29febd0f0bef6770454",
       "provider_id": "tuna",
       "upstream_id": "ceph-release--repository-metadata",
@@ -17711,42 +17875,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "74d9da5d88e196ea6d7b6382",
-      "provider_id": "huaweicloud",
-      "upstream_id": "msys2--static-files",
-      "tool_id": "msys2",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "msys2"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/msys2/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [
-          "x86_64"
-        ],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "750354c3596c75a104561cc2",
       "provider_id": "sjtug",
       "upstream_id": "manjaro--repository-metadata",
@@ -18008,6 +18136,123 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/mysql-repo.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "78a3c0a18b54650f22772b3b",
+      "provider_id": "huaweicloud",
+      "upstream_id": "msys2--static-files",
+      "tool_id": "msys2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "msys2"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/msys2"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/msys2"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/msys/{msys_arch}/msys.db",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/msys/{msys_arch}/msys.db.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/msys/{msys_arch}/{msys_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{msys_package_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/msys/{msys_arch}/{msys_package}.sig",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{msys_signature_digest}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mingw/{mingw_repo}/{mingw_repo}.db",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mingw/{mingw_repo}/{mingw_repo}.db.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/mingw/{mingw_repo}/{mingw_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{mingw_package_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/mingw/{mingw_repo}/{mingw_package}.sig",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{mingw_signature_digest}"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -19065,6 +19310,123 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "7f853de4934dafcef14e9105",
+      "provider_id": "ustc",
+      "upstream_id": "msys2--static-files",
+      "tool_id": "msys2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "msys2"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/msys2"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/msys2"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/msys/{msys_arch}/msys.db",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/msys/{msys_arch}/msys.db.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/msys/{msys_arch}/{msys_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{msys_package_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/msys/{msys_arch}/{msys_package}.sig",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{msys_signature_digest}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mingw/{mingw_repo}/{mingw_repo}.db",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mingw/{mingw_repo}/{mingw_repo}.db.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/mingw/{mingw_repo}/{mingw_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{mingw_package_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/mingw/{mingw_repo}/{mingw_package}.sig",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{mingw_signature_digest}"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/msys2.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -29642,40 +30004,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "ceea6e351eb76230fd877ad9",
-      "provider_id": "nju",
-      "upstream_id": "msys2--static-files",
-      "tool_id": "msys2",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "msys2"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/msys2/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "cefc925360ab3ef1680aec75",
       "provider_id": "sjtug",
       "upstream_id": "guix--static-files",
@@ -30940,6 +31268,123 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "d624ef7ccb4e2214d031afbd",
+      "provider_id": "nju",
+      "upstream_id": "msys2--static-files",
+      "tool_id": "msys2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "msys2"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.nju.edu.cn/msys2"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirror.nju.edu.cn/msys2"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/msys/{msys_arch}/msys.db",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/msys/{msys_arch}/msys.db.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/msys/{msys_arch}/{msys_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{msys_package_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/msys/{msys_arch}/{msys_package}.sig",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{msys_signature_digest}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mingw/{mingw_repo}/{mingw_repo}.db",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mingw/{mingw_repo}/{mingw_repo}.db.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/mingw/{mingw_repo}/{mingw_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{mingw_package_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/mingw/{mingw_repo}/{mingw_package}.sig",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{mingw_signature_digest}"
+        }
+      ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
@@ -32682,40 +33127,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "e8970a3ad126e628a0497fa9",
-      "provider_id": "tuna",
-      "upstream_id": "msys2--static-files",
-      "tool_id": "msys2",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "msys2"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/msys2/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "e8b4d4f69d4b06d671a73979",
       "provider_id": "nju",
       "upstream_id": "openwrt--repository-metadata",
@@ -33242,6 +33653,123 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/archlinuxcn.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "ee054c8072327511725e445d",
+      "provider_id": "sjtug",
+      "upstream_id": "msys2--static-files",
+      "tool_id": "msys2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "msys2"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.sjtug.sjtu.edu.cn/msys2"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.sjtug.sjtu.edu.cn/msys2"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/msys/{msys_arch}/msys.db",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/msys/{msys_arch}/msys.db.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/msys/{msys_arch}/{msys_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{msys_package_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/msys/{msys_arch}/{msys_package}.sig",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{msys_signature_digest}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mingw/{mingw_repo}/{mingw_repo}.db",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/mingw/{mingw_repo}/{mingw_repo}.db.sig",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/mingw/{mingw_repo}/{mingw_package}",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{mingw_package_digest}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/mingw/{mingw_repo}/{mingw_package}.sig",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{mingw_signature_digest}"
+        }
+      ],
+      "source_urls": [
+        "https://github.com/msys2/MSYS2-packages/blob/master/pacman-mirrors/mirrorlist.msys"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

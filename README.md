@@ -47,6 +47,7 @@ Windows are tracked by [v0.2.0](https://github.com/vibelab-tools/MirrorSwitch/mi
 - [CocoaPods adapter](docs/adapters/cocoapods.md)
 - [MacPorts adapter](docs/adapters/macports.md)
 - [Scoop adapter](docs/adapters/scoop.md)
+- [MSYS2 adapter](docs/adapters/msys2.md)
 - [Per-repository mirror selection](docs/mirror-selection.md)
 - [APT adapter](docs/adapters/apt.md)
 - [DNF adapter](docs/adapters/dnf.md)

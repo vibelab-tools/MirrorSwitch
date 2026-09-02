@@ -30,6 +30,7 @@ SYSTEM_TOOLS = {
     "macports",
     "mariadb",
     "mongodb",
+    "msys2",
     "mysql",
     "nginx",
     "opkg",
@@ -71,7 +72,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "72"
+CATALOG_FORMAT_REVISION = "73"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -663,6 +664,14 @@ SCOOP_BUCKET_ENDPOINTS = {
     "scoop-nonportable--git-mirror": "https://mirrors.nju.edu.cn/git/scoop-nonportable.git",
     "scoop-nirsoft--git-mirror": "https://mirrors.nju.edu.cn/git/scoop-nirsoft.git",
 }
+MSYS2_ROOTS = {
+    "aliyun": "https://mirrors.aliyun.com/msys2",
+    "huaweicloud": "https://repo.huaweicloud.com/msys2",
+    "nju": "https://mirror.nju.edu.cn/msys2",
+    "sjtug": "https://mirrors.sjtug.sjtu.edu.cn/msys2",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/msys2",
+    "ustc": "https://mirrors.ustc.edu.cn/msys2",
+}
 
 
 def utc_now() -> str:
@@ -847,6 +856,12 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if tool_id == "msys2" and entry["provider_id"] in MSYS2_ROOTS:
+        endpoint = MSYS2_ROOTS[entry["provider_id"]]
+        return [
+            {"role": "metadata", "protocol": "https", "url": endpoint},
+            {"role": "artifacts", "protocol": "https", "url": endpoint},
+        ]
     if tool_id == "scoop" and upstream_key in SCOOP_BUCKET_ENDPOINTS:
         return [
             {
@@ -1480,7 +1495,72 @@ def runtime_properties(
         else "unknown"
     )
     probes = candidate_probe(entry)
-    if tool_id == "scoop":
+    if tool_id == "msys2" and entry["provider_id"] in MSYS2_ROOTS:
+        compatibility["operating_systems"] = ["windows"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/msys/{msys_arch}/msys.db",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/msys/{msys_arch}/msys.db.sig",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/msys/{msys_arch}/{msys_package}",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/octet-stream",
+                "sha256": "{msys_package_digest}",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/msys/{msys_arch}/{msys_package}.sig",
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+                "sha256": "{msys_signature_digest}",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/mingw/{mingw_repo}/{mingw_repo}.db",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/mingw/{mingw_repo}/{mingw_repo}.db.sig",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/mingw/{mingw_repo}/{mingw_package}",
+                "expected_status": [200, 206],
+                "expected_content_type": "application/octet-stream",
+                "sha256": "{mingw_package_digest}",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/mingw/{mingw_repo}/{mingw_package}.sig",
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+                "sha256": "{mingw_signature_digest}",
+            },
+        ]
+    elif tool_id == "scoop":
         compatibility["operating_systems"] = []
         compatibility["architectures"] = []
         compatibility["environments"] = []
@@ -4475,6 +4555,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "maven",
                         "mongodb",
                         "mysql",
+                        "msys2",
                         "nginx",
                         "nix",
                         "nix-macos",
