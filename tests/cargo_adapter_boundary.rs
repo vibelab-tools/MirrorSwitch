@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     cell::RefCell,
@@ -50,6 +50,16 @@ fn context(
             version_codename: Some("bookworm".into()),
             id_like: Vec::new(),
         }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
         root: root.to_path_buf(),
     }
 }
@@ -645,6 +655,98 @@ fn failed_cargo_info_restores_the_original_user_config() {
 }
 
 #[test]
+fn macos_and_windows_preserve_native_cargo_home_configuration() {
+    for (os, architecture, bom, newline) in [
+        (OperatingSystem::Macos, Architecture::X86_64, false, "\n"),
+        (OperatingSystem::Windows, Architecture::Arm64, true, "\r\n"),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        let text = format!(
+            "# native Cargo config{newline}[net]{newline}git-fetch-with-cli = true{newline}{newline}[registries.private]{newline}index = \"sparse+https://reader:secret@packages.invalid.example/index/\"{newline}unknown-setting = \"keep\"{newline}"
+        );
+        let mut original = text.into_bytes();
+        if bom {
+            original.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let config = install_cargo(root, "1.95.0", Some(&original), 0);
+        let project_contents =
+            b"[source.private]\nregistry = \"sparse+https://packages.invalid.example/index/\"\n";
+        let project = write(root, "/work/project/.cargo/config.toml", project_contents);
+        let context = native_context(root, os, architecture);
+        let adapter = CargoAdapter;
+        let mut runtime = runtime(root, BTreeMap::new());
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(!serde_json::to_string(&current).unwrap().contains("secret"));
+        let chosen = [selection(ALIYUN_INDEX, ALIYUN_CRATES)];
+        let plan = adapter.plan(&context, &current, &chosen).unwrap();
+        assert_eq!(plan, adapter.plan(&context, &current, &chosen).unwrap());
+        assert_eq!(
+            plan.changes[0]
+                .new_contents
+                .starts_with(&[0xef, 0xbb, 0xbf]),
+            bom
+        );
+        let rendered = std::str::from_utf8(
+            plan.changes[0]
+                .new_contents
+                .strip_prefix(&[0xef, 0xbb, 0xbf])
+                .unwrap_or(&plan.changes[0].new_contents),
+        )
+        .unwrap();
+        assert!(rendered.contains("unknown-setting = \"keep\""));
+        assert!(!rendered.replace(newline, "").contains('\n'));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+        else {
+            panic!("native Cargo config should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &chosen)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(config).unwrap(), original);
+        assert_eq!(fs::read(project).unwrap(), project_contents);
+    }
+
+    let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
+    for candidate in catalog
+        .candidates
+        .iter()
+        .filter(|candidate| candidate.tool_id == "cargo" && !candidate.probes.is_empty())
+    {
+        assert_eq!(
+            candidate.compatibility.operating_systems,
+            [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows
+            ]
+        );
+    }
+}
+
+#[test]
 fn unsupported_platform_version_and_missing_rustc_are_inert() {
     let directory = tempdir().unwrap();
     let root = directory.path();
@@ -660,14 +762,15 @@ fn unsupported_platform_version_and_missing_rustc_are_inert() {
             .contains("1.39+")
     );
 
-    let mut windows = supported_context.clone();
-    windows.os = OperatingSystem::Windows;
+    let mut macos_container = supported_context.clone();
+    macos_container.os = OperatingSystem::Macos;
+    macos_container.environment = ExecutionEnvironment::Container;
     assert!(
         adapter
-            .detect(&windows, &installed_runtime)
+            .detect(&macos_container, &installed_runtime)
             .unwrap_err()
             .to_string()
-            .contains("Linux")
+            .contains("native host")
     );
 
     let empty = tempdir().unwrap();

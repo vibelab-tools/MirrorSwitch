@@ -55,7 +55,7 @@ content remain unchanged and are reported.
 | `nvm` | user | Remote version query; one initialized shell profile and Node/io.js roots ([details](adapters/nvm.md)) |
 | `fnm` | user | Remote protocol query; persistent shell environment must be explicit ([details](adapters/fnm.md)) |
 | `go` | user | Linux/macOS/Windows fixed module download with checksum; reported GOENV plus GOPROXY fallback/private rules preserved ([details](adapters/go.md)) |
-| `cargo` | user | Fixed crate sparse/git index and checksum/archive query; private registries preserved ([details](adapters/cargo.md)) |
+| `cargo` | user | Linux/macOS/Windows sparse/git index and checksum/archive query; native CARGO_HOME and private registries preserved ([details](adapters/cargo.md)) |
 | `rustup` | user | `rustup check` with manifests/components/target checksums; dist/update roots stay paired ([details](adapters/rustup.md)) |
 | `rubygems` | user | Fixed gem metadata/archive and client query; ordered private sources preserved ([details](adapters/rubygems.md)) |
 | `bundler` | user/project | Compact/classic index resolution; Gemfile and lockfile are never rewritten ([details](adapters/bundler.md)) |

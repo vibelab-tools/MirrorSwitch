@@ -1,7 +1,8 @@
 # Cargo adapter
 
-The Cargo adapter supports the reviewed Cargo 1.68+ sparse-registry model on Linux `x86_64`
-and `arm64`. Detection records the Cargo and Rust versions, resolves `CARGO_HOME`, applies
+The Cargo adapter supports the reviewed Cargo 1.68+ sparse-registry model on Linux, macOS, and
+native Windows hosts using `x86_64` or `arm64`. Detection records the Cargo and Rust versions,
+resolves `CARGO_HOME`, applies
 Cargo's project-to-user configuration hierarchy, and gives an extensionless `config` precedence
 over `config.toml` in the same directory. The behavior follows Cargo's official
 [configuration hierarchy](https://doc.rust-lang.org/cargo/reference/config.html),
@@ -34,3 +35,7 @@ After apply, MirrorSwitch reloads the effective source chain and runs
 resolve the reviewed version and checksum-verify its downloaded crate. Failure restores the exact
 prior user file, replanning is idempotent, and CLI, configuration-file, and TUI entry points
 consume the same plan.
+
+`CARGO_HOME` and project ancestors remain native paths, including Windows drive roots. Existing
+UTF-8 BOM and LF/CRLF layout are preserved. `credentials` and `credentials.toml` are located only
+as read-only evidence and are never copied into plans or logs.

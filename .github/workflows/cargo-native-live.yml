@@ -1,0 +1,102 @@
+name: Cargo macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "55 5 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: Cargo (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel }
+          - { name: macOS arm64, runner: macos-15 }
+          - { name: Windows x86_64, runner: windows-2025 }
+          - { name: Windows arm64, runner: windows-11-arm }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          cargo --version && rustc --version
+      - name: Run deterministic Cargo boundary
+        run: cargo test --locked --test cargo_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS CARGO_HOME, frontends, crate query, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-cargo-boundary"; export RUSTUP_HOME="$(rustup show home)"; export HOME="$boundary/home" CARGO_HOME="$boundary/home/.cargo"
+          unset CARGO_REGISTRIES_CRATES_IO_PROTOCOL CARGO_NET_OFFLINE CARGO_HTTP_CHECK_REVOKE
+          project="$HOME/project"; mkdir -p "$CARGO_HOME" "$project/.cargo"
+          printf '[net]\ngit-fetch-with-cli = true\n' > "$CARGO_HOME/config.toml"; chmod 0600 "$CARGO_HOME/config.toml"
+          printf '[registry]\ntoken = "fixture-only"\n' > "$CARGO_HOME/credentials.toml"; chmod 0600 "$CARGO_HOME/credentials.toml"
+          printf '[registries.private]\nindex = "sparse+https://packages.invalid.example/index/"\n' > "$project/.cargo/config.toml"
+          printf '[package]\nname="native-probe"\nversion="0.1.0"\nedition="2024"\n' > "$project/Cargo.toml"
+          mkdir -p "$project/src"; printf 'fn main() {}\n' > "$project/src/main.rs"
+          printf '{"version":1,"tools":[{"id":"cargo","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$CARGO_HOME/config.toml"|awk '{print $1}'); credentials=$(shasum -a 256 "$CARGO_HOME/credentials.toml"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/.cargo/config.toml"|awk '{print $1}'); mode=$(stat -f '%Lp' "$CARGO_HOME/config.toml")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool cargo --scope cargo=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('status.json')); assert [t['adapter_key'] for t in s['detected_tools'] if t['adapter_key']=='cargo']==['cargo']
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool cargo --scope cargo=user > tui.txt; grep -E 'mirror=(aliyun|nju|ustc)' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='cargo' and r['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$CARGO_HOME/config.toml"|awk '{print $1}')"; test "$credentials" = "$(shasum -a 256 "$CARGO_HOME/credentials.toml"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 .cargo/config.toml|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$CARGO_HOME/config.toml")"
+      - name: Exercise Windows CARGO_HOME, frontends, crate query, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-cargo-boundary'; $env:RUSTUP_HOME=(rustup show home)
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:CARGO_HOME=Join-Path $env:USERPROFILE '.cargo'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:CARGO_REGISTRIES_CRATES_IO_PROTOCOL,Env:CARGO_NET_OFFLINE,Env:CARGO_HTTP_CHECK_REVOKE -ErrorAction SilentlyContinue
+          $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $env:CARGO_HOME,(Join-Path $project '.cargo'),(Join-Path $project 'src'),$env:LOCALAPPDATA|Out-Null
+          [IO.File]::WriteAllText((Join-Path $env:CARGO_HOME 'config.toml'),"[net]`r`ngit-fetch-with-cli = true`r`n",[Text.UTF8Encoding]::new($false)); "[registry]`r`ntoken = `"fixture-only`"`r`n"|Set-Content -Encoding utf8 (Join-Path $env:CARGO_HOME 'credentials.toml')
+          "[registries.private]`r`nindex = `"sparse+https://packages.invalid.example/index/`"`r`n"|Set-Content -Encoding utf8 (Join-Path $project '.cargo/config.toml'); "[package]`r`nname=`"native-probe`"`r`nversion=`"0.1.0`"`r`nedition=`"2024`"`r`n"|Set-Content -Encoding utf8 (Join-Path $project 'Cargo.toml'); 'fn main() {}'|Set-Content -Encoding utf8 (Join-Path $project 'src/main.rs'); '{"version":1,"tools":[{"id":"cargo","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          $config=Join-Path $env:CARGO_HOME 'config.toml'; $credentialsFile=Join-Path $env:CARGO_HOME 'credentials.toml'; $projectConfig=Join-Path $project '.cargo/config.toml'; $before=(Get-FileHash $config -Algorithm SHA256).Hash; $credentials=(Get-FileHash $credentialsFile -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash $projectConfig -Algorithm SHA256).Hash; $acl=(Get-Acl $config).Sddl
+          Push-Location $project
+          try{
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool cargo --scope cargo=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; if(@($s.detected_tools|Where-Object adapter_key -eq 'cargo').Count -ne 1){throw 'Cargo not detected'}; $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)){throw 'frontend plans differ'}
+            @('','n')|& $binary tui --offline --tool cargo --scope cargo=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(aliyun|nju|ustc)')){throw 'Cargo mirror missing'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Cargo apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
+            (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'cargo'){throw 'restore failed'}
+          }finally{Pop-Location}
+          if($before -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $credentials -ne (Get-FileHash $credentialsFile -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash $projectConfig -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $config).Sddl){throw 'Cargo config not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cargo-native-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-cargo-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

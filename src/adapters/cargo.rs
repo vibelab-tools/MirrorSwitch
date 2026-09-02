@@ -9,7 +9,7 @@ use toml_edit::{DocumentMut, Item, Table, value};
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{Architecture, OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -68,7 +68,7 @@ impl Adapter for CargoAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("cargo") {
             return Ok(None);
         }
@@ -125,7 +125,7 @@ impl Adapter for CargoAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "cargo" {
             return Err(AdapterError::InvalidConfiguration(
@@ -149,7 +149,7 @@ impl Adapter for CargoAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let protocol = reviewed_protocol(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("Cargo version is missing".into())
@@ -198,7 +198,7 @@ impl Adapter for CargoAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let protocol = current_protocol(current)?;
         let analysis = analyze_current(current, protocol)?;
@@ -217,8 +217,11 @@ impl Adapter for CargoAdapter {
                 AdapterError::InvalidConfiguration("Cargo user configuration is missing".into())
             })?;
         let text = utf8(&document.path, &document.contents)?;
-        let new_contents =
+        let mut new_contents =
             rewrite_user_config(text, &document.path, &analysis.mapping, endpoint)?.into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            new_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let changes = (new_contents != document.contents)
             .then(|| PlannedFileChange {
                 target: rooted(&context.root, &document.path),
@@ -956,6 +959,7 @@ fn rewrite_user_config(
     mapping: &SourceMapping,
     endpoint: &str,
 ) -> Result<String, AdapterError> {
+    let newline = if text.contains("\r\n") { "\r\n" } else { "\n" };
     let mut document = parse_document(path, text)?;
     if document.get("source").is_none() {
         document["source"] = Item::Table(Table::new());
@@ -983,7 +987,12 @@ fn rewrite_user_config(
         "registry",
         value(format!("sparse+{}/", endpoint.trim_end_matches('/'))),
     );
-    Ok(document.to_string())
+    let rendered = document.to_string();
+    Ok(if newline == "\r\n" {
+        rendered.replace("\r\n", "\n").replace('\n', "\r\n")
+    } else {
+        rendered
+    })
 }
 
 fn selected_sparse_endpoint(selections: &[MirrorSelection]) -> Result<&str, AdapterError> {
@@ -1171,15 +1180,18 @@ fn metadata<'a>(source: &'a ConfiguredSource, key: &str) -> Option<&'a str> {
         .map(String::as_str)
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "Cargo v0.1 supports Linux x86_64 and arm64 only".into(),
+            "Cargo on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "Cargo requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -1188,7 +1200,7 @@ fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
 fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
     if scope != ConfigurationScope::User {
         return Err(AdapterError::Unsupported(
-            "Cargo v0.1 writes only the user configuration".into(),
+            "Cargo writes only the user configuration".into(),
         ));
     }
     Ok(())
@@ -1218,6 +1230,9 @@ fn validate_path(path: &Path, kind: &str) -> Result<(), AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "Cargo configuration {} is not UTF-8",
