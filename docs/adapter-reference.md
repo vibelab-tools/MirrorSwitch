@@ -48,7 +48,7 @@ content remain unchanged and are reported.
 | `conda` | user | Linux/macOS/Windows Conda/Mamba/Micromamba search; native channel/subdir completeness required ([details](adapters/conda.md)) |
 | `pyenv` | user | Exact Python release/archive query; custom definitions and runtime overrides preserved ([#69](https://github.com/vibelab-tools/MirrorSwitch/issues/69)) |
 | `maven` | user | Linux/macOS/Windows fixed dependency resolution; Maven-reported home plus private mirrors/servers/proxies preserved ([details](adapters/maven.md)) |
-| `gradle` | user/project | Dependency and Wrapper distribution verification; project scope explicit ([details](adapters/gradle.md)) |
+| `gradle` | user/project | Linux/macOS/Windows dependency and Wrapper verification; native `gradlew`/`gradlew.bat` and explicit project scope ([details](adapters/gradle.md)) |
 | `sbt` | user | Maven/Ivy fixed dependency resolution; repository layouts stay distinct ([details](adapters/sbt.md)) |
 | `leiningen` | user | Fixed Clojars/Maven dependency resolution; profiles and credentials preserved ([#62](https://github.com/vibelab-tools/MirrorSwitch/issues/62)) |
 | `bazel` | system/user | Bazelisk release or signed APT path; project files and checksum policy preserved ([#70](https://github.com/vibelab-tools/MirrorSwitch/issues/70)) |

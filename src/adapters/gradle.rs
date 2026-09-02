@@ -6,7 +6,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -63,7 +63,7 @@ impl Adapter for GradleAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         let project = project_dir(runtime)?;
         let command = gradle_command(runtime, project.as_deref());
         let layout = config_layout(runtime, project.as_deref())?;
@@ -142,7 +142,7 @@ impl Adapter for GradleAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         reviewed_version(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("Gradle version is missing".into())
@@ -279,7 +279,7 @@ impl Adapter for GradleAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let (upstream, roles, modes, probe_contexts) = match current.scope {
             ConfigurationScope::User => (
@@ -340,7 +340,7 @@ impl Adapter for GradleAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         let document = current
@@ -350,7 +350,7 @@ impl Adapter for GradleAdapter {
             .ok_or_else(|| {
                 AdapterError::InvalidConfiguration("selected Gradle document is missing".into())
             })?;
-        let new_contents = match current.scope {
+        let mut new_contents = match current.scope {
             ConfigurationScope::User => {
                 let endpoint = selected_maven_endpoint(selections)?;
                 render_init_script(endpoint).into_bytes()
@@ -368,6 +368,11 @@ impl Adapter for GradleAdapter {
             }
             _ => unreachable!("validated Gradle scope"),
         };
+        if current.scope == ConfigurationScope::Project
+            && document.contents.starts_with(&[0xef, 0xbb, 0xbf])
+        {
+            new_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let mut changes = Vec::new();
         if new_contents != document.contents {
             changes.push(PlannedFileChange {
@@ -605,10 +610,18 @@ struct WrapperConfig {
     checksum: Option<String>,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "Gradle adapter requires Linux".into(),
+            "Gradle on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "Gradle adapter requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -748,9 +761,11 @@ fn gradle_command(runtime: &dyn Runtime, project: Option<&Path>) -> Option<Strin
 }
 
 fn gradle_wrapper_command(runtime: &dyn Runtime, project: &Path) -> Option<String> {
-    let path = project.join("gradlew");
-    let command = path.to_str()?;
-    runtime.command_exists(command).then(|| command.into())
+    ["gradlew", "gradlew.bat"].into_iter().find_map(|name| {
+        let path = project.join(name);
+        let command = path.to_str()?;
+        runtime.command_exists(command).then(|| command.into())
+    })
 }
 
 fn run_gradle(
@@ -1392,6 +1407,9 @@ fn verification_failure<T>(
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "Gradle configuration {} is not UTF-8",

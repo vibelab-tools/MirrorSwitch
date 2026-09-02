@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::BTreeMap,
@@ -23,7 +23,7 @@ const MAVEN_UPSTREAM: &str = "maven--language-registry";
 const DISTRIBUTION_UPSTREAM: &str = "gradle-distributions--release-artifacts";
 const HUAWEI_MAVEN: &str = "https://repo.huaweicloud.com/repository/maven/";
 const NJU_GRADLE: &str = "https://mirrors.nju.edu.cn/gradle/";
-const CHECKSUM: &str = "8d97a97984f6cbd2b85fe4c60a743440a347544bf18818048e611f5288d46c94";
+const CHECKSUM: &str = "acd53f1edaf02f1a8ff99879f8a34b302661a057d9b063ae9e35b552f804d20a";
 
 fn context(root: &Path, architecture: Architecture) -> SystemContext {
     SystemContext {
@@ -36,6 +36,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
             version_codename: Some("bookworm".into()),
             id_like: Vec::new(),
         }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
         root: root.to_path_buf(),
     }
 }
@@ -657,6 +667,125 @@ fn unsupported_versions_conflicts_credentials_and_endpoint_mismatches_are_reject
 }
 
 #[test]
+fn macos_user_and_windows_bat_wrapper_boundaries_are_reversible() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_gradle(
+        root,
+        "/usr/bin/gradle",
+        "9.7.1",
+        "/home/developer/.gradle/init.d/zz-mirrorswitch.init.gradle",
+        HUAWEI_MAVEN,
+        0,
+    );
+    let project_contents = b"repositories { mavenCentral() }\n";
+    let project = write(root, "/work/project/build.gradle", project_contents);
+    let context = native_context(root, OperatingSystem::Macos, Architecture::X86_64);
+    let adapter = GradleAdapter;
+    let mut mac_runtime = runtime(root, BTreeMap::new());
+    let detected = adapter.detect(&context, &mac_runtime).unwrap().unwrap();
+    let current = adapter
+        .read_current(&context, &mac_runtime, &detected, ConfigurationScope::User)
+        .unwrap();
+    let plan = adapter
+        .plan(
+            &context,
+            &current,
+            &[maven_selection(HUAWEI_MAVEN, HUAWEI_MAVEN)],
+        )
+        .unwrap();
+    let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut mac_runtime, &plan).unwrap()
+    else {
+        panic!("macOS Gradle init should change")
+    };
+    assert!(
+        adapter
+            .verify(&context, &mut mac_runtime, &receipt)
+            .unwrap()
+            .valid
+    );
+    assert!(
+        adapter
+            .restore(&context, &mut mac_runtime, &receipt)
+            .unwrap()
+            .restored
+    );
+    assert_eq!(fs::read(project).unwrap(), project_contents);
+
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_gradle(
+        root,
+        "/work/project/gradlew.bat",
+        "9.7.1",
+        "/work/project/gradle/wrapper/gradle-wrapper.properties",
+        NJU_GRADLE,
+        0,
+    );
+    let text = format!(
+        "# native wrapper\r\ndistributionBase=GRADLE_USER_HOME\r\ndistributionUrl=https\\://services.gradle.org/distributions/gradle-9.7.1-bin.zip\r\ndistributionSha256Sum={CHECKSUM}\r\nnetworkTimeout=10000\r\nzipStoreBase=GRADLE_USER_HOME\r\n"
+    );
+    let mut original = vec![0xef, 0xbb, 0xbf];
+    original.extend_from_slice(text.as_bytes());
+    let wrapper = write(
+        root,
+        "/work/project/gradle/wrapper/gradle-wrapper.properties",
+        &original,
+    );
+    let context = native_context(root, OperatingSystem::Windows, Architecture::Arm64);
+    let mut runtime = runtime(root, BTreeMap::new());
+    let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+    assert_eq!(
+        detected.executable.as_deref(),
+        Some(Path::new("/work/project/gradlew.bat"))
+    );
+    let current = adapter
+        .read_current(&context, &runtime, &detected, ConfigurationScope::Project)
+        .unwrap();
+    let plan = adapter
+        .plan(&context, &current, &[distribution_selection(NJU_GRADLE)])
+        .unwrap();
+    assert!(
+        plan.changes[0]
+            .new_contents
+            .starts_with(&[0xef, 0xbb, 0xbf])
+    );
+    assert!(
+        !std::str::from_utf8(&plan.changes[0].new_contents[3..])
+            .unwrap()
+            .replace("\r\n", "")
+            .contains('\n')
+    );
+    let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+    else {
+        panic!("Windows Gradle wrapper should change")
+    };
+    assert!(
+        adapter
+            .verify(&context, &mut runtime, &receipt)
+            .unwrap()
+            .valid
+    );
+    let updated = adapter
+        .read_current(&context, &runtime, &detected, ConfigurationScope::Project)
+        .unwrap();
+    assert!(
+        adapter
+            .plan(&context, &updated, &[distribution_selection(NJU_GRADLE)])
+            .unwrap()
+            .changes
+            .is_empty()
+    );
+    assert!(
+        adapter
+            .restore(&context, &mut runtime, &receipt)
+            .unwrap()
+            .restored
+    );
+    assert_eq!(fs::read(wrapper).unwrap(), original);
+}
+
+#[test]
 fn embedded_catalog_separates_maven_and_distribution_candidates() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -671,7 +800,12 @@ fn embedded_catalog_separates_maven_and_distribution_candidates() {
         .collect::<Vec<_>>();
     assert_eq!(maven.len(), 3);
     assert!(maven.iter().all(|candidate| {
-        candidate.compatibility.operating_systems == [OperatingSystem::Linux]
+        candidate.compatibility.operating_systems
+            == [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows,
+            ]
             && candidate.compatibility.architectures == [Architecture::X86_64, Architecture::Arm64]
             && candidate.delivery_mode == DeliveryMode::Proxy
             && candidate
@@ -708,6 +842,12 @@ fn embedded_catalog_separates_maven_and_distribution_candidates() {
     }));
     assert!(distributions.iter().all(|candidate| {
         candidate.delivery_mode == DeliveryMode::Mirror
+            && candidate.compatibility.operating_systems
+                == [
+                    OperatingSystem::Linux,
+                    OperatingSystem::Macos,
+                    OperatingSystem::Windows,
+                ]
             && candidate.compatibility.architectures == [Architecture::X86_64, Architecture::Arm64]
             && candidate.endpoints.len() == 1
             && candidate.endpoints[0].role == EndpointRole::Releases

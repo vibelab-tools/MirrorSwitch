@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+755805992df3",
-  "content_revision": 20260902223333,
-  "generated_at": "2026-09-02T22:33:33Z",
+  "content_version": "2026.08.28+5577be749fd3",
+  "content_revision": 20260902224204,
+  "generated_at": "2026-09-02T22:42:04Z",
   "providers": [
     {
       "id": "aliyun",
@@ -8080,6 +8080,71 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "247ec85585131a4e09c3b7c1",
+      "provider_id": "huaweicloud",
+      "upstream_id": "maven--language-registry",
+      "tool_id": "gradle",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "maven"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/maven/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "25f307276b614dc7650b7928",
       "provider_id": "ustc",
       "upstream_id": "flathub--static-files",
@@ -8337,69 +8402,6 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "2a02206a70e6c636b080da2c",
-      "provider_id": "huaweicloud",
-      "upstream_id": "maven--language-registry",
-      "tool_id": "gradle",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "maven"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/maven/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/maven/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "<artifactId>commons-lang3</artifactId>"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -14354,64 +14356,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "5d47b93cea36effd0a71459d",
-      "provider_id": "huaweicloud",
-      "upstream_id": "gradle-distributions--release-artifacts",
-      "tool_id": "gradle",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "gradle"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/gradle/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "releases",
-          "method": "get",
-          "path": "/{distribution_file}.sha256",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{distribution_checksum}"
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/{distribution_file}",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "5d5acd3f804ebbfd3eedefb6",
       "provider_id": "tuna",
       "upstream_id": "debian--repository-metadata",
@@ -14683,69 +14627,6 @@
           ],
           "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
           "contains": "\"digest\": \"sha256:"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "5f888913af5dd99943714cfe",
-      "provider_id": "nju",
-      "upstream_id": "maven--language-registry",
-      "tool_id": "gradle",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "maven"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.nju.edu.cn/maven/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.nju.edu.cn/maven/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "<artifactId>commons-lang3</artifactId>"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
-          "expected_status": [
-            200,
-            206
-          ]
         }
       ],
       "source_urls": [
@@ -18449,64 +18330,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "7e600b7223ca54c0dff3224a",
-      "provider_id": "nju",
-      "upstream_id": "gradle-distributions--release-artifacts",
-      "tool_id": "gradle",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "gradle"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/gradle/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "releases",
-          "method": "get",
-          "path": "/{distribution_file}.sha256",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{distribution_checksum}"
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/{distribution_file}",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "7ea10d1b04b35cac45a77d76",
       "provider_id": "huaweicloud",
       "upstream_id": "epel--repository-metadata",
@@ -19431,6 +19254,66 @@
       ],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "830b742044536c3540dca7bd",
+      "provider_id": "nju",
+      "upstream_id": "gradle-distributions--release-artifacts",
+      "tool_id": "gradle",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gradle"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/gradle/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/{distribution_file}.sha256",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{distribution_checksum}"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/{distribution_file}",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -20748,69 +20631,6 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "90c26a03f734abca7c261a4b",
-      "provider_id": "aliyun",
-      "upstream_id": "maven--language-registry",
-      "tool_id": "gradle",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "maven"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://maven.aliyun.com/repository/public/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://maven.aliyun.com/repository/public/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "<artifactId>commons-lang3</artifactId>"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -22906,6 +22726,71 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/rocky.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "a2008b77ed9a58d733d3b5d3",
+      "provider_id": "aliyun",
+      "upstream_id": "maven--language-registry",
+      "tool_id": "gradle",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "maven"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://maven.aliyun.com/repository/public/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://maven.aliyun.com/repository/public/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -30116,6 +30001,71 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "d16829a487fff66d9848bc33",
+      "provider_id": "nju",
+      "upstream_id": "maven--language-registry",
+      "tool_id": "gradle",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "maven"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.nju.edu.cn/maven/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.nju.edu.cn/maven/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.pom",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "<artifactId>commons-lang3</artifactId>"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "d1cf1548afc769a6f0799bb2",
       "provider_id": "tuna",
       "upstream_id": "gitlab-runner-packages--repository-metadata",
@@ -35996,6 +35946,66 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "fee09aca345aa2eb8b5680a9",
+      "provider_id": "huaweicloud",
+      "upstream_id": "gradle-distributions--release-artifacts",
+      "tool_id": "gradle",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "gradle"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/gradle/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/{distribution_file}.sha256",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{distribution_checksum}"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/{distribution_file}",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

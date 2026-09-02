@@ -1,0 +1,124 @@
+name: Gradle macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "27 4 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: Gradle (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel }
+          - { name: macOS arm64, runner: macos-15 }
+          - { name: Windows x86_64, runner: windows-2025 }
+          - { name: Windows arm64, runner: windows-11-arm }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "9.7.1"
+          cache-disabled: true
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          gradle --version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic Gradle boundary
+        run: cargo test --locked --test gradle_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS dependency and Wrapper scopes
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-gradle-boundary"; export HOME="$boundary/home" GRADLE_USER_HOME="$boundary/home/.gradle"
+          unset GRADLE_OPTS JAVA_OPTS
+          project="$HOME/project"; mkdir -p "$project"; cd "$project"
+          printf 'rootProject.name = "native-probe"\n' > settings.gradle
+          printf 'plugins { id "java" }\nrepositories { mavenCentral() }\n' > build.gradle
+          gradle wrapper --gradle-version 9.7.1 --distribution-type bin --gradle-distribution-sha256-sum acd53f1edaf02f1a8ff99879f8a34b302661a057d9b063ae9e35b552f804d20a
+          chmod +x gradlew
+          printf '{"version":1,"tools":[{"id":"gradle","scope":"user"}]}\n' > user.json
+          printf '{"version":1,"tools":[{"id":"gradle","scope":"project"}]}\n' > project.json
+          wrapper=gradle/wrapper/gradle-wrapper.properties; wrapper_before=$(shasum -a 256 "$wrapper"|awk '{print $1}'); build_before=$(shasum -a 256 build.gradle|awk '{print $1}')
+          "$binary" status --offline --json > status.json
+          "$binary" plan --offline --tool gradle --scope gradle=user --json > plan-cli.json
+          "$binary" plan --offline --config user.json --json > plan-config.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('status.json')); assert [t['adapter_key'] for t in s['detected_tools'] if t['adapter_key']=='gradle']==['gradle']
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool gradle --scope gradle=user > tui.txt; grep -E 'mirror=(aliyun|huaweicloud|nju)' tui.txt
+          "$binary" apply --offline --config user.json --yes --json > apply-user.json
+          user_id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply-user.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          "$binary" restore "$user_id" --yes --json > restore-user.json
+          "$binary" plan --offline --config project.json --json > plan-project.json
+          "$binary" apply --offline --config project.json --yes --json > apply-project.json
+          project_id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply-project.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          "$binary" apply --offline --config project.json --yes --json > idempotent.json
+          "$binary" restore "$project_id" --yes --json > restore-project.json
+          python3 - <<'PY'
+          import json
+          again=json.load(open('idempotent.json'))['result']; user=json.load(open('restore-user.json')); project=json.load(open('restore-project.json'))
+          assert again['successful'] and not [t for t in again['tools'] if t['status']=='applied']
+          assert user['receipt']['verified'] and project['receipt']['verified']
+          PY
+          test "$wrapper_before" = "$(shasum -a 256 "$wrapper"|awk '{print $1}')"; test "$build_before" = "$(shasum -a 256 build.gradle|awk '{print $1}')"
+      - name: Exercise Windows dependency and Wrapper scopes
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-gradle-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:GRADLE_USER_HOME=Join-Path $env:USERPROFILE '.gradle'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:GRADLE_OPTS,Env:JAVA_OPTS -ErrorAction SilentlyContinue
+          $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $project,$env:GRADLE_USER_HOME,$env:LOCALAPPDATA|Out-Null; Push-Location $project
+          try{
+            'rootProject.name = "native-probe"'|Set-Content -Encoding utf8 settings.gradle; "plugins { id `"java`" }`nrepositories { mavenCentral() }"|Set-Content -Encoding utf8 build.gradle
+            gradle wrapper --gradle-version 9.7.1 --distribution-type bin --gradle-distribution-sha256-sum acd53f1edaf02f1a8ff99879f8a34b302661a057d9b063ae9e35b552f804d20a
+            '{"version":1,"tools":[{"id":"gradle","scope":"user"}]}'|Set-Content -Encoding utf8 user.json; '{"version":1,"tools":[{"id":"gradle","scope":"project"}]}'|Set-Content -Encoding utf8 project.json
+            $wrapper='gradle/wrapper/gradle-wrapper.properties'; $wrapperBefore=(Get-FileHash $wrapper -Algorithm SHA256).Hash; $buildBefore=(Get-FileHash build.gradle -Algorithm SHA256).Hash; $acl=(Get-Acl $wrapper).Sddl
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool gradle --scope gradle=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config user.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; if(@($s.detected_tools|Where-Object adapter_key -eq 'gradle').Count -ne 1){throw 'Gradle not detected'}; $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)){throw 'frontend plans differ'}
+            @('','n')|& $binary tui --offline --tool gradle --scope gradle=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(aliyun|huaweicloud|nju)')){throw 'Gradle mirror missing'}
+            (& $binary apply --offline --config user.json --yes --json)|Set-Content -Encoding utf8 apply-user.json; $r=Get-Content apply-user.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Gradle user apply failed'}; $userId=@($r.result.tools|Where-Object status -eq 'applied')[0].receipt.transaction_id
+            (& $binary restore $userId --yes --json)|Set-Content -Encoding utf8 restore-user.json
+            (& $binary plan --offline --config project.json --json)|Set-Content -Encoding utf8 plan-project.json; (& $binary apply --offline --config project.json --yes --json)|Set-Content -Encoding utf8 apply-project.json; $r=Get-Content apply-project.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Gradle project apply failed'}; $projectId=@($r.result.tools|Where-Object status -eq 'applied')[0].receipt.transaction_id
+            (& $binary apply --offline --config project.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
+            (& $binary restore $projectId --yes --json)|Set-Content -Encoding utf8 restore-project.json; $userRestore=Get-Content restore-user.json -Raw|ConvertFrom-Json; $projectRestore=Get-Content restore-project.json -Raw|ConvertFrom-Json; if(-not $userRestore.receipt.verified -or -not $projectRestore.receipt.verified){throw 'restore failed'}
+            if($wrapperBefore -ne (Get-FileHash $wrapper -Algorithm SHA256).Hash -or $buildBefore -ne (Get-FileHash build.gradle -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $wrapper).Sddl){throw 'Gradle project not restored exactly'}
+          }finally{Pop-Location}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gradle-native-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-gradle-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7
