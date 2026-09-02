@@ -256,7 +256,7 @@ fn windows_locked_target_fails_without_losing_original_contents() {
     let state = directory.path().join("state");
     let target = directory.path().join("locked.conf");
     fs::write(&target, b"old-value").unwrap();
-    let _lock = OpenOptions::new()
+    let lock = OpenOptions::new()
         .read(true)
         .share_mode(0)
         .open(&target)
@@ -269,6 +269,7 @@ fn windows_locked_target_fails_without_losing_original_contents() {
         error,
         TransactionError::Io { .. } | TransactionError::ApplyFailed { .. }
     ));
+    drop(lock);
     assert_eq!(fs::read(&target).unwrap(), b"old-value");
 }
 
