@@ -74,6 +74,12 @@ catalog path `https://mirrors.tuna.tsinghua.edu.cn/cygwin/` now returns 404; Cyg
 official link is `https://mirrors.tuna.tsinghua.edu.cn/sourceware/cygwin/`. CocoaPods sample paths
 under the cataloged static roots returned 404, so those candidates remain partial pending #98.
 
+Huawei's generic NuGet v3 service is not a Chocolatey Community Repository replacement. A current
+probe found no `chocolatey-core.extension`; its `googlechrome` package stops at 57.0.2987.98, while
+similarly named packages come from the NuGet.org-oriented feed rather than a synchronized
+`community.chocolatey.org` source. No Chocolatey adapter candidate is therefore published from the
+six-provider inventory.
+
 ## Existing adapters that need native extension
 
 The network protocols below already have a Linux adapter, but config discovery, executable names,
