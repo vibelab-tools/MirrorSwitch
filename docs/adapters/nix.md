@@ -53,3 +53,11 @@ before verification. If the restart or verification fails, MirrorSwitch restores
 restarts the daemon against the restored configuration. Explicit restore does the same. Linux
 keeps its existing behavior and reports the daemon restart as required rather than controlling a
 distribution-specific service manager.
+
+## Continuous validation
+
+The scheduled `nix-macos-live.yml` workflow installs multi-user Nix on Intel and Apple Silicon
+macOS runners. Each job uses the native release binary for status, plan, system apply, verification,
+TUI planning, and restore, then confirms that `/etc/nix/nix.conf` returned to its original digest.
+The ordinary platform smoke workflow runs the deterministic Linux and macOS Nix boundaries on both
+macOS architectures while Linux CI protects the original adapter and shared selection contracts.
