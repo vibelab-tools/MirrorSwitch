@@ -21,6 +21,7 @@ mod fnm;
 mod ghcup;
 mod go;
 mod gradle;
+mod grafana;
 mod guix;
 mod influxdb;
 mod julia;
@@ -85,6 +86,7 @@ pub use fnm::FnmAdapter;
 pub use ghcup::GhcupAdapter;
 pub use go::GoAdapter;
 pub use gradle::GradleAdapter;
+pub use grafana::GrafanaAdapter;
 pub use guix::GuixAdapter;
 pub use influxdb::InfluxDbAdapter;
 pub use julia::JuliaAdapter;
@@ -143,6 +145,7 @@ static FLATPAK: FlatpakAdapter = FlatpakAdapter;
 static FNM: FnmAdapter = FnmAdapter;
 static FLUTTER: FlutterAdapter = FlutterAdapter;
 static GO: GoAdapter = GoAdapter;
+static GRAFANA: GrafanaAdapter = GrafanaAdapter;
 static GRADLE: GradleAdapter = GradleAdapter;
 static GHCUP: GhcupAdapter = GhcupAdapter;
 static GUIX: GuixAdapter = GuixAdapter;
@@ -220,6 +223,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &NVM,
         &FNM,
         &GO,
+        &GRAFANA,
         &JULIA,
         &KUBERNETES_IMAGES,
         &KUBERNETES_PACKAGES,

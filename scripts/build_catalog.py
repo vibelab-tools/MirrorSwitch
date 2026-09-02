@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "61"
+CATALOG_FORMAT_REVISION = "62"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -556,6 +556,13 @@ ELASTICSTACK_RPM_REPOSITORY_VERSIONS = [
     "rpm-stable-9.x-x86_64",
     "rpm-stable-9.x-aarch64",
 ]
+GRAFANA_UPSTREAM = "grafana-packages--repository-metadata"
+GRAFANA_ENDPOINTS = {
+    "aliyun": "https://mirrors.aliyun.com/grafana/",
+    "nju": "https://mirrors.nju.edu.cn/grafana/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/grafana/",
+}
+GRAFANA_APT_REPOSITORY_VERSIONS = ["apt-stable-13-amd64", "apt-stable-13-arm64"]
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -653,6 +660,8 @@ def runtime_upstream_identity(
         return "postgresql-pgdg", "repository-metadata"
     if tool_id == "elasticstack" and entry["raw_name"].startswith("elasticstack"):
         return "elastic-stack", "repository-metadata"
+    if tool_id == "grafana" and entry["raw_name"].startswith("grafana"):
+        return "grafana-packages", "repository-metadata"
     if tool_id == "podman-registry" and entry["raw_name"] in {"gcr", "ghcr", "quay"}:
         return f"{entry['raw_name']}.io", "container-registry"
     return entry["normalized_upstream"], entry["content_type"]
@@ -942,6 +951,14 @@ def candidate_endpoints(
         and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
     ):
         endpoint = ELASTICSTACK_ENDPOINTS[entry["provider_id"]]
+        return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
+    if (
+        tool_id == "grafana"
+        and upstream_key == GRAFANA_UPSTREAM
+        and entry["provider_id"] in GRAFANA_ENDPOINTS
+        and entry["raw_name"].endswith("-apt-runtime")
+    ):
+        endpoint = GRAFANA_ENDPOINTS[entry["provider_id"]]
         return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
     if (
         tool_id == "flutter"
@@ -3538,6 +3555,26 @@ def runtime_properties(
             ],
         ]
     elif (
+        tool_id == "grafana"
+        and upstream_key == GRAFANA_UPSTREAM
+        and entry["provider_id"] in GRAFANA_ENDPOINTS
+        and entry["raw_name"].endswith("-apt-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = GRAFANA_APT_REPOSITORY_VERSIONS
+        delivery_mode = "mirror"
+        root = "/apt"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{root}/dists/stable/InRelease", "expected_status": [200], "contains": "Architectures: amd64 arm64"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/stable/Release.gpg", "expected_status": [200]},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/stable/main/binary-{{architecture}}/Packages.gz", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/pool/main/g/grafana/grafana_13.2.0_32077357341_linux_{{architecture}}.deb", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/pool/main/g/grafana-enterprise/grafana-enterprise_13.2.0_32077357341_linux_{{architecture}}.deb", "expected_status": [200]},
+        ]
+    elif (
         tool_id == "elasticstack"
         and upstream_key == ELASTICSTACK_UPSTREAM
         and entry["provider_id"] in ELASTICSTACK_ENDPOINTS
@@ -3783,6 +3820,12 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
             ):
                 for surface in ["apt", "rpm"]:
                     planned_entries.append({**entry, "raw_name": f"elasticstack-{surface}-runtime"})
+            elif (
+                any(target["tool_id"] == "grafana" for target in targets)
+                and entry["provider_id"] in GRAFANA_ENDPOINTS
+                and entry["raw_name"] == "grafana"
+            ):
+                planned_entries.append({**entry, "raw_name": "grafana-apt-runtime"})
             elif entry["raw_name"] == "elpa":
                 for archive, (family, _) in ELPA_ARCHIVES.items():
                     root = entry["public_endpoints"][0]["url"].rstrip("/")
@@ -3862,6 +3905,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "flutter",
                         "go",
                         "ghcup",
+                        "grafana",
                         "rubygems",
                         "rustup",
                         "ros",

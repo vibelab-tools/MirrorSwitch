@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+20c9a06e7f9f",
-  "content_revision": 20260902093000,
-  "generated_at": "2026-09-02T09:30:00Z",
+  "content_version": "2026.08.28+3da62f34947a",
+  "content_revision": 20260902100000,
+  "generated_at": "2026-09-02T10:00:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -676,12 +676,13 @@
       ]
     },
     {
-      "id": "grafana--static-files",
-      "family": "grafana",
-      "display_name": "grafana",
-      "content_kind": "static-files",
+      "id": "grafana-packages--repository-metadata",
+      "family": "grafana-packages",
+      "display_name": "grafana-packages",
+      "content_kind": "repository-metadata",
       "aliases": [
-        "grafana"
+        "grafana",
+        "grafana-apt-runtime"
       ]
     },
     {
@@ -1817,7 +1818,7 @@
       "id": "grafana",
       "adapter_key": "grafana",
       "display_name": "grafana",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/91",
       "supported_scopes": [
         "system"
@@ -3920,36 +3921,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "097db2bef407243c2dcf0eb3",
-      "provider_id": "tuna",
-      "upstream_id": "grafana--static-files",
-      "tool_id": "grafana",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "grafana"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/grafana/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "097f84f775cc7e5af045e966",
       "provider_id": "aliyun",
       "upstream_id": "mariadb-packages--repository-metadata",
@@ -5358,6 +5329,99 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "15600d1453d3b8007a47ee70",
+      "provider_id": "aliyun",
+      "upstream_id": "grafana-packages--repository-metadata",
+      "tool_id": "grafana",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "grafana-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/grafana/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/grafana/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/grafana/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "apt-stable-13-amd64",
+          "apt-stable-13-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/apt/dists/stable/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architectures: amd64 arm64"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/apt/dists/stable/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/apt/dists/stable/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/apt/pool/main/g/grafana/grafana_13.2.0_32077357341_linux_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/apt/pool/main/g/grafana-enterprise/grafana-enterprise_13.2.0_32077357341_linux_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -15986,6 +16050,99 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "6ce01799266f0696525c79bb",
+      "provider_id": "tuna",
+      "upstream_id": "grafana-packages--repository-metadata",
+      "tool_id": "grafana",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "grafana-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/grafana/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/grafana/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/grafana/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "apt-stable-13-amd64",
+          "apt-stable-13-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/apt/dists/stable/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architectures: amd64 arm64"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/apt/dists/stable/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/apt/dists/stable/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/apt/pool/main/g/grafana/grafana_13.2.0_32077357341_linux_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/apt/pool/main/g/grafana-enterprise/grafana-enterprise_13.2.0_32077357341_linux_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "6d53cba8e3dc2412f45323f1",
       "provider_id": "ustc",
       "upstream_id": "gentoo-portage--repository-metadata",
@@ -17569,6 +17726,99 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "78b69ae2c198740d04618b98",
+      "provider_id": "nju",
+      "upstream_id": "grafana-packages--repository-metadata",
+      "tool_id": "grafana",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "grafana-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/grafana/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/grafana/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/grafana/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "apt-stable-13-amd64",
+          "apt-stable-13-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/apt/dists/stable/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architectures: amd64 arm64"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/apt/dists/stable/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/apt/dists/stable/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/apt/pool/main/g/grafana/grafana_13.2.0_32077357341_linux_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/apt/pool/main/g/grafana-enterprise/grafana-enterprise_13.2.0_32077357341_linux_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -22066,36 +22316,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "a3df09b480320cca17c728c1",
-      "provider_id": "aliyun",
-      "upstream_id": "grafana--static-files",
-      "tool_id": "grafana",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "grafana"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/grafana/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "a42130cd19ad93dc3b3ffa80",
       "provider_id": "nju",
       "upstream_id": "scoop-versions--git-mirror",
@@ -22278,36 +22498,6 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "a4fcca6468e6c5b5fa6c256b",
-      "provider_id": "huaweicloud",
-      "upstream_id": "grafana--static-files",
-      "tool_id": "grafana",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "grafana"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/grafana/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -30446,36 +30636,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "e2b39f34de880a5fb390e46b",
-      "provider_id": "nju",
-      "upstream_id": "grafana--static-files",
-      "tool_id": "grafana",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "grafana"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/grafana/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "e2bc988496c906f6288466b3",
       "provider_id": "nju",
       "upstream_id": "gentoo-zh--git-mirror",
@@ -31321,6 +31481,36 @@
           "container",
           "host"
         ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "eaa7c5f3fb99e37ba91a7adf",
+      "provider_id": "huaweicloud",
+      "upstream_id": "grafana-packages--repository-metadata",
+      "tool_id": "grafana",
+      "catalog_state": "partial",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "grafana"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/grafana/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [],
+        "architectures": [],
+        "environments": [],
         "distributions": [],
         "repository_versions": []
       },
