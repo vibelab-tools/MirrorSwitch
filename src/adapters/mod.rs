@@ -26,6 +26,7 @@ mod kubernetes_images;
 mod kubernetes_packages;
 mod leiningen;
 mod maven;
+mod mysql;
 mod nix;
 mod npm;
 mod nuget;
@@ -84,6 +85,7 @@ pub use kubernetes_images::KubernetesImagesAdapter;
 pub use kubernetes_packages::KubernetesPackagesAdapter;
 pub use leiningen::LeiningenAdapter;
 pub use maven::MavenAdapter;
+pub use mysql::MySqlAdapter;
 pub use nix::NixAdapter;
 pub use npm::NpmAdapter;
 pub use nuget::NugetAdapter;
@@ -138,6 +140,7 @@ static KUBERNETES_IMAGES: KubernetesImagesAdapter = KubernetesImagesAdapter;
 static KUBERNETES_PACKAGES: KubernetesPackagesAdapter = KubernetesPackagesAdapter;
 static LEININGEN: LeiningenAdapter = LeiningenAdapter;
 static MAVEN: MavenAdapter = MavenAdapter;
+static MYSQL: MySqlAdapter = MySqlAdapter;
 static NIX: NixAdapter = NixAdapter;
 static NVM: NvmAdapter = NvmAdapter;
 static NPM: NpmAdapter = NpmAdapter;
@@ -193,6 +196,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &DART_PUB,
         &GRADLE,
         &MAVEN,
+        &MYSQL,
         &NVM,
         &FNM,
         &GO,
