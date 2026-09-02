@@ -103,18 +103,21 @@ fn apply_is_idempotent_and_selected_snapshot_restores_with_permissions() {
         fs::read_to_string(state.join(&receipt.transaction_id).join("manifest.json")).unwrap();
     assert!(!manifest.contains("first-old"));
     assert!(!manifest.contains("second-old"));
-    assert_eq!(
-        current_mode(&state.join(&receipt.transaction_id)),
-        Some(0o700)
-    );
-    assert_eq!(
-        current_mode(
-            &state
-                .join(&receipt.transaction_id)
-                .join("backups/000000.bin")
-        ),
-        Some(0o600)
-    );
+    #[cfg(unix)]
+    {
+        assert_eq!(
+            current_mode(&state.join(&receipt.transaction_id)),
+            Some(0o700)
+        );
+        assert_eq!(
+            current_mode(
+                &state
+                    .join(&receipt.transaction_id)
+                    .join("backups/000000.bin")
+            ),
+            Some(0o600)
+        );
+    }
 
     fs::write(&first, b"unrelated later value").unwrap();
     let restored = engine.restore(&receipt.transaction_id).unwrap();
@@ -209,6 +212,81 @@ fn manifest_commit_failure_rolls_back_all_targets() {
     assert_eq!(fs::read(&target).unwrap(), b"old-value");
 }
 
+#[cfg(windows)]
+#[test]
+fn windows_readonly_and_hidden_attributes_survive_apply_and_restore() {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_READONLY, GetFileAttributesW, SetFileAttributesW,
+    };
+
+    let directory = TempDir::new().unwrap();
+    let state = directory.path().join("state");
+    let target = directory.path().join("settings.ini");
+    fs::write(&target, b"old-value").unwrap();
+    let wide = target
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect::<Vec<_>>();
+    // SAFETY: `wide` is NUL-terminated and valid for both calls.
+    let original = unsafe { GetFileAttributesW(wide.as_ptr()) };
+    let expected = original | FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_HIDDEN;
+    assert_ne!(unsafe { SetFileAttributesW(wide.as_ptr(), expected) }, 0);
+
+    let transaction = plan(vec![replacement(&target, b"old-value", b"new-value")]);
+    let engine = TransactionEngine::new(&state);
+    let ApplyOutcome::Applied(receipt) = engine.apply(&transaction).unwrap() else {
+        panic!("Windows attribute fixture must be applied");
+    };
+    assert_eq!(fs::read(&target).unwrap(), b"new-value");
+    assert_eq!(unsafe { GetFileAttributesW(wide.as_ptr()) }, expected);
+
+    engine.restore(&receipt.transaction_id).unwrap();
+    assert_eq!(fs::read(&target).unwrap(), b"old-value");
+    assert_eq!(unsafe { GetFileAttributesW(wide.as_ptr()) }, expected);
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_locked_target_fails_without_losing_original_contents() {
+    use std::{fs::OpenOptions, os::windows::fs::OpenOptionsExt};
+
+    let directory = TempDir::new().unwrap();
+    let state = directory.path().join("state");
+    let target = directory.path().join("locked.conf");
+    fs::write(&target, b"old-value").unwrap();
+    let _lock = OpenOptions::new()
+        .read(true)
+        .share_mode(0)
+        .open(&target)
+        .unwrap();
+    let transaction = plan(vec![replacement(&target, b"old-value", b"new-value")]);
+    let error = TransactionEngine::new(&state)
+        .apply(&transaction)
+        .unwrap_err();
+    assert!(matches!(error, TransactionError::ApplyFailed { .. }));
+    assert_eq!(fs::read(&target).unwrap(), b"old-value");
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_case_variants_are_one_transaction_target() {
+    let directory = TempDir::new().unwrap();
+    let target = directory.path().join("Config.ini");
+    fs::write(&target, b"old-value").unwrap();
+    let duplicate = directory.path().join("config.ini");
+    let transaction = plan(vec![
+        replacement(&target, b"old-value", b"first"),
+        replacement(&duplicate, b"old-value", b"second"),
+    ]);
+    assert!(matches!(
+        TransactionEngine::new(directory.path().join("state")).apply(&transaction),
+        Err(TransactionError::DuplicateTarget { .. })
+    ));
+    assert_eq!(fs::read(target).unwrap(), b"old-value");
+}
+
 struct FailOnTarget {
     inner: OsFileSystem,
     target: PathBuf,
@@ -234,11 +312,13 @@ impl FileSystem for FailOnTarget {
         contents: &[u8],
         mode: Option<u32>,
         owner: Option<FileOwner>,
+        windows_attributes: Option<u32>,
     ) -> io::Result<()> {
         if path == self.target && !self.failed.replace(true) {
             return Err(io::Error::other("injected write failure"));
         }
-        self.inner.atomic_replace(path, contents, mode, owner)
+        self.inner
+            .atomic_replace(path, contents, mode, owner, windows_attributes)
     }
 
     fn remove_file(&self, path: &Path) -> io::Result<()> {
@@ -270,6 +350,7 @@ impl FileSystem for FailManifestCommit {
         contents: &[u8],
         mode: Option<u32>,
         owner: Option<FileOwner>,
+        windows_attributes: Option<u32>,
     ) -> io::Result<()> {
         if path.file_name().is_some_and(|name| name == "manifest.json") {
             let write = self.manifest_writes.get();
@@ -278,7 +359,8 @@ impl FileSystem for FailManifestCommit {
                 return Err(io::Error::other("injected manifest commit failure"));
             }
         }
-        self.inner.atomic_replace(path, contents, mode, owner)
+        self.inner
+            .atomic_replace(path, contents, mode, owner, windows_attributes)
     }
 
     fn remove_file(&self, path: &Path) -> io::Result<()> {

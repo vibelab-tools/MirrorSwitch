@@ -20,6 +20,7 @@ pub struct FileSnapshot {
     pub contents: Option<Vec<u8>>,
     pub mode: Option<u32>,
     pub owner: Option<FileOwner>,
+    pub windows_attributes: Option<u32>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -41,6 +42,7 @@ pub trait FileSystem {
         contents: &[u8],
         mode: Option<u32>,
         owner: Option<FileOwner>,
+        windows_attributes: Option<u32>,
     ) -> io::Result<()>;
     fn remove_file(&self, path: &Path) -> io::Result<()>;
 }
@@ -62,12 +64,14 @@ impl FileSystem for OsFileSystem {
                     contents: Some(fs::read(path)?),
                     mode: permission_mode(&metadata),
                     owner: file_owner(&metadata),
+                    windows_attributes: platform_attributes(path)?,
                 })
             }
             Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(FileSnapshot {
                 contents: None,
                 mode: None,
                 owner: None,
+                windows_attributes: None,
             }),
             Err(error) => Err(error),
         }
@@ -97,6 +101,7 @@ impl FileSystem for OsFileSystem {
         contents: &[u8],
         mode: Option<u32>,
         owner: Option<FileOwner>,
+        windows_attributes: Option<u32>,
     ) -> io::Result<()> {
         let parent = path.parent().ok_or_else(|| {
             io::Error::new(
@@ -125,7 +130,8 @@ impl FileSystem for OsFileSystem {
             set_file_owner(&file, owner)?;
             set_file_mode(&file, mode.unwrap_or(0o600))?;
             file.sync_all()?;
-            fs::rename(&temporary, path)
+            replace_path(&temporary, path, windows_attributes)?;
+            set_platform_attributes(path, windows_attributes)
         })();
 
         if result.is_err() {
@@ -135,7 +141,7 @@ impl FileSystem for OsFileSystem {
     }
 
     fn remove_file(&self, path: &Path) -> io::Result<()> {
-        match fs::remove_file(path) {
+        match remove_path(path) {
             Ok(()) => Ok(()),
             Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
             Err(error) => Err(error),
@@ -216,9 +222,11 @@ impl<F: FileSystem> TransactionEngine<F> {
                 original_digest: snapshot.contents.as_deref().map(content_digest),
                 original_mode: snapshot.mode,
                 original_owner: snapshot.owner,
+                original_windows_attributes: snapshot.windows_attributes,
                 applied_digest: content_digest(&change.new_contents),
                 applied_mode: requested_mode(change, snapshot),
                 applied_owner: snapshot.owner,
+                applied_windows_attributes: snapshot.windows_attributes,
             });
         }
 
@@ -243,6 +251,7 @@ impl<F: FileSystem> TransactionEngine<F> {
                 &change.new_contents,
                 record.applied_mode,
                 record.applied_owner,
+                record.applied_windows_attributes,
             ) {
                 let rollback =
                     self.rollback_records(&transaction_dir, &manifest.records[..applied]);
@@ -360,6 +369,7 @@ impl<F: FileSystem> TransactionEngine<F> {
             &contents,
             record.original_mode,
             record.original_owner,
+            record.original_windows_attributes,
         )
     }
 
@@ -390,7 +400,7 @@ impl<F: FileSystem> TransactionEngine<F> {
             serde_json::to_vec_pretty(manifest).map_err(TransactionError::ManifestJson)?;
         let path = transaction_dir.join("manifest.json");
         self.filesystem
-            .atomic_replace(&path, &contents, Some(0o600), None)
+            .atomic_replace(&path, &contents, Some(0o600), None, None)
             .map_err(|source| TransactionError::Io {
                 operation: "write transaction manifest",
                 path,
@@ -542,9 +552,13 @@ struct BackupRecord {
     original_digest: Option<String>,
     original_mode: Option<u32>,
     original_owner: Option<FileOwner>,
+    #[serde(default)]
+    original_windows_attributes: Option<u32>,
     applied_digest: String,
     applied_mode: Option<u32>,
     applied_owner: Option<FileOwner>,
+    #[serde(default)]
+    applied_windows_attributes: Option<u32>,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -561,11 +575,32 @@ pub fn content_digest(contents: &[u8]) -> String {
     format!("{:x}", Sha256::digest(contents))
 }
 
+#[cfg(not(windows))]
 fn validate_plans(plans: &[ChangePlan]) -> Result<(), TransactionError> {
     let mut targets = HashSet::new();
     for plan in plans {
         for change in &plan.changes {
             if !targets.insert(&change.target) {
+                return Err(TransactionError::DuplicateTarget {
+                    path: change.target.clone(),
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn validate_plans(plans: &[ChangePlan]) -> Result<(), TransactionError> {
+    let mut targets = HashSet::new();
+    for plan in plans {
+        for change in &plan.changes {
+            let key = change
+                .target
+                .to_string_lossy()
+                .replace('/', "\\")
+                .to_lowercase();
+            if !targets.insert(key) {
                 return Err(TransactionError::DuplicateTarget {
                     path: change.target.clone(),
                 });
@@ -595,6 +630,9 @@ fn matches_original(snapshot: &FileSnapshot, record: &BackupRecord) -> bool {
         && record
             .original_owner
             .is_none_or(|owner| snapshot.owner == Some(owner))
+        && record
+            .original_windows_attributes
+            .is_none_or(|attributes| snapshot.windows_attributes == Some(attributes))
 }
 
 fn mode_matches(expected: Option<u32>, actual: Option<u32>) -> bool {
@@ -718,3 +756,136 @@ fn set_creation_mode(options: &mut OpenOptions, mode: u32) {
 
 #[cfg(not(unix))]
 fn set_creation_mode(_options: &mut OpenOptions, _mode: u32) {}
+
+#[cfg(windows)]
+fn wide_path(path: &Path) -> Vec<u16> {
+    use std::os::windows::ffi::OsStrExt;
+
+    path.as_os_str().encode_wide().chain(Some(0)).collect()
+}
+
+#[cfg(windows)]
+fn platform_attributes(path: &Path) -> io::Result<Option<u32>> {
+    use windows_sys::Win32::Storage::FileSystem::{GetFileAttributesW, INVALID_FILE_ATTRIBUTES};
+
+    let path = wide_path(path);
+    // SAFETY: `path` is a NUL-terminated UTF-16 buffer that remains alive for the call.
+    let attributes = unsafe { GetFileAttributesW(path.as_ptr()) };
+    if attributes == INVALID_FILE_ATTRIBUTES {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(Some(attributes))
+    }
+}
+
+#[cfg(not(windows))]
+fn platform_attributes(_path: &Path) -> io::Result<Option<u32>> {
+    Ok(None)
+}
+
+#[cfg(windows)]
+fn set_platform_attributes(path: &Path, attributes: Option<u32>) -> io::Result<()> {
+    use windows_sys::Win32::Storage::FileSystem::SetFileAttributesW;
+
+    let Some(attributes) = attributes else {
+        return Ok(());
+    };
+    let path = wide_path(path);
+    // SAFETY: `path` is a NUL-terminated UTF-16 buffer that remains alive for the call.
+    if unsafe { SetFileAttributesW(path.as_ptr(), attributes) } == 0 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
+    }
+}
+
+#[cfg(not(windows))]
+fn set_platform_attributes(_path: &Path, _attributes: Option<u32>) -> io::Result<()> {
+    Ok(())
+}
+
+#[cfg(windows)]
+fn writable_attributes(attributes: u32) -> u32 {
+    use windows_sys::Win32::Storage::FileSystem::{FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_READONLY};
+
+    let writable = attributes & !FILE_ATTRIBUTE_READONLY;
+    if writable == 0 {
+        FILE_ATTRIBUTE_NORMAL
+    } else {
+        writable
+    }
+}
+
+#[cfg(windows)]
+fn replace_path(temporary: &Path, target: &Path, attributes: Option<u32>) -> io::Result<()> {
+    use std::ptr;
+    use windows_sys::Win32::Storage::FileSystem::{
+        MOVEFILE_WRITE_THROUGH, MoveFileExW, REPLACEFILE_WRITE_THROUGH, ReplaceFileW,
+    };
+
+    let target_wide = wide_path(target);
+    let temporary_wide = wide_path(temporary);
+    let existed = target.exists();
+    if existed {
+        if let Some(attributes) = attributes {
+            set_platform_attributes(target, Some(writable_attributes(attributes)))?;
+        }
+    }
+    // SAFETY: both path buffers are NUL-terminated and valid for the duration of the call.
+    let replaced = unsafe {
+        if existed {
+            ReplaceFileW(
+                target_wide.as_ptr(),
+                temporary_wide.as_ptr(),
+                ptr::null(),
+                REPLACEFILE_WRITE_THROUGH,
+                ptr::null(),
+                ptr::null(),
+            )
+        } else {
+            MoveFileExW(
+                temporary_wide.as_ptr(),
+                target_wide.as_ptr(),
+                MOVEFILE_WRITE_THROUGH,
+            )
+        }
+    };
+    if replaced == 0 {
+        let error = io::Error::last_os_error();
+        if existed {
+            let _ = set_platform_attributes(target, attributes);
+        }
+        Err(error)
+    } else {
+        Ok(())
+    }
+}
+
+#[cfg(not(windows))]
+fn replace_path(temporary: &Path, target: &Path, _attributes: Option<u32>) -> io::Result<()> {
+    fs::rename(temporary, target)
+}
+
+#[cfg(windows)]
+fn remove_path(path: &Path) -> io::Result<()> {
+    match platform_attributes(path) {
+        Ok(Some(attributes)) => {
+            set_platform_attributes(path, Some(writable_attributes(attributes)))?;
+            match fs::remove_file(path) {
+                Ok(()) => Ok(()),
+                Err(error) => {
+                    let _ = set_platform_attributes(path, Some(attributes));
+                    Err(error)
+                }
+            }
+        }
+        Ok(None) => fs::remove_file(path),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Err(error),
+        Err(error) => Err(error),
+    }
+}
+
+#[cfg(not(windows))]
+fn remove_path(path: &Path) -> io::Result<()> {
+    fs::remove_file(path)
+}
