@@ -1,0 +1,131 @@
+name: CocoaPods macOS live boundary
+
+on:
+  schedule:
+    - cron: "53 21 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: CocoaPods (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: macos-15-intel
+          - arch: arm64
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust toolchain
+        run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal && rustup default "$RUST_TOOLCHAIN"
+      - name: Ensure CocoaPods is installed
+        run: command -v pod >/dev/null || sudo gem install cocoapods --no-document
+      - name: Create a controlled public Specs checkout
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          repo="$HOME/.cocoapods/repos/master"
+          mkdir -p "$repo/Specs/a/7/5/AFNetworking/4.0.1"
+          git -C "$repo" init --initial-branch=master
+          git -C "$repo" config user.name MirrorSwitch
+          git -C "$repo" config user.email ci@mirrorswitch.invalid
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          repo = Path(os.environ["HOME"]) / ".cocoapods/repos/master"
+          spec = {
+              "name": "AFNetworking",
+              "version": "4.0.1",
+              "summary": "CI boundary fixture",
+              "homepage": "https://github.com/AFNetworking/AFNetworking",
+              "license": "MIT",
+              "authors": {"Fixture": "ci@mirrorswitch.invalid"},
+              "source": {
+                  "git": "https://github.com/AFNetworking/AFNetworking.git",
+                  "tag": "4.0.1",
+              },
+              "source_files": "AFNetworking/*.{h,m}",
+              "platforms": {"ios": "9.0"},
+          }
+          path = repo / "Specs/a/7/5/AFNetworking/4.0.1/AFNetworking.podspec.json"
+          path.write_text(json.dumps(spec) + "\n", encoding="utf-8")
+          (repo / "CocoaPods-version.yml").write_text("---\nmin: 1.0.0\nlast: 1.16.2\n", encoding="utf-8")
+          PY
+          git -C "$repo" add .
+          git -C "$repo" commit -m fixture
+          git -C "$repo" remote add origin https://github.com/CocoaPods/Specs.git
+          pod repo list --no-ansi
+      - name: Run deterministic CocoaPods adapter boundary
+        run: cargo test --locked --test cocoapods_adapter_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Apply, verify, and restore a real CocoaPods plan
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"
+          config="$HOME/.cocoapods/repos/master/.git/config"
+          config_before=$(shasum -a 256 "$config" | awk '{print $1}')
+
+          "$binary" status --offline --json > status.json
+          python3 - <<'PY'
+          import json
+          status = json.load(open("status.json"))
+          assert [item["adapter_key"] for item in status["detected_tools"] if item["adapter_key"] == "cocoapods"] == ["cocoapods"]
+          PY
+          "$binary" plan --offline --tool cocoapods --scope cocoapods=user --json > plan.json
+          python3 - <<'PY'
+          import json
+          plan = json.load(open("plan.json"))
+          assert plan["ok"] is True
+          tools = plan["plan"]["tools"]
+          assert [item["adapter_key"] for item in tools] == ["cocoapods"]
+          assert {item["provider_id"] for item in tools[0]["selection"]["selections"]} <= {"nju", "tuna"}
+          assert tools[0]["plan"]["changes"][0]["target"].endswith("/.cocoapods/repos/master/.git/config")
+          PY
+
+          "$binary" apply --offline --tool cocoapods --scope cocoapods=user --yes --json > apply.json
+          transaction_id=$(python3 - <<'PY'
+          import json
+          result = json.load(open("apply.json"))["result"]
+          assert result["successful"] is True
+          applied = [item for item in result["tools"] if item["status"] == "applied"]
+          assert len(applied) == 1
+          print(applied[0]["receipt"]["transaction_id"])
+          PY
+          )
+          printf '\nn\n' | "$binary" tui --offline --tool cocoapods --scope cocoapods=user > tui.txt
+          grep -E 'mirror=(nju|tuna)' tui.txt
+          "$binary" restore "$transaction_id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          assert json.load(open("restore.json"))["receipt"]["verified"] is True
+          PY
+
+          test "$config_before" = "$(shasum -a 256 "$config" | awk '{print $1}')"
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cocoapods-boundary-${{ matrix.arch }}-${{ github.run_id }}
+          path: |
+            plan.json
+            apply.json
+            status.json
+            restore.json
+            tui.txt
+          if-no-files-found: warn
+          retention-days: 7

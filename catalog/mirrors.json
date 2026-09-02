@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+c47934a77391",
-  "content_revision": 20260902175122,
-  "generated_at": "2026-09-02T17:51:22Z",
+  "content_version": "2026.08.28+ba69caab7538",
+  "content_revision": 20260902182646,
+  "generated_at": "2026-09-02T18:26:46Z",
   "providers": [
     {
       "id": "aliyun",
@@ -252,7 +252,6 @@
       "display_name": "cocoapods",
       "content_kind": "static-files",
       "aliases": [
-        "CocoaPods",
         "cocoapods"
       ]
     },
@@ -1588,11 +1587,11 @@
       "id": "cocoapods",
       "adapter_key": "cocoapods",
       "display_name": "cocoapods",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/98",
       "supported_scopes": [
         "user",
-        "environment"
+        "project"
       ],
       "composition": "single"
     },
@@ -9756,6 +9755,36 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "33a2d8bdd49aa89e86a83e45",
+      "provider_id": "huaweicloud",
+      "upstream_id": "cocoapods--static-files",
+      "tool_id": "cocoapods",
+      "catalog_state": "partial",
+      "delivery_mode": "unknown",
+      "raw_names": [
+        "cocoapods"
+      ],
+      "endpoints": [
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository_archive/cocoapods/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [],
+        "architectures": [],
+        "environments": [],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "3502f9486eda94106fbba6e2",
       "provider_id": "sjtug",
       "upstream_id": "debian--repository-metadata",
@@ -13181,40 +13210,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "4e7dd7b3640f978d34c40dc2",
-      "provider_id": "nju",
-      "upstream_id": "cocoapods--git-mirror",
-      "tool_id": "cocoapods",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "CocoaPods"
-      ],
-      "endpoints": [
-        {
-          "role": "git",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/CocoaPods"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "macos"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "503bb03c2d5635b4db850705",
       "provider_id": "ustc",
       "upstream_id": "cran--language-registry",
@@ -16471,6 +16466,63 @@
       "probes": [],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "6bf8c435edff7ed506917aa5",
+      "provider_id": "nju",
+      "upstream_id": "cocoapods--git-mirror",
+      "tool_id": "cocoapods",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CocoaPods"
+      ],
+      "endpoints": [
+        {
+          "role": "git",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/CocoaPods/Specs.git"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/HEAD",
+          "expected_status": [
+            200
+          ],
+          "contains": "ref: refs/heads/master"
+        },
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/objects/info/packs",
+          "expected_status": [
+            200
+          ],
+          "contains": "P pack-"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json",
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -23016,40 +23068,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "a2f51f8d77335899e6f46495",
-      "provider_id": "nju",
-      "upstream_id": "cocoapods--static-files",
-      "tool_id": "cocoapods",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "CocoaPods"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/CocoaPods/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "macos"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "a3555f005ea76af3c98aa4e0",
       "provider_id": "huaweicloud",
       "upstream_id": "npm--language-registry",
@@ -27508,6 +27526,62 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "c383c3bcf95e53b588610d61",
+      "provider_id": "tuna",
+      "upstream_id": "cocoapods--git-mirror",
+      "tool_id": "cocoapods",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CocoaPods"
+      ],
+      "endpoints": [
+        {
+          "role": "git",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/git/CocoaPods/Specs.git"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/HEAD",
+          "expected_status": [
+            200
+          ],
+          "contains": "ref: refs/heads/master"
+        },
+        {
+          "endpoint_role": "git",
+          "method": "get",
+          "path": "/objects/info/packs",
+          "expected_status": [
+            200
+          ],
+          "contains": "P pack-"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -32210,40 +32284,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "e4a46ccb9f48297f9c07387e",
-      "provider_id": "tuna",
-      "upstream_id": "cocoapods--static-files",
-      "tool_id": "cocoapods",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "CocoaPods"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/CocoaPods/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "macos"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "e5d5d1191f43cc7bd37881c9",
       "provider_id": "nju",
       "upstream_id": "gentoo--repository-metadata",
@@ -33282,40 +33322,6 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "eef2caf5d80323d7766bd768",
-      "provider_id": "huaweicloud",
-      "upstream_id": "cocoapods--static-files",
-      "tool_id": "cocoapods",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "cocoapods"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository_archive/cocoapods/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "macos"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

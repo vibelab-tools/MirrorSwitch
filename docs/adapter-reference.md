@@ -56,6 +56,7 @@ content remain unchanged and are reported.
 | `rubygems` | user | Fixed gem metadata/archive and client query; ordered private sources preserved ([details](adapters/rubygems.md)) |
 | `bundler` | user/project | Compact/classic index resolution; Gemfile and lockfile are never rewritten ([details](adapters/bundler.md)) |
 | `composer` | user | Composer diagnose/query with metadata/dist/VCS chain; auth and project config preserved ([details](adapters/composer.md)) |
+| `cocoapods` | user/project | Existing Specs Git repo or explicit Podfile source; CDN and dependency assets remain distinct ([details](adapters/cocoapods.md)) |
 | `nuget` | user | NuGet/dotnet config hierarchy and fixed restore/install; mappings/auth preserved ([details](adapters/nuget.md)) |
 | `cabal` | user | Secure index/package query; project configuration remains read-only ([details](adapters/cabal.md)) |
 | `stack` | user/project | Snapshot/Hackage/toolchain query; project scope explicit ([details](adapters/stack.md)) |

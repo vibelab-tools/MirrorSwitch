@@ -70,7 +70,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "69"
+CATALOG_FORMAT_REVISION = "70"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -643,6 +643,11 @@ TLMGR_PLATFORM_SHA256 = {
 }
 HOMEBREW_GIT_UPSTREAM = "homebrew--git-mirror"
 HOMEBREW_BOTTLES_UPSTREAM = "homebrew-bottles--binary-cache"
+COCOAPODS_GIT_UPSTREAM = "cocoapods--git-mirror"
+COCOAPODS_SPECS_ENDPOINTS = {
+    "nju": "https://mirrors.nju.edu.cn/git/CocoaPods/Specs.git",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/git/CocoaPods/Specs.git",
+}
 
 
 def utc_now() -> str:
@@ -656,6 +661,12 @@ def upstream_id(family: str, content_type: str) -> str:
 def runtime_upstream_identity(
     entry: dict[str, Any], tool_id: str
 ) -> tuple[str, str]:
+    if (
+        tool_id == "cocoapods"
+        and entry["provider_id"] in COCOAPODS_SPECS_ENDPOINTS
+        and entry["raw_name"] == "CocoaPods"
+    ):
+        return "cocoapods", "git-mirror"
     if tool_id in {"sbt", "leiningen"} and entry["raw_name"] == "maven":
         return "maven", "language-registry"
     if tool_id == "sbt" and entry["raw_name"] in {"sbt", "ivy"}:
@@ -718,6 +729,8 @@ def runtime_upstream_identity(
 def tool_scopes(tool_id: str) -> list[str]:
     if tool_id == "homebrew":
         return ["user"]
+    if tool_id == "cocoapods":
+        return ["user", "project"]
     if tool_id in {"bundler", "stack"}:
         return ["user", "project"]
     if tool_id in NODE_DISTRIBUTION_TOOLS or tool_id in {
@@ -817,6 +830,18 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if (
+        tool_id == "cocoapods"
+        and upstream_key == COCOAPODS_GIT_UPSTREAM
+        and entry["provider_id"] in COCOAPODS_SPECS_ENDPOINTS
+    ):
+        return [
+            {
+                "role": "git",
+                "protocol": "https",
+                "url": COCOAPODS_SPECS_ENDPOINTS[entry["provider_id"]],
+            }
+        ]
     if (
         tool_id == "homebrew"
         and entry["provider_id"] == "ustc"
@@ -1416,7 +1441,39 @@ def runtime_properties(
         else "unknown"
     )
     probes = candidate_probe(entry)
-    if (
+    if tool_id == "cocoapods":
+        compatibility["operating_systems"] = []
+        compatibility["architectures"] = []
+        compatibility["environments"] = []
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "unknown"
+        probes = []
+        if (
+            upstream_key == COCOAPODS_GIT_UPSTREAM
+            and entry["provider_id"] in COCOAPODS_SPECS_ENDPOINTS
+        ):
+            compatibility["operating_systems"] = ["macos"]
+            compatibility["architectures"] = ["x86_64", "arm64"]
+            compatibility["environments"] = ["host"]
+            delivery_mode = "mirror"
+            probes = [
+                {
+                    "endpoint_role": "git",
+                    "method": "get",
+                    "path": "/HEAD",
+                    "expected_status": [200],
+                    "contains": "ref: refs/heads/master",
+                },
+                {
+                    "endpoint_role": "git",
+                    "method": "get",
+                    "path": "/objects/info/packs",
+                    "expected_status": [200],
+                    "contains": "P pack-",
+                },
+            ]
+    elif (
         tool_id == "homebrew"
         and entry["provider_id"] == "ustc"
         and upstream_key in {HOMEBREW_GIT_UPSTREAM, HOMEBREW_BOTTLES_UPSTREAM}
@@ -4269,6 +4326,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "cargo",
                         "ceph",
                         "composer",
+                        "cocoapods",
                         "conda",
                         "containerd",
                         "cpan",

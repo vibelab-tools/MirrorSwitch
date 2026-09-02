@@ -6,6 +6,7 @@ mod bundler;
 mod cabal;
 mod cargo;
 mod ceph;
+mod cocoapods;
 mod composer;
 mod conda;
 mod containerd;
@@ -76,6 +77,7 @@ pub use bundler::BundlerAdapter;
 pub use cabal::CabalAdapter;
 pub use cargo::CargoAdapter;
 pub use ceph::CephAdapter;
+pub use cocoapods::CocoaPodsAdapter;
 pub use composer::ComposerAdapter;
 pub use conda::CondaAdapter;
 pub use containerd::ContainerdAdapter;
@@ -145,6 +147,7 @@ static CEPH: CephAdapter = CephAdapter;
 static CONDA: CondaAdapter = CondaAdapter;
 static COMPOSER: ComposerAdapter = ComposerAdapter;
 static CONTAINERD: ContainerdAdapter = ContainerdAdapter;
+static COCOAPODS: CocoaPodsAdapter = CocoaPodsAdapter;
 static CPAN: CpanAdapter = CpanAdapter;
 static CRAN: CranAdapter = CranAdapter;
 static DNF: DnfAdapter = DnfAdapter;
@@ -254,6 +257,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &RUSTUP,
         &COMPOSER,
         &CONTAINERD,
+        &COCOAPODS,
         &NUGET,
         &CABAL,
         &SBT,
