@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "all": false,
+  "categories": ["language"],
+  "tools": [
+    {
+      "id": "pip",
+      "enabled": true,
+      "scope": "user",
+      "mirrors": {}
+    },
+    {
+      "id": "npm",
+      "enabled": false,
+      "mirrors": {}
+    }
+  ]
+}

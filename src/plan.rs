@@ -214,7 +214,7 @@ impl fmt::Debug for PlannedFileChange {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct ChangePlanPreview {
     pub adapter_key: String,
     pub tool_id: String,
@@ -224,7 +224,7 @@ pub struct ChangePlanPreview {
     pub changes: Vec<PlannedFilePreview>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct PlannedFilePreview {
     pub target: PathBuf,
     pub old: FileValuePreview,
@@ -232,7 +232,7 @@ pub struct PlannedFilePreview {
     pub summary: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct FileValuePreview {
     pub exists: bool,
     pub bytes: usize,
@@ -251,20 +251,21 @@ impl FileValuePreview {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ServiceImpact {
     None,
     ReloadRequired,
     RestartRequired,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct VerificationResult {
     pub valid: bool,
     pub summary: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct RestoreResult {
     pub restored: bool,
     pub summary: String,

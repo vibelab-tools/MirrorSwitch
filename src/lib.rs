@@ -10,10 +10,12 @@ pub mod catalog;
 pub mod catalog_update;
 pub mod context;
 pub mod detection;
+pub mod frontend;
 pub mod plan;
 pub mod platform;
 pub mod selection;
 pub mod transaction;
+pub mod tui;
 
 pub use adapter::{Adapter, AdapterError, Runtime};
 pub use catalog::MirrorCatalog;

@@ -442,13 +442,14 @@ impl<F: FileSystem> TransactionEngine<F> {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "status", rename_all = "kebab-case")]
 pub enum ApplyOutcome {
     Applied(TransactionReceipt),
     Unchanged,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct TransactionReceipt {
     pub transaction_id: String,
     pub participants: Vec<TransactionParticipant>,
@@ -463,7 +464,7 @@ pub struct TransactionParticipant {
     pub tool_id: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct RestoreReceipt {
     pub transaction_id: String,
     pub restored_files: usize,
