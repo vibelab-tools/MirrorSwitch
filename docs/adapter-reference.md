@@ -50,7 +50,7 @@ content remain unchanged and are reported.
 | `maven` | user | Linux/macOS/Windows fixed dependency resolution; Maven-reported home plus private mirrors/servers/proxies preserved ([details](adapters/maven.md)) |
 | `gradle` | user/project | Linux/macOS/Windows dependency and Wrapper verification; native `gradlew`/`gradlew.bat` and explicit project scope ([details](adapters/gradle.md)) |
 | `sbt` | user | Linux/macOS/Windows Maven/Ivy dependency resolution; native launcher/JVM and distinct layouts preserved ([details](adapters/sbt.md)) |
-| `leiningen` | user | Fixed Clojars/Maven dependency resolution; profiles and credentials preserved ([#62](https://github.com/vibelab-tools/MirrorSwitch/issues/62)) |
+| `leiningen` | user | Linux/macOS/Windows Clojars/Maven dependency resolution; native launcher, profiles and credentials preserved ([details](adapters/leiningen.md)) |
 | `bazel` | system/user | Bazelisk release or signed APT path; project files and checksum policy preserved ([#70](https://github.com/vibelab-tools/MirrorSwitch/issues/70)) |
 | `nvm` | user | Remote version query; one initialized shell profile and Node/io.js roots ([details](adapters/nvm.md)) |
 | `fnm` | user | Remote protocol query; persistent shell environment must be explicit ([details](adapters/fnm.md)) |

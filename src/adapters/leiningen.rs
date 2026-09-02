@@ -8,7 +8,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -66,14 +66,19 @@ impl Adapter for LeiningenAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("lein") {
             return Ok(None);
         }
-        if !runtime.command_exists("env") {
-            return Err(AdapterError::Unsupported(
-                "Leiningen verification requires the standard env command".into(),
-            ));
+        let environment_command = if context.os == OperatingSystem::Windows {
+            "cmd.exe"
+        } else {
+            "env"
+        };
+        if !runtime.command_exists(environment_command) {
+            return Err(AdapterError::Unsupported(format!(
+                "Leiningen verification requires {environment_command}"
+            )));
         }
         let output = run_lein(runtime, None, &["version"], "lein version")?;
         let version = lein_version(&output)?;
@@ -112,7 +117,7 @@ impl Adapter for LeiningenAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "leiningen" {
             return Err(AdapterError::InvalidConfiguration(
@@ -203,7 +208,7 @@ impl Adapter for LeiningenAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         reviewed_version(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("Leiningen version is missing".into())
@@ -240,19 +245,22 @@ impl Adapter for LeiningenAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         let selected = selected_endpoints(selections)?;
         let user = find_document(current, "leiningen-user-profile")?;
         let user_text = utf8(&user.path, &user.contents)?;
-        let rendered = rewrite_profile(
+        let mut rendered = rewrite_profile(
             user_text,
             current.files.contains(&user.path),
             &selected.maven,
             &selected.clojars,
         )?
         .into_bytes();
+        if user.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let mut changes = Vec::new();
         add_change(
             context,
@@ -351,9 +359,9 @@ impl Adapter for LeiningenAdapter {
                     "Leiningen verification project is not canonical".into(),
                 ));
             }
-            let mirrors = run_verification(runtime, &layout, &["pprint", ":mirrors"])?;
-            let deps = run_verification(runtime, &layout, &["deps"])?;
-            let name = run_verification(runtime, &layout, &["pprint", ":name"])?;
+            let mirrors = run_verification(context, runtime, &layout, &["pprint", ":mirrors"])?;
+            let deps = run_verification(context, runtime, &layout, &["deps"])?;
+            let name = run_verification(context, runtime, &layout, &["pprint", ":name"])?;
             for endpoint in [&pair.maven, &pair.clojars] {
                 if !mirrors.contains(endpoint.trim_end_matches('/')) {
                     return Err(AdapterError::Verification(format!(
@@ -443,10 +451,18 @@ struct MirrorPair {
 
 type MapEntry = (Range<usize>, Range<usize>);
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "Leiningen adapter requires Linux".into(),
+            "Leiningen on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "Leiningen adapter requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -739,7 +755,7 @@ fn rewrite_profile(
                 render_mirror_map(maven, clojars)
             ),
         ));
-        return apply_edits(text, edits);
+        return apply_edits(text, edits).map(|rendered| preserve_newlines(rendered, text));
     };
     let user = require_map(text, &user_value, ":user")?;
     let Some((_, mirrors_value)) = unique_entry(text, &user, ":mirrors")? else {
@@ -747,7 +763,7 @@ fn rewrite_profile(
             user.end - 1..user.end - 1,
             format!("\n  :mirrors {}\n", render_mirror_map(maven, clojars)),
         ));
-        return apply_edits(text, edits);
+        return apply_edits(text, edits).map(|rendered| preserve_newlines(rendered, text));
     };
     let mirrors = require_map(text, &mirrors_value, ":mirrors")?;
     for (name, endpoint, allowed) in [
@@ -788,7 +804,15 @@ fn rewrite_profile(
             )),
         }
     }
-    apply_edits(text, edits)
+    apply_edits(text, edits).map(|rendered| preserve_newlines(rendered, text))
+}
+
+fn preserve_newlines(rendered: String, original: &str) -> String {
+    if original.contains("\r\n") {
+        rendered.replace("\r\n", "\n").replace('\n', "\r\n")
+    } else {
+        rendered
+    }
 }
 
 fn effective_pair(text: &str) -> Result<MirrorPair, AdapterError> {
@@ -1245,10 +1269,23 @@ fn add_change(
 }
 
 fn run_verification(
+    context: &SystemContext,
     runtime: &dyn Runtime,
     layout: &Layout,
     task: &[&str],
 ) -> Result<String, AdapterError> {
+    if context.os == OperatingSystem::Windows {
+        let command = format!(
+            "set \"LEIN_NO_USER_PROFILES=1\"&& set \"LEIN_SILENT=true\"&& lein {}",
+            task.join(" ")
+        );
+        let output = runtime.run_in(
+            &layout.verification_root,
+            "cmd.exe",
+            &["/D".into(), "/S".into(), "/C".into(), command],
+        )?;
+        return command_output(output, "Leiningen dependency/plugin verification");
+    }
     let mut arguments = vec![
         "LEIN_NO_USER_PROFILES=1".into(),
         "LEIN_SILENT=true".into(),
@@ -1402,6 +1439,9 @@ fn validate_path(path: &Path) -> Result<(), AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "Leiningen configuration {} is not UTF-8",

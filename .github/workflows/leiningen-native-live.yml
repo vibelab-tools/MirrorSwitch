@@ -1,0 +1,106 @@
+name: Leiningen macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "11 5 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: Leiningen (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel }
+          - { name: macOS arm64, runner: macos-15 }
+          - { name: Windows x86_64, runner: windows-2025 }
+          - { name: Windows arm64, runner: windows-11-arm }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: DeLaGuardo/setup-clojure@13.6.1
+        with:
+          lein: 2.12.0
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          lein version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic Leiningen boundary
+        run: cargo test --locked --test leiningen_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS profiles, dependency/plugin query, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-leiningen-boundary"; export HOME="$boundary/home" LEIN_HOME="$boundary/home/.lein"; export JAVA_OPTS="-Duser.home=$HOME"
+          unset LEIN_NO_USER_PROFILES LEIN_SILENT LEIN_JVM_OPTS
+          project="$HOME/project"; profile="$LEIN_HOME/profiles.clj"; mkdir -p "$project" "$LEIN_HOME"
+          printf '%s\n' '{:user {:repositories [["central" {:url "https://repo1.maven.org/maven2/"}] ["clojars" {:url "https://repo.clojars.org/"}] ["private" {:url "https://packages.invalid.example/maven/"}]] :plugins [[lein-ancient "0.7.0"]]}}' > "$profile"; chmod 0600 "$profile"
+          printf '%s\n' '(defproject native "0.1.0" :dependencies [[org.clojure/clojure "1.12.0"]] :repositories [["private" "https://packages.invalid.example/maven/"]])' > "$project/project.clj"
+          printf '{"version":1,"tools":[{"id":"leiningen","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$profile"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/project.clj"|awk '{print $1}'); mode=$(stat -f '%Lp' "$profile")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool leiningen --scope leiningen=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('status.json')); assert [t['adapter_key'] for t in s['detected_tools'] if t['adapter_key']=='leiningen']==['leiningen']
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool leiningen --scope leiningen=user > tui.txt; grep -E 'mirror=(aliyun|huaweicloud|nju|tuna)' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='leiningen' and r['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$profile"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 project.clj|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$profile")"
+      - name: Exercise Windows profiles, dependency/plugin query, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-leiningen-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LEIN_HOME=Join-Path $env:USERPROFILE '.lein'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; $env:JAVA_OPTS="-Duser.home=$env:USERPROFILE"; Remove-Item Env:LEIN_NO_USER_PROFILES,Env:LEIN_SILENT,Env:LEIN_JVM_OPTS -ErrorAction SilentlyContinue
+          $project=Join-Path $env:USERPROFILE 'project'; $profile=Join-Path $env:LEIN_HOME 'profiles.clj'; New-Item -ItemType Directory -Force $project,$env:LEIN_HOME,$env:LOCALAPPDATA|Out-Null
+          $text=";; native profile`r`n{:user {:repositories [[`"central`" {:url `"https://repo1.maven.org/maven2/`"}] [`"clojars`" {:url `"https://repo.clojars.org/`"}] [`"private`" {:url `"https://packages.invalid.example/maven/`"}]] :plugins [[lein-ancient `"0.7.0`"]]}}`r`n"; [IO.File]::WriteAllText($profile,$text,[Text.UTF8Encoding]::new($true))
+          '(defproject native "0.1.0" :dependencies [[org.clojure/clojure "1.12.0"]] :repositories [["private" "https://packages.invalid.example/maven/"]])'|Set-Content -Encoding utf8 (Join-Path $project 'project.clj'); '{"version":1,"tools":[{"id":"leiningen","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          $before=(Get-FileHash $profile -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'project.clj') -Algorithm SHA256).Hash; $acl=(Get-Acl $profile).Sddl
+          Push-Location $project
+          try{
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool leiningen --scope leiningen=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; if(@($s.detected_tools|Where-Object adapter_key -eq 'leiningen').Count -ne 1){throw 'Leiningen not detected'}; $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)){throw 'frontend plans differ'}
+            @('','n')|& $binary tui --offline --tool leiningen --scope leiningen=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(aliyun|huaweicloud|nju|tuna)')){throw 'Leiningen mirror missing'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Leiningen apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
+            (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'leiningen'){throw 'restore failed'}
+          }finally{Pop-Location}
+          if($before -ne (Get-FileHash $profile -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'project.clj') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $profile).Sddl){throw 'Leiningen config not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: leiningen-native-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-leiningen-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

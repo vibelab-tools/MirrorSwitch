@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -35,6 +35,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
             version_codename: Some("noble".into()),
             id_like: vec!["debian".into()],
         }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
         root: root.to_path_buf(),
     }
 }
@@ -98,6 +108,24 @@ else
   exit 67
 fi
 "#,
+        ),
+    );
+    executable(
+        root,
+        "/usr/bin/cmd.exe",
+        format!(
+            r#"#!/bin/sh
+[ "$1 $2 $3" = '/D /S /C' ] || exit 91
+export LEIN_NO_USER_PROFILES=1 LEIN_SILENT=true
+case "$4" in
+  *'lein pprint :mirrors') set -- pprint :mirrors ;;
+  *'lein pprint :name') set -- pprint :name ;;
+  *'lein deps') set -- deps ;;
+  *) exit 92 ;;
+esac
+exec '{root}/usr/bin/lein' "$@"
+"#,
+            root = root.display(),
         ),
     );
 }
@@ -385,6 +413,83 @@ fn failed_resolution_restores_user_profile_and_verification_fixture() {
 }
 
 #[test]
+fn macos_and_windows_preserve_native_profiles_and_verification_commands() {
+    for (os, architecture, bom, newline) in [
+        (OperatingSystem::Macos, Architecture::X86_64, false, "\n"),
+        (OperatingSystem::Windows, Architecture::Arm64, true, "\r\n"),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_lein(root, "2.12.0", 0);
+        let text = format!(
+            ";; native Leiningen profile{newline}{{:user {{:repositories [[\"central\" {{:url \"https://repo1.maven.org/maven2/\"}}] [\"clojars\" {{:url \"https://repo.clojars.org/\"}}] [\"private\" {{:url \"https://reader:secret@packages.invalid.example/\"}}]] :plugins [[lein-ancient \"0.7.0\"]]}}}}{newline}"
+        );
+        let mut original = text.into_bytes();
+        if bom {
+            original.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let profile = write(root, "/home/developer/.lein/profiles.clj", &original);
+        let project_contents = b"(defproject native \"0.1.0\" :dependencies [[org.clojure/clojure \"1.12.0\"]] :repositories [[\"private\" \"https://packages.invalid.example/\"]])\n";
+        let project = write(root, "/work/project/project.clj", project_contents);
+        let context = native_context(root, os, architecture);
+        let adapter = LeiningenAdapter;
+        let mut runtime = runtime(root, BTreeMap::new(), Some("/work/project"));
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(!serde_json::to_string(&current).unwrap().contains("secret"));
+        let selected = selections();
+        let plan = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(plan, adapter.plan(&context, &current, &selected).unwrap());
+        let change = plan
+            .changes
+            .iter()
+            .find(|change| change.target == profile)
+            .unwrap();
+        assert_eq!(change.new_contents.starts_with(&[0xef, 0xbb, 0xbf]), bom);
+        let rendered = std::str::from_utf8(
+            change
+                .new_contents
+                .strip_prefix(&[0xef, 0xbb, 0xbf])
+                .unwrap_or(&change.new_contents),
+        )
+        .unwrap();
+        assert!(rendered.contains("lein-ancient"));
+        assert!(rendered.contains("reader:secret@"));
+        assert!(!rendered.replace(newline, "").contains('\n'));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+        else {
+            panic!("native Leiningen profile should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &selected)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(profile).unwrap(), original);
+        assert_eq!(fs::read(project).unwrap(), project_contents);
+    }
+}
+
+#[test]
 fn embedded_catalog_has_six_complete_maven_and_clojars_candidates() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -405,7 +510,11 @@ fn embedded_catalog_has_six_complete_maven_and_clojars_candidates() {
         assert_eq!(candidate.delivery_mode, DeliveryMode::Proxy);
         assert_eq!(
             candidate.compatibility.operating_systems,
-            [OperatingSystem::Linux]
+            [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows
+            ]
         );
         assert_eq!(
             candidate.compatibility.architectures,
