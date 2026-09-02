@@ -1,5 +1,7 @@
 # MirrorSwitch
 
+[![Linux CI](https://github.com/vibelab-tools/MirrorSwitch/actions/workflows/ci.yml/badge.svg)](https://github.com/vibelab-tools/MirrorSwitch/actions/workflows/ci.yml)
+
 MirrorSwitch is a Rust terminal tool for selecting and applying compatible
 China-hosted mirrors for software-development repositories.
 
