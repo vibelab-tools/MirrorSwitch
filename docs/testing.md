@@ -37,4 +37,5 @@ on x86_64, while Debian also runs natively on arm64 to cover APT's host/containe
 Deterministic fixture and Docker checks are release gates. Live mirror probes are catalog-review
 evidence and must not be mixed into them as allowed failures. External availability monitoring
 belongs in a separately labelled scheduled workflow. Failure output records the scenario,
-architecture, catalog version/revision, candidate state, and failing phase.
+architecture, actual package-manager version when the container started, catalog
+version/revision, candidate state, and failing phase.

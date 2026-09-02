@@ -106,10 +106,19 @@ run_distro() {
   phase=adapter-boundary
   cargo test --test "$test" -- --test-threads=1
   phase=native-package-manager
+  set +e
   docker run --rm --network none "${platform[@]}" \
     -e "MIRRORSWITCH_SCENARIO=$name" \
+    -e "MIRRORSWITCH_CATALOG_VERSION=$catalog_version" \
+    -e "MIRRORSWITCH_CATALOG_REVISION=$catalog_revision" \
     -v "$repo_root/tests/docker/native-package-manager.sh:/matrix.sh:ro" \
     "$image" /bin/sh /matrix.sh
+  status=$?
+  set -e
+  if (( status != 0 )); then
+    trap - ERR
+    return "$status"
+  fi
 }
 
 case "$mode" in
