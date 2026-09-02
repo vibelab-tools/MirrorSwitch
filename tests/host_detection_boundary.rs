@@ -70,8 +70,12 @@ fn runtime_executes_the_native_command_convention() {
         String::from_utf8_lossy(&output.stdout).trim(),
         "native-command"
     );
+    let found = runtime.find_command("mirrorswitch-probe").unwrap();
+    #[cfg(windows)]
     assert_eq!(
-        runtime.find_command("mirrorswitch-probe").unwrap(),
-        executable
+        found.to_string_lossy().to_ascii_lowercase(),
+        executable.to_string_lossy().to_ascii_lowercase()
     );
+    #[cfg(unix)]
+    assert_eq!(found, executable);
 }

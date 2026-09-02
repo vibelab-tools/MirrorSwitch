@@ -1,10 +1,13 @@
 use std::{
     collections::HashSet,
-    fs::{self, File},
+    fs,
     io::{self, Read, Write},
     path::{Path, PathBuf},
     time::Duration,
 };
+
+#[cfg(unix)]
+use std::fs::File;
 
 use reqwest::blocking::Client;
 use serde::Serialize;
