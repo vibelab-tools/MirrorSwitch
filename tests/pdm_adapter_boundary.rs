@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::BTreeMap,
@@ -38,6 +38,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -68,6 +78,13 @@ fn install_pdm(root: &Path, selected_file: &str, selected: &str, query_exit: i32
 fn runtime(root: &Path, environment: BTreeMap<String, String>) -> OsRuntime {
     OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
         .with_home("/home/developer")
+        .with_project_dir("/workspace")
+        .with_environment(environment)
+}
+
+fn native_runtime(root: &Path, home: &str, environment: BTreeMap<String, String>) -> OsRuntime {
+    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home(home)
         .with_project_dir("/workspace")
         .with_environment(environment)
 }
@@ -451,6 +468,160 @@ fn overrides_private_defaults_credentials_tls_and_json_bypass_are_rejected() {
 }
 
 #[test]
+fn macos_and_windows_use_native_config_roots_and_preserve_text_layout() {
+    struct Case {
+        os: OperatingSystem,
+        architecture: Architecture,
+        home: &'static str,
+        site: &'static str,
+        user: &'static str,
+        environment: BTreeMap<String, String>,
+        bom: bool,
+        newline: &'static str,
+    }
+
+    let cases = [
+        Case {
+            os: OperatingSystem::Macos,
+            architecture: Architecture::X86_64,
+            home: "/Users/test",
+            site: "/Library/Application Support/pdm/config.toml",
+            user: "/Users/test/Library/Application Support/pdm/config.toml",
+            environment: BTreeMap::new(),
+            bom: false,
+            newline: "\n",
+        },
+        Case {
+            os: OperatingSystem::Windows,
+            architecture: Architecture::Arm64,
+            home: "/Users/test",
+            site: "/ProgramData/pdm/pdm/config.toml",
+            user: "/Users/test/AppData/Local/pdm/pdm/config.toml",
+            environment: BTreeMap::from([
+                ("LOCALAPPDATA".into(), "/Users/test/AppData/Local".into()),
+                ("ProgramData".into(), "/ProgramData".into()),
+            ]),
+            bom: true,
+            newline: "\r\n",
+        },
+    ];
+
+    for case in cases {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_pdm(root, case.user, USTC, 0, "2.28.2");
+        let site_contents =
+            b"[pypi.private]\nurl = \"https://site.invalid.example/simple\"\nverify_ssl = true\n";
+        let site = write(root, case.site, site_contents);
+        let project_contents = b"[project]\nname = \"native-probe\"\nversion = \"0.1.0\"\nrequires-python = \">=3.12\"\ndependencies = []\n\n[tool.pdm.resolution]\nrespect-source-order = true\n\n[[tool.pdm.source]]\nname = \"private\"\nurl = \"https://reader:secret@project.invalid.example/simple\"\ninclude_packages = [\"Private.*\"]\n";
+        ready_project(root, project_contents);
+        let text = format!(
+            "# preserve native layout{0}[pypi]{0}url = \"https://pypi.org/simple\"{0}verify_ssl = true{0}native_policy = \"keep\"{0}",
+            case.newline
+        );
+        let mut original = text.into_bytes();
+        if case.bom {
+            original.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let user = write(root, case.user, &original);
+        let context = native_context(root, case.os, case.architecture);
+        let adapter = PdmAdapter;
+        let mut runtime = native_runtime(root, case.home, case.environment);
+
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        assert_eq!(detected.executable.as_deref(), Some(Path::new("pdm")));
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let selected = current
+            .documents
+            .iter()
+            .find(|document| document.format == "pdm-selected-config")
+            .unwrap();
+        assert_eq!(selected.path, PathBuf::from(case.user));
+        assert!(!serde_json::to_string(&current).unwrap().contains("secret"));
+
+        let chosen = [selection(USTC)];
+        let cli = adapter.plan(&context, &current, &chosen).unwrap();
+        let config = adapter.plan(&context, &current, &chosen).unwrap();
+        let tui = adapter.plan(&context, &current, &chosen).unwrap();
+        assert_eq!(cli, config);
+        assert_eq!(config, tui);
+        assert_eq!(cli.changes[0].target, user);
+        assert_eq!(
+            cli.changes[0].new_contents.starts_with(&[0xef, 0xbb, 0xbf]),
+            case.bom
+        );
+        let rendered = std::str::from_utf8(
+            cli.changes[0]
+                .new_contents
+                .strip_prefix(&[0xef, 0xbb, 0xbf])
+                .unwrap_or(&cli.changes[0].new_contents),
+        )
+        .unwrap();
+        assert!(rendered.contains("url = \"https://mirrors.ustc.edu.cn/pypi/simple\""));
+        assert!(rendered.contains("native_policy = \"keep\""));
+        assert!(!rendered.replace(case.newline, "").contains('\n'));
+
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("native PDM user configuration should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &chosen)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(user).unwrap(), original);
+        assert_eq!(fs::read(site).unwrap(), site_contents);
+        assert_eq!(
+            fs::read(root.join("workspace/pyproject.toml")).unwrap(),
+            project_contents
+        );
+    }
+
+    let directory = tempdir().unwrap();
+    install_pdm(
+        directory.path(),
+        "/Users/test/Library/Application Support/pdm/config.toml",
+        USTC,
+        0,
+        "2.28.2",
+    );
+    let mut context = native_context(
+        directory.path(),
+        OperatingSystem::Macos,
+        Architecture::Arm64,
+    );
+    context.environment = ExecutionEnvironment::Container;
+    let runtime = native_runtime(directory.path(), "/Users/test", BTreeMap::new());
+    assert!(
+        PdmAdapter
+            .detect(&context, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("native host")
+    );
+}
+
+#[test]
 fn embedded_catalog_has_six_complete_pdm_candidates() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -461,6 +632,14 @@ fn embedded_catalog_has_six_complete_pdm_candidates() {
         .collect::<Vec<_>>();
     assert_eq!(candidates.len(), 6);
     for candidate in candidates {
+        assert_eq!(
+            candidate.compatibility.operating_systems,
+            [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows,
+            ]
+        );
         assert_eq!(
             candidate.compatibility.architectures,
             [Architecture::X86_64, Architecture::Arm64]

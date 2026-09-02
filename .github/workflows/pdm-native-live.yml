@@ -1,0 +1,169 @@
+name: PDM macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "51 1 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: PDM (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel, python_arch: x64 }
+          - { name: macOS arm64, runner: macos-15, python_arch: arm64 }
+          - { name: Windows x86_64, runner: windows-2025, python_arch: x64 }
+          - { name: Windows arm64, runner: windows-11-arm, python_arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          architecture: ${{ matrix.python_arch }}
+      - name: Install PDM and Rust
+        shell: bash
+        run: |
+          python -m pip install --disable-pip-version-check 'pdm==2.28.2'
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic PDM boundary
+        run: cargo test --locked --test pdm_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS paths, frontends, query, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"
+          boundary="$RUNNER_TEMP/mirrorswitch-pdm-boundary"
+          export HOME="$boundary/home"
+          export PDM_CHECK_UPDATE=false PDM_NON_INTERACTIVE=1
+          unset PDM_CONFIG_FILE PDM_PROJECT PDM_PYPI_URL PDM_PYPI_USERNAME PDM_PYPI_PASSWORD PDM_PYPI_VERIFY_SSL PDM_PYPI_JSON_API
+          project="$boundary/project"
+          user_config="$HOME/Library/Application Support/pdm/config.toml"
+          mkdir -p "$(dirname "$user_config")" "$project"
+          printf '[pypi]\nurl = "https://pypi.org/simple"\nverify_ssl = true\n' > "$user_config"
+          chmod 0600 "$user_config"
+          printf '[project]\nname = "native-probe"\nversion = "0.1.0"\nrequires-python = ">=3.13"\ndependencies = []\n' > "$project/pyproject.toml"
+          python -m venv "$project/.venv"
+          printf '%s\n' "$project/.venv/bin/python" > "$project/.pdm-python"
+          printf '{"version":1,"tools":[{"id":"pdm","scope":"user"}]}\n' > "$project/request.json"
+          user_before=$(shasum -a 256 "$user_config" | awk '{print $1}')
+          project_before=$(shasum -a 256 "$project/pyproject.toml" | awk '{print $1}')
+          mode_before=$(stat -f '%Lp' "$user_config")
+          site='/Library/Application Support/pdm/config.toml'
+          site_before=$(if [ -f "$site" ]; then shasum -a 256 "$site"; fi)
+
+          cd "$project"
+          "$binary" status --offline --json > status.json
+          "$binary" plan --offline --tool pdm --scope pdm=user --json > plan-cli.json
+          "$binary" plan --offline --config request.json --json > plan-config.json
+          python - <<'PY'
+          import json
+          status=json.load(open('status.json'))
+          assert [t['adapter_key'] for t in status['detected_tools'] if t['adapter_key']=='pdm']==['pdm']
+          cli=json.load(open('plan-cli.json')); config=json.load(open('plan-config.json'))
+          assert cli['ok'] and config['ok']
+          assert cli['plan']['tools'][0]['plan']==config['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n' | "$binary" tui --offline --tool pdm --scope pdm=user > tui.txt
+          grep -E 'mirror=(aliyun|huaweicloud|nju|sjtug|tuna|ustc)' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          transaction_id=$(python - <<'PY'
+          import json
+          report=json.load(open('apply.json'))['result']; assert report['successful']
+          applied=[t for t in report['tools'] if t['status']=='applied']; assert len(applied)==1
+          print(applied[0]['receipt']['transaction_id'])
+          PY
+          )
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json
+          python - <<'PY'
+          import json
+          report=json.load(open('idempotent.json'))['result']; assert report['successful']
+          assert not [t for t in report['tools'] if t['status']=='applied']
+          PY
+          "$binary" restore "$transaction_id" --yes --json > restore.json
+          python - <<'PY'
+          import json
+          result=json.load(open('restore.json')); assert result['adapter_key']=='pdm' and result['receipt']['verified']
+          PY
+          test "$user_before" = "$(shasum -a 256 "$user_config" | awk '{print $1}')"
+          test "$project_before" = "$(shasum -a 256 "$project/pyproject.toml" | awk '{print $1}')"
+          test "$mode_before" = "$(stat -f '%Lp' "$user_config")"
+          site_after=$(if [ -f "$site" ]; then shasum -a 256 "$site"; fi)
+          test "$site_before" = "$site_after"
+      - name: Exercise Windows paths, frontends, query, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
+          $boundary = Join-Path $env:RUNNER_TEMP 'mirrorswitch-pdm-boundary'
+          $env:LOCALAPPDATA = Join-Path $boundary 'AppData/Local'
+          $env:ProgramData = Join-Path $boundary 'ProgramData'
+          $env:PDM_CHECK_UPDATE = 'false'; $env:PDM_NON_INTERACTIVE = '1'
+          Remove-Item Env:PDM_CONFIG_FILE, Env:PDM_PROJECT, Env:PDM_PYPI_URL, Env:PDM_PYPI_USERNAME, Env:PDM_PYPI_PASSWORD, Env:PDM_PYPI_VERIFY_SSL, Env:PDM_PYPI_JSON_API -ErrorAction SilentlyContinue
+          $project = Join-Path $boundary 'project'
+          $userConfig = Join-Path $env:LOCALAPPDATA 'pdm/pdm/config.toml'
+          New-Item -ItemType Directory -Force (Split-Path $userConfig), $env:ProgramData, $project | Out-Null
+          $text = "[pypi]`r`nurl = `"https://pypi.org/simple`"`r`nverify_ssl = true`r`n"
+          [IO.File]::WriteAllText($userConfig, $text, [Text.UTF8Encoding]::new($true))
+          "[project]`r`nname = `"native-probe`"`r`nversion = `"0.1.0`"`r`nrequires-python = `">=3.13`"`r`ndependencies = []`r`n" | Set-Content -Encoding utf8 (Join-Path $project 'pyproject.toml')
+          python -m venv (Join-Path $project '.venv')
+          (Join-Path $project '.venv/Scripts/python.exe') | Set-Content -Encoding ascii (Join-Path $project '.pdm-python')
+          '{"version":1,"tools":[{"id":"pdm","scope":"user"}]}' | Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          $userBefore=(Get-FileHash $userConfig -Algorithm SHA256).Hash
+          $projectBefore=(Get-FileHash (Join-Path $project 'pyproject.toml') -Algorithm SHA256).Hash
+          $aclBefore=(Get-Acl $userConfig).Sddl
+          $site=Join-Path $env:ProgramData 'pdm/pdm/config.toml'
+          $siteBefore=if(Test-Path $site){(Get-FileHash $site -Algorithm SHA256).Hash}else{''}
+
+          Push-Location $project
+          try {
+            (& $binary status --offline --json) | Set-Content -Encoding utf8 status.json
+            (& $binary plan --offline --tool pdm --scope pdm=user --json) | Set-Content -Encoding utf8 plan-cli.json
+            (& $binary plan --offline --config request.json --json) | Set-Content -Encoding utf8 plan-config.json
+            $status=Get-Content status.json -Raw|ConvertFrom-Json
+            if(@($status.detected_tools|Where-Object adapter_key -eq 'pdm').Count -ne 1){throw 'PDM adapter was not detected'}
+            $cli=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $config=Get-Content plan-config.json -Raw|ConvertFrom-Json
+            if(-not $cli.ok -or -not $config.ok){throw 'PDM plan was not actionable'}
+            if(($cli.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($config.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)){throw 'frontend plans differ'}
+            @('', 'n')|& $binary tui --offline --tool pdm --scope pdm=user|Set-Content -Encoding utf8 tui.txt
+            if(-not((Get-Content tui.txt)-match 'mirror=(aliyun|huaweicloud|nju|sjtug|tuna|ustc)')){throw 'PDM TUI mirror missing'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json
+            $apply=Get-Content apply.json -Raw|ConvertFrom-Json
+            if(-not $apply.result.successful){throw 'PDM apply or query failed'}
+            $applied=@($apply.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'PDM transaction missing'}
+            $transactionId=$applied[0].receipt.transaction_id
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json
+            $again=Get-Content idempotent.json -Raw|ConvertFrom-Json
+            if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'PDM apply not idempotent'}
+            (& $binary restore $transactionId --yes --json)|Set-Content -Encoding utf8 restore.json
+            $restore=Get-Content restore.json -Raw|ConvertFrom-Json
+            if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'pdm'){throw 'PDM restore failed'}
+          } finally { Pop-Location }
+          if($userBefore -ne (Get-FileHash $userConfig -Algorithm SHA256).Hash){throw 'PDM user config not restored exactly'}
+          if($projectBefore -ne (Get-FileHash (Join-Path $project 'pyproject.toml') -Algorithm SHA256).Hash){throw 'project config changed'}
+          if($aclBefore -ne (Get-Acl $userConfig).Sddl){throw 'PDM user config ACL changed'}
+          $siteAfter=if(Test-Path $site){(Get-FileHash $site -Algorithm SHA256).Hash}else{''}
+          if($siteBefore -ne $siteAfter){throw 'PDM site config changed'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pdm-native-boundary-${{ runner.os }}-${{ matrix.python_arch }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-pdm-boundary/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

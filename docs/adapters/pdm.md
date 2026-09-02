@@ -1,14 +1,20 @@
 # PDM adapter
 
-The PDM adapter supports PDM 2.x on Linux `x86_64` and `arm64` and invokes only the `pdm` client. It does not
-read or write pip or Poetry configuration. User scope is the automatic default; project scope must
-be selected explicitly and changes `pyproject.toml` only after exposing the complete file diff.
+The PDM adapter supports PDM 2.x on Linux, macOS, and native Windows hosts using `x86_64` or
+`arm64`, and invokes only the `pdm` client. It does not read or write pip or Poetry configuration.
+User scope is the automatic default; project scope must be selected explicitly and changes
+`pyproject.toml` only after exposing the complete file diff.
 
 Discovery follows PDM's real precedence model. It reads site configuration below the selected user
 configuration (`PDM_CONFIG_FILE`, `XDG_CONFIG_HOME`, or `~/.config/pdm/config.toml`), then a
 project's `pdm.toml` and `[[tool.pdm.source]]` entries. `PDM_PYPI_URL`, TLS, credential and JSON API
 environment overrides are modeled separately. The adapter also asks PDM for its version and
 effective `pypi.url`; private URLs and credential values are redacted from observations.
+
+Native default roots follow PDM's platform contract: `~/Library/Application Support/pdm` and
+`/Library/Application Support/pdm` on macOS, or `%LOCALAPPDATA%\pdm\pdm` and
+`%ProgramData%\pdm\pdm` on Windows. XDG roots remain Linux-only unless `PDM_CONFIG_FILE` selects an
+explicit file. Existing UTF-8 BOM and LF/CRLF layout are preserved; undecodable TOML is not changed.
 
 User planning changes only `[pypi].url` and refuses to emit an ineffective change when an
 environment variable, project-local config, or project source named `pypi` has higher precedence.

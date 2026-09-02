@@ -8,7 +8,7 @@ use toml_edit::{ArrayOfTables, DocumentMut, Item, Table, value};
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -65,7 +65,7 @@ impl Adapter for PdmAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("pdm") {
             return Ok(None);
         }
@@ -89,7 +89,7 @@ impl Adapter for PdmAdapter {
         } else {
             "custom or private index"
         };
-        let layout = config_layout(runtime)?;
+        let layout = config_layout(context, runtime)?;
         let mut evidence = vec![
             version.clone(),
             format!("effective default source is a {class}"),
@@ -116,9 +116,9 @@ impl Adapter for PdmAdapter {
         _detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
-        let layout = config_layout(runtime)?;
+        let layout = config_layout(context, runtime)?;
         let selected = match scope {
             ConfigurationScope::User => layout.user.clone(),
             ConfigurationScope::Project => layout
@@ -236,7 +236,7 @@ impl Adapter for PdmAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         Ok(SelectionRequest {
             tool_id: "pdm".into(),
@@ -266,7 +266,7 @@ impl Adapter for PdmAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let endpoint = selected_endpoint(selections)?;
         validate_policy(current)?;
@@ -279,12 +279,15 @@ impl Adapter for PdmAdapter {
                 AdapterError::InvalidConfiguration("selected PDM document is missing".into())
             })?;
         let text = utf8(&document.path, &document.contents)?;
-        let new_contents = match current.scope {
+        let mut new_contents = match current.scope {
             ConfigurationScope::User => rewrite_user_config(text, endpoint)?,
             ConfigurationScope::Project => rewrite_project_config(text, endpoint)?,
             _ => unreachable!("validated PDM scope"),
         }
         .into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            new_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let existed = current.files.contains(&document.path);
         let changes = (new_contents != document.contents)
             .then(|| PlannedFileChange {
@@ -407,10 +410,18 @@ struct ProjectSource {
     url: String,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "PDM adapter requires Linux".into(),
+            "PDM on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "PDM adapter requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -422,7 +433,7 @@ fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
         ConfigurationScope::User | ConfigurationScope::Project
     ) {
         return Err(AdapterError::Unsupported(
-            "PDM supports user and explicit project scopes in the Linux MVP".into(),
+            "PDM supports user and explicit project scopes".into(),
         ));
     }
     Ok(())
@@ -437,32 +448,59 @@ fn require_current(current: &CurrentConfiguration) -> Result<(), AdapterError> {
     require_scope(current.scope)
 }
 
-fn config_layout(runtime: &dyn Runtime) -> Result<ConfigLayout, AdapterError> {
+fn config_layout(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+) -> Result<ConfigLayout, AdapterError> {
     let home = runtime.home_dir().ok_or_else(|| {
         AdapterError::Unsupported("PDM user scope requires a home directory".into())
     })?;
     validate_path(&home)?;
     let user = if let Some(path) = nonempty_environment(runtime, "PDM_CONFIG_FILE") {
         PathBuf::from(path)
-    } else if let Some(path) = nonempty_environment(runtime, "XDG_CONFIG_HOME") {
-        PathBuf::from(path).join("pdm/config.toml")
     } else {
-        home.join(".config/pdm/config.toml")
+        match context.os {
+            OperatingSystem::Linux => nonempty_environment(runtime, "XDG_CONFIG_HOME")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| home.join(".config"))
+                .join("pdm/config.toml"),
+            OperatingSystem::Macos => home.join("Library/Application Support/pdm/config.toml"),
+            OperatingSystem::Windows => {
+                environment_path(runtime, "LOCALAPPDATA")?.join("pdm/pdm/config.toml")
+            }
+        }
     };
     validate_path(&user)?;
-    let site_roots =
-        nonempty_environment(runtime, "XDG_CONFIG_DIRS").unwrap_or_else(|| "/etc/xdg".into());
-    let mut sites = Vec::new();
-    for root in site_roots.split(':').filter(|root| !root.is_empty()) {
-        let path = PathBuf::from(root).join("pdm/config.toml");
-        validate_path(&path)?;
-        sites.push(path);
-    }
+    let sites = match context.os {
+        OperatingSystem::Linux => {
+            let roots = nonempty_environment(runtime, "XDG_CONFIG_DIRS")
+                .unwrap_or_else(|| "/etc/xdg".into());
+            let mut sites = Vec::new();
+            for root in roots.split(':').filter(|root| !root.is_empty()) {
+                let path = PathBuf::from(root).join("pdm/config.toml");
+                validate_path(&path)?;
+                sites.push(path);
+            }
+            sites
+        }
+        OperatingSystem::Macos => vec![PathBuf::from(
+            "/Library/Application Support/pdm/config.toml",
+        )],
+        OperatingSystem::Windows => {
+            vec![environment_path(runtime, "ProgramData")?.join("pdm/pdm/config.toml")]
+        }
+    };
     Ok(ConfigLayout {
         user,
         sites,
         project: project_dir(runtime)?,
     })
+}
+
+fn environment_path(runtime: &dyn Runtime, name: &str) -> Result<PathBuf, AdapterError> {
+    nonempty_environment(runtime, name)
+        .map(PathBuf::from)
+        .ok_or_else(|| AdapterError::Unsupported(format!("PDM {name} is unavailable")))
 }
 
 fn project_dir(runtime: &dyn Runtime) -> Result<Option<PathBuf>, AdapterError> {
@@ -925,12 +963,14 @@ fn validate_precedence(current: &CurrentConfiguration) -> Result<(), AdapterErro
 }
 
 fn rewrite_user_config(text: &str, endpoint: &str) -> Result<String, AdapterError> {
+    let newline = config_newline(text);
     let mut document = parse_document(Path::new("pdm-user-config"), text)?;
     document["pypi"]["url"] = value(endpoint);
-    Ok(document.to_string())
+    Ok(with_newline(document.to_string(), newline))
 }
 
 fn rewrite_project_config(text: &str, endpoint: &str) -> Result<String, AdapterError> {
+    let newline = config_newline(text);
     let mut document = parse_document(Path::new("pyproject.toml"), text)?;
     if document["tool"]["pdm"].get("source").is_none() {
         document["tool"]["pdm"]["source"] = Item::ArrayOfTables(ArrayOfTables::new());
@@ -954,7 +994,19 @@ fn rewrite_project_config(text: &str, endpoint: &str) -> Result<String, AdapterE
         source["verify_ssl"] = value(true);
         sources.insert(0, source);
     }
-    Ok(document.to_string())
+    Ok(with_newline(document.to_string(), newline))
+}
+
+fn config_newline(text: &str) -> &'static str {
+    if text.contains("\r\n") { "\r\n" } else { "\n" }
+}
+
+fn with_newline(text: String, newline: &str) -> String {
+    if newline == "\r\n" {
+        text.replace("\r\n", "\n").replace('\n', "\r\n")
+    } else {
+        text
+    }
 }
 
 fn named_project_source(text: &str, name: &str) -> Result<Option<ProjectSource>, AdapterError> {
@@ -1118,6 +1170,9 @@ fn verification_failure<T>(
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "PDM configuration {} is not UTF-8",
