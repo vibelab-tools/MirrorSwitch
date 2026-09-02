@@ -42,6 +42,7 @@ SYSTEM_TOOLS = {
     "ros2",
     "xbps",
     "yum",
+    "winget",
     "zabbix",
     "zypper",
 }
@@ -72,7 +73,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "73"
+CATALOG_FORMAT_REVISION = "74"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -672,6 +673,10 @@ MSYS2_ROOTS = {
     "tuna": "https://mirrors.tuna.tsinghua.edu.cn/msys2",
     "ustc": "https://mirrors.ustc.edu.cn/msys2",
 }
+WINGET_ROOTS = {
+    "nju": "https://mirrors.nju.edu.cn/winget-source",
+    "ustc": "https://mirrors.ustc.edu.cn/winget-source",
+}
 
 
 def utc_now() -> str:
@@ -856,6 +861,12 @@ def candidate_compatibility(entry: dict[str, Any]) -> dict[str, Any]:
 def candidate_endpoints(
     entry: dict[str, Any], tool_id: str, upstream_key: str
 ) -> list[dict[str, str]]:
+    if tool_id == "winget" and entry["provider_id"] in WINGET_ROOTS:
+        endpoint = WINGET_ROOTS[entry["provider_id"]]
+        return [
+            {"role": "metadata", "protocol": "https", "url": endpoint},
+            {"role": "artifacts", "protocol": "https", "url": endpoint},
+        ]
     if tool_id == "msys2" and entry["provider_id"] in MSYS2_ROOTS:
         endpoint = MSYS2_ROOTS[entry["provider_id"]]
         return [
@@ -1495,7 +1506,59 @@ def runtime_properties(
         else "unknown"
     )
     probes = candidate_probe(entry)
-    if tool_id == "msys2" and entry["provider_id"] in MSYS2_ROOTS:
+    if tool_id == "winget" and entry["provider_id"] in WINGET_ROOTS:
+        compatibility["operating_systems"] = ["windows"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/source.msix",
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/source2.msix",
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/manifests/j/jqlang/jq/1.8.2/{winget_manifest_id}",
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+                "contains": "PackageIdentifier: jqlang.jq",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/manifests/j/jqlang/jq/1.8.2/{winget_manifest_id}",
+                "expected_status": [200],
+                "contains": "Architecture: {winget_arch}",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/manifests/j/jqlang/jq/1.8.2/{winget_manifest_id}",
+                "expected_status": [200],
+                "contains": "InstallerSha256: {winget_installer_hash}",
+            },
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/manifests/j/jqlang/jq/1.8.2/{winget_manifest_id}",
+                "expected_status": [200],
+                "contains": "https://github.com/jqlang/jq/releases/download/jq-1.8.2/",
+            },
+        ]
+    elif tool_id == "msys2" and entry["provider_id"] in MSYS2_ROOTS:
         compatibility["operating_systems"] = ["windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["host"]
@@ -4570,6 +4633,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "poetry",
                         "podman-registry",
                         "uv",
+                        "winget",
                         "yum",
                         "yarn",
                         "pacman",

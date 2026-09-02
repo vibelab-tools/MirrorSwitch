@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+aa7745b25899",
-  "content_revision": 20260902193824,
-  "generated_at": "2026-09-02T19:38:24Z",
+  "content_version": "2026.08.28+79fe3743526e",
+  "content_revision": 20260902200555,
+  "generated_at": "2026-09-02T20:05:55Z",
   "providers": [
     {
       "id": "aliyun",
@@ -2313,12 +2313,10 @@
       "id": "winget",
       "adapter_key": "winget",
       "display_name": "winget",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/103",
       "supported_scopes": [
-        "user",
-        "project",
-        "environment"
+        "system"
       ],
       "composition": "single"
     },
@@ -3496,40 +3494,6 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "0603fd07f14b4ebdfda62e97",
-      "provider_id": "nju",
-      "upstream_id": "winget-source--static-files",
-      "tool_id": "winget",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "winget-source"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/winget-source/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17682,6 +17646,104 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "74236a91375e0001af5033a0",
+      "provider_id": "ustc",
+      "upstream_id": "winget-source--static-files",
+      "tool_id": "winget",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "winget-source"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/winget-source"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/winget-source"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/source.msix",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/source2.msix",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/manifests/j/jqlang/jq/1.8.2/{winget_manifest_id}",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "PackageIdentifier: jqlang.jq"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/manifests/j/jqlang/jq/1.8.2/{winget_manifest_id}",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture: {winget_arch}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/manifests/j/jqlang/jq/1.8.2/{winget_manifest_id}",
+          "expected_status": [
+            200
+          ],
+          "contains": "InstallerSha256: {winget_installer_hash}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/manifests/j/jqlang/jq/1.8.2/{winget_manifest_id}",
+          "expected_status": [
+            200
+          ],
+          "contains": "https://github.com/jqlang/jq/releases/download/jq-1.8.2/"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/winget-source.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "744c7bb93b486e14189767fb",
       "provider_id": "ustc",
       "upstream_id": "mysql-community--repository-metadata",
@@ -21463,40 +21525,6 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "91a482c3decde7ca6af0ea45",
-      "provider_id": "ustc",
-      "upstream_id": "winget-source--static-files",
-      "tool_id": "winget",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "winget-source"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/winget-source/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "windows"
-        ],
-        "architectures": [],
-        "environments": [
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/winget-source.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -31889,6 +31917,104 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/rubygems.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "dd5113b330c899b7ce4a701f",
+      "provider_id": "nju",
+      "upstream_id": "winget-source--static-files",
+      "tool_id": "winget",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "winget-source"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/winget-source"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/winget-source"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/source.msix",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/source2.msix",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/manifests/j/jqlang/jq/1.8.2/{winget_manifest_id}",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "PackageIdentifier: jqlang.jq"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/manifests/j/jqlang/jq/1.8.2/{winget_manifest_id}",
+          "expected_status": [
+            200
+          ],
+          "contains": "Architecture: {winget_arch}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/manifests/j/jqlang/jq/1.8.2/{winget_manifest_id}",
+          "expected_status": [
+            200
+          ],
+          "contains": "InstallerSha256: {winget_installer_hash}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/manifests/j/jqlang/jq/1.8.2/{winget_manifest_id}",
+          "expected_status": [
+            200
+          ],
+          "contains": "https://github.com/jqlang/jq/releases/download/jq-1.8.2/"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

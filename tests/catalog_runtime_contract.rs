@@ -86,6 +86,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             "stack",
             "tlmgr",
             "uv",
+            "winget",
             "xbps",
             "yarn",
             "yum",

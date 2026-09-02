@@ -62,6 +62,7 @@ mod scoop;
 mod stack;
 mod tlmgr;
 mod uv;
+mod winget;
 mod xbps;
 mod yarn;
 mod yum;
@@ -136,6 +137,7 @@ pub use scoop::ScoopAdapter;
 pub use stack::StackAdapter;
 pub use tlmgr::TlmgrAdapter;
 pub use uv::UvAdapter;
+pub use winget::WinGetAdapter;
 pub use xbps::XbpsAdapter;
 pub use yarn::YarnAdapter;
 pub use yum::YumAdapter;
@@ -207,6 +209,7 @@ static SCOOP: ScoopAdapter = ScoopAdapter;
 static STACK: StackAdapter = StackAdapter;
 static TLMGR: TlmgrAdapter = TlmgrAdapter;
 static UV: UvAdapter = UvAdapter;
+static WINGET: WinGetAdapter = WinGetAdapter;
 static XBPS: XbpsAdapter = XbpsAdapter;
 static YARN: YarnAdapter = YarnAdapter;
 static YUM: YumAdapter = YumAdapter;
@@ -273,6 +276,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &CABAL,
         &SBT,
         &SCOOP,
+        &WINGET,
         &LEININGEN,
         &STACK,
         &GHCUP,

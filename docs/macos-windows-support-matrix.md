@@ -47,7 +47,7 @@ details.
 
 | Tool | OS/architecture | Configuration type and authority | Six-provider state | Verification | Issue |
 | --- | --- | --- | --- | --- | --- |
-| WinGet | Windows 10/11 x64; Windows 11 arm64 | Registered pre-indexed/REST source; replacing default source requires elevation | USTC and NJU candidate | source list/update, search, manifest and installer hash | [#103](https://github.com/vibelab-tools/MirrorSwitch/issues/103) |
+| WinGet | Windows 10 1809+/11 x64; Windows 11 arm64 | Command-managed `Microsoft.PreIndexed.Package`; replacing `winget` requires elevation | USTC and NJU source v1/v2 verified | signed source update, jq manifest and architecture-specific hash-checked download | [#103](https://github.com/vibelab-tools/MirrorSwitch/issues/103) |
 | Chocolatey | Windows 10/11 x64; arm64 not claimed | Machine OData source, priority/auth/certificate; elevation | No compatible six-provider feed | `choco source list` plus OData and `.nupkg` | [#101](https://github.com/vibelab-tools/MirrorSwitch/issues/101) |
 | Scoop | Windows 10/11 x64; Windows 11 arm64 | User bucket Git; global app state remains read-only | Seven NJU bucket Git mirrors verified; manifest installer URLs are not mirrored | refs, jq architecture branch, search and hash-checked download | [#100](https://github.com/vibelab-tools/MirrorSwitch/issues/100) |
 | MSYS2 | Windows 10 1809+/11 x64; Windows 11 arm64 preliminary | Installation-local signed Pacman mirrorlists | All six verified for MSYS/UCRT64/CLANGARM64; 32-bit subsystems use their own probes | signed DB/package, `pacman -Syy`, query and `-Sw` | [#102](https://github.com/vibelab-tools/MirrorSwitch/issues/102) |

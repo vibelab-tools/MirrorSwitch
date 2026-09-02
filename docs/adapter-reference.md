@@ -31,6 +31,7 @@ content remain unchanged and are reported.
 | `opkg` | system | Feed signature/update/query; exact release/target/subtarget/package architecture ([details](adapters/opkg.md)) |
 | `macports` | system | Paired signed ports tree and binary archive; Darwin/architecture-specific `archivefetch` ([details](adapters/macports.md)) |
 | `msys2` | system | Installation-local signed MSYS/MinGW databases and package download; never Arch Linux paths ([details](adapters/msys2.md)) |
+| `winget` | system | Signed pre-indexed source plus architecture-specific hash-checked download; msstore/custom sources preserved ([details](adapters/winget.md)) |
 
 ## Language, build, and editor tools
 
