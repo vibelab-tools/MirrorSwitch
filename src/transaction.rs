@@ -130,6 +130,7 @@ impl FileSystem for OsFileSystem {
             set_file_owner(&file, owner)?;
             set_file_mode(&file, mode.unwrap_or(0o600))?;
             file.sync_all()?;
+            drop(file);
             replace_path(&temporary, path, windows_attributes)?;
             set_platform_attributes(path, windows_attributes)
         })();

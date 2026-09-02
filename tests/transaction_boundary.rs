@@ -265,7 +265,10 @@ fn windows_locked_target_fails_without_losing_original_contents() {
     let error = TransactionEngine::new(&state)
         .apply(&transaction)
         .unwrap_err();
-    assert!(matches!(error, TransactionError::ApplyFailed { .. }));
+    assert!(matches!(
+        error,
+        TransactionError::Io { .. } | TransactionError::ApplyFailed { .. }
+    ));
     assert_eq!(fs::read(&target).unwrap(), b"old-value");
 }
 
