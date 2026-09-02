@@ -8,7 +8,7 @@ use toml_edit::{ArrayOfTables, DocumentMut, Item, Table, value};
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -66,7 +66,7 @@ impl Adapter for PoetryAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("poetry") {
             return Ok(None);
         }
@@ -78,7 +78,7 @@ impl Adapter for PoetryAdapter {
             "poetry --version",
         )?;
         let generation = poetry_generation(&version)?;
-        let config = config_layout(runtime)?;
+        let config = config_layout(context, runtime)?;
         let mut evidence = vec![
             format!("{version}; {}", generation.name()),
             format!("global configuration path is {}", config.config.display()),
@@ -106,7 +106,7 @@ impl Adapter for PoetryAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         let version = detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("Poetry version is missing".into())
@@ -119,7 +119,7 @@ impl Adapter for PoetryAdapter {
             )
         })?;
         let pyproject = project.join("pyproject.toml");
-        let layout = config_layout(runtime)?;
+        let layout = config_layout(context, runtime)?;
         let paths = [
             (layout.config, "poetry-global-config"),
             (layout.auth, "poetry-global-auth"),
@@ -210,7 +210,7 @@ impl Adapter for PoetryAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         Ok(SelectionRequest {
             tool_id: "poetry".into(),
@@ -240,7 +240,7 @@ impl Adapter for PoetryAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let endpoint = selected_endpoint(selections)?;
         let document = current
@@ -252,9 +252,12 @@ impl Adapter for PoetryAdapter {
             })?;
         let target = target_source(current)?;
         validate_target_policy(current, &target, endpoint)?;
-        let new_contents =
+        let mut new_contents =
             rewrite_project(utf8(&document.path, &document.contents)?, &target, endpoint)?
                 .into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            new_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let changes = (new_contents != document.contents)
             .then(|| PlannedFileChange {
                 target: rooted(&context.root, &document.path),
@@ -421,10 +424,18 @@ impl SourceTarget {
     }
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "Poetry adapter requires Linux".into(),
+            "Poetry on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "Poetry adapter requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -512,7 +523,10 @@ fn project_dir(runtime: &dyn Runtime) -> Result<Option<PathBuf>, AdapterError> {
     Ok(project)
 }
 
-fn config_layout(runtime: &dyn Runtime) -> Result<ConfigLayout, AdapterError> {
+fn config_layout(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+) -> Result<ConfigLayout, AdapterError> {
     let home = runtime.home_dir().ok_or_else(|| {
         AdapterError::Unsupported("Poetry configuration discovery requires a home directory".into())
     })?;
@@ -522,12 +536,25 @@ fn config_layout(runtime: &dyn Runtime) -> Result<ConfigLayout, AdapterError> {
         .filter(|value| !value.trim().is_empty())
         .map(PathBuf::from)
         .or_else(|| {
-            runtime
-                .environment_variable("XDG_CONFIG_HOME")
-                .filter(|value| !value.trim().is_empty())
-                .map(|value| PathBuf::from(value).join("pypoetry"))
+            if context.os == OperatingSystem::Linux {
+                runtime
+                    .environment_variable("XDG_CONFIG_HOME")
+                    .filter(|value| !value.trim().is_empty())
+                    .map(|value| PathBuf::from(value).join("pypoetry"))
+            } else {
+                None
+            }
         })
-        .unwrap_or_else(|| home.join(".config/pypoetry"));
+        .unwrap_or_else(|| match context.os {
+            OperatingSystem::Linux => home.join(".config/pypoetry"),
+            OperatingSystem::Macos => home.join("Library/Application Support/pypoetry"),
+            OperatingSystem::Windows => runtime
+                .environment_variable("APPDATA")
+                .filter(|value| !value.trim().is_empty())
+                .map(PathBuf::from)
+                .unwrap_or_else(|| home.join("AppData/Roaming"))
+                .join("pypoetry"),
+        });
     validate_path(&directory)?;
     Ok(ConfigLayout {
         config: directory.join("config.toml"),
@@ -935,6 +962,7 @@ fn rewrite_project(
     target: &SourceTarget,
     endpoint: &str,
 ) -> Result<String, AdapterError> {
+    let newline = if text.contains("\r\n") { "\r\n" } else { "\n" };
     let mut document = parse_document(Path::new("pyproject.toml"), text)?;
     if document.get("tool").is_none() {
         document["tool"] = Item::Table(Table::new());
@@ -982,7 +1010,12 @@ fn rewrite_project(
             source["url"] = value(endpoint);
         }
     }
-    Ok(document.to_string())
+    let rendered = document.to_string();
+    Ok(if newline == "\r\n" {
+        rendered.replace("\r\n", "\n").replace('\n', "\r\n")
+    } else {
+        rendered
+    })
 }
 
 fn selected_endpoint(selections: &[MirrorSelection]) -> Result<&str, AdapterError> {
@@ -1098,6 +1131,9 @@ fn verification_failure<T>(
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "Poetry configuration {} is not UTF-8",

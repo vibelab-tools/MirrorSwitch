@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::BTreeMap,
@@ -38,6 +38,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -70,6 +80,13 @@ fn install_poetry(root: &Path, version: &str, selected: &str, query_exit: i32, k
 fn runtime(root: &Path, environment: BTreeMap<String, String>) -> OsRuntime {
     OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
         .with_home("/home/developer")
+        .with_project_dir("/work/project")
+        .with_environment(environment)
+}
+
+fn native_runtime(root: &Path, home: &str, environment: BTreeMap<String, String>) -> OsRuntime {
+    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home(home)
         .with_project_dir("/work/project")
         .with_environment(environment)
 }
@@ -460,6 +477,92 @@ fn global_scope_old_priorities_private_primary_credentials_certificates_and_keyr
 }
 
 #[test]
+fn macos_and_windows_preserve_native_project_and_global_layouts() {
+    for (os, architecture, home, config_root, environment, bom, newline) in [
+        (
+            OperatingSystem::Macos,
+            Architecture::X86_64,
+            "/Users/test",
+            "/Users/test/Library/Application Support/pypoetry",
+            BTreeMap::new(),
+            false,
+            "\n",
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::Arm64,
+            "/Users/test",
+            "/Users/test/AppData/Roaming/pypoetry",
+            BTreeMap::from([("APPDATA".into(), "/Users/test/AppData/Roaming".into())]),
+            true,
+            "\r\n",
+        ),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_poetry(root, "2.4.1", USTC, 0, false);
+        let text = format!(
+            "[project]{newline}name = \"native-probe\"{newline}version = \"0.1.0\"{newline}requires-python = \">=3.12\"{newline}dependencies = []{newline}{newline}[tool.poetry]{newline}native-policy = \"keep\"{newline}"
+        );
+        let mut original = text.into_bytes();
+        if bom {
+            original.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let project = write(root, "/work/project/pyproject.toml", &original);
+        let global_contents = b"[repositories.publish]\nurl='https://upload.invalid.example/'\n";
+        let global = write(root, &format!("{config_root}/config.toml"), global_contents);
+        let auth_contents = b"[http-basic.publish]\nusername='reader'\npassword='secret'\n";
+        let auth = write(root, &format!("{config_root}/auth.toml"), auth_contents);
+        let context = native_context(root, os, architecture);
+        let adapter = PoetryAdapter;
+        let mut runtime = native_runtime(root, home, environment);
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::Project)
+            .unwrap();
+        assert!(!serde_json::to_string(&current).unwrap().contains("secret"));
+        let chosen = [selection(USTC, USTC_ARTIFACTS)];
+        let plan = adapter.plan(&context, &current, &chosen).unwrap();
+        assert_eq!(plan, adapter.plan(&context, &current, &chosen).unwrap());
+        assert_eq!(
+            plan.changes[0]
+                .new_contents
+                .starts_with(&[0xef, 0xbb, 0xbf]),
+            bom
+        );
+        let rendered = std::str::from_utf8(
+            plan.changes[0]
+                .new_contents
+                .strip_prefix(&[0xef, 0xbb, 0xbf])
+                .unwrap_or(&plan.changes[0].new_contents),
+        )
+        .unwrap();
+        assert!(rendered.contains(&format!("url = \"{USTC}\"")));
+        assert!(rendered.contains("native-policy = \"keep\""));
+        assert!(!rendered.replace(newline, "").contains('\n'));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+        else {
+            panic!("native Poetry project should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(project).unwrap(), original);
+        assert_eq!(fs::read(global).unwrap(), global_contents);
+        assert_eq!(fs::read(auth).unwrap(), auth_contents);
+    }
+}
+
+#[test]
 fn embedded_catalog_has_six_complete_poetry_candidates() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -475,7 +578,12 @@ fn embedded_catalog_has_six_complete_poetry_candidates() {
                 candidate.delivery_mode,
                 DeliveryMode::Mirror | DeliveryMode::Proxy
             )
-            && candidate.compatibility.operating_systems == [OperatingSystem::Linux]
+            && candidate.compatibility.operating_systems
+                == [
+                    OperatingSystem::Linux,
+                    OperatingSystem::Macos,
+                    OperatingSystem::Windows,
+                ]
             && candidate.compatibility.architectures == [Architecture::X86_64, Architecture::Arm64]
             && candidate
                 .endpoints

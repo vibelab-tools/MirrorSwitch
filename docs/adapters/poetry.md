@@ -1,9 +1,10 @@
 # Poetry adapter
 
-Poetry package sources are project-local. Poetry's global `repositories.*` settings are publishing
-destinations, not installation sources, so MirrorSwitch never treats pip's index or Poetry's global
-publishing configuration as a completed Poetry mirror setup. The v0.1 adapter therefore exposes
-only explicit project scope and never selects a Poetry project automatically.
+Poetry package sources are project-local on Linux, macOS, and native Windows `x86_64`/`arm64`.
+Poetry's global `repositories.*` settings are publishing destinations, not installation sources,
+so MirrorSwitch never treats pip's index or Poetry's global publishing configuration as a
+completed Poetry mirror setup. The adapter exposes only explicit project scope and never selects a
+Poetry project automatically.
 
 The reviewed range is Poetry `1.5.0+` and Poetry `2.0` through `2.4`. Both use project
 `[[tool.poetry.source]]` tables and the `primary`, `supplemental`, and `explicit` priorities.
@@ -29,7 +30,12 @@ state. Configuration paths honor `POETRY_CONFIG_DIR` and `XDG_CONFIG_HOME` as do
 Secret values and private URLs remain redacted in observations and previews; global publishing and
 credential files are never modified.
 
+Without `POETRY_CONFIG_DIR`, global read-only files come from `~/.config/pypoetry` on Linux,
+`~/Library/Application Support/pypoetry` on macOS, and `%APPDATA%\pypoetry` on Windows. Existing
+project UTF-8 BOM and LF/CRLF layout are preserved, while an undecodable TOML file is left unchanged.
+
 Each selectable provider must pass a PEP 503 Simple page probe and a real wheel probe before
 latency ranking. Verification then uses `poetry source show` and the non-mutating
 `poetry debug resolve --no-cache sampleproject==4.0.0` boundary. Failed verification restores the
-original `pyproject.toml`, and repeated planning is idempotent on Linux `x86_64` and `arm64`.
+original `pyproject.toml`, and repeated planning is idempotent on all supported OS/architecture
+combinations.

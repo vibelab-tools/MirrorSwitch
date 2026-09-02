@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "79"
+CATALOG_FORMAT_REVISION = "80"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -4314,7 +4314,7 @@ def runtime_properties(
     ):
         compatibility["operating_systems"] = (
             ["linux", "macos", "windows"]
-            if tool_id in {"pdm", "pip", "uv"}
+            if tool_id in {"pdm", "pip", "poetry", "uv"}
             else ["linux"]
         )
         compatibility["architectures"] = ["x86_64", "arm64"]

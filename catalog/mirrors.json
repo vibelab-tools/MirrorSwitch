@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+544823fe0c18",
-  "content_revision": 20260902213432,
-  "generated_at": "2026-09-02T21:34:32Z",
+  "content_version": "2026.08.28+8b00ddb36834",
+  "content_revision": 20260902214315,
+  "generated_at": "2026-09-02T21:43:15Z",
   "providers": [
     {
       "id": "aliyun",
@@ -3498,70 +3498,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "0706c3a9ff45d29b992b49cf",
-      "provider_id": "sjtug",
-      "upstream_id": "pypi--language-registry",
-      "tool_id": "poetry",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "pypi/web/simple"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/pypi/web/simple/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/pypi-packages/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/sampleproject/",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "text/html",
-          "contains": "sampleproject-"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/d7/73/c16e5f3f0d37c60947e70865c255a58dc408780a6474de0523afd0ec553a/sampleproject-4.0.0-py3-none-any.whl",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "PK"
-        }
-      ],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "070af9fc2319ea7048408080",
       "provider_id": "aliyun",
       "upstream_id": "ubuntu-ports--repository-metadata",
@@ -5893,70 +5829,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "189273bbf13185bf92451c23",
-      "provider_id": "huaweicloud",
-      "upstream_id": "pypi--language-registry",
-      "tool_id": "poetry",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "pypi"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/pypi/simple/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/repository/pypi/packages/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/sampleproject/",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "text/html",
-          "contains": "sampleproject-"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/d7/73/c16e5f3f0d37c60947e70865c255a58dc408780a6474de0523afd0ec553a/sampleproject-4.0.0-py3-none-any.whl",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "PK"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "18f558e8e30cafb82a1581a0",
       "provider_id": "ustc",
       "upstream_id": "debian-cd--repository-metadata",
@@ -6844,70 +6716,6 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "1de8ca5a65468e0dc78c03d2",
-      "provider_id": "aliyun",
-      "upstream_id": "pypi--language-registry",
-      "tool_id": "poetry",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "pypi"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/pypi/simple/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/pypi/packages/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/sampleproject/",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "text/html",
-          "contains": "sampleproject-"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/d7/73/c16e5f3f0d37c60947e70865c255a58dc408780a6474de0523afd0ec553a/sampleproject-4.0.0-py3-none-any.whl",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "PK"
-        }
-      ],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -11131,70 +10939,6 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/mariadb.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "3ee345cf092a521ce27b7049",
-      "provider_id": "nju",
-      "upstream_id": "pypi--language-registry",
-      "tool_id": "poetry",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "pypi"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/pypi/web/simple/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/pypi/web/packages/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/sampleproject/",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "text/html",
-          "contains": "sampleproject-"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/d7/73/c16e5f3f0d37c60947e70865c255a58dc408780a6474de0523afd0ec553a/sampleproject-4.0.0-py3-none-any.whl",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "PK"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17160,70 +16904,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "71267a710cd440023e2c1663",
-      "provider_id": "ustc",
-      "upstream_id": "pypi--language-registry",
-      "tool_id": "poetry",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "pypi"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/pypi/simple/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/pypi/packages/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/sampleproject/",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "text/html",
-          "contains": "sampleproject-"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/d7/73/c16e5f3f0d37c60947e70865c255a58dc408780a6474de0523afd0ec553a/sampleproject-4.0.0-py3-none-any.whl",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "PK"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/pypi.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "7128af315f2c498184117efe",
       "provider_id": "nju",
       "upstream_id": "ceph-release--repository-metadata",
@@ -23017,6 +22697,72 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "9deab25245a43ac5068f2a09",
+      "provider_id": "tuna",
+      "upstream_id": "pypi--language-registry",
+      "tool_id": "poetry",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "pypi"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/sampleproject/",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "text/html",
+          "contains": "sampleproject-"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/d7/73/c16e5f3f0d37c60947e70865c255a58dc408780a6474de0523afd0ec553a/sampleproject-4.0.0-py3-none-any.whl",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "PK"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "9e9e5dbdd68f1b01454f8a11",
       "provider_id": "nju",
       "upstream_id": "fedora-riscv--repository-metadata",
@@ -26125,6 +25871,72 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "b6a7be98587e6cd49d9443c1",
+      "provider_id": "nju",
+      "upstream_id": "pypi--language-registry",
+      "tool_id": "poetry",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "pypi"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/pypi/web/simple/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/pypi/web/packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/sampleproject/",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "text/html",
+          "contains": "sampleproject-"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/d7/73/c16e5f3f0d37c60947e70865c255a58dc408780a6474de0523afd0ec553a/sampleproject-4.0.0-py3-none-any.whl",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "PK"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "b705c891e2d135ded0babb5d",
       "provider_id": "sjtug",
       "upstream_id": "packman--repository-metadata",
@@ -28185,70 +27997,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "c42691a6210987997b0ec6f1",
-      "provider_id": "tuna",
-      "upstream_id": "pypi--language-registry",
-      "tool_id": "poetry",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "pypi"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/sampleproject/",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "text/html",
-          "contains": "sampleproject-"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/d7/73/c16e5f3f0d37c60947e70865c255a58dc408780a6474de0523afd0ec553a/sampleproject-4.0.0-py3-none-any.whl",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "PK"
-        }
-      ],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "c47627f478faaa63537b54cc",
       "provider_id": "sjtug",
       "upstream_id": "opensuse--repository-metadata",
@@ -28609,6 +28357,72 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "c5ec8e062d5c481982d250fd",
+      "provider_id": "huaweicloud",
+      "upstream_id": "pypi--language-registry",
+      "tool_id": "poetry",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "pypi"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/pypi/simple/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/repository/pypi/packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/sampleproject/",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "text/html",
+          "contains": "sampleproject-"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/d7/73/c16e5f3f0d37c60947e70865c255a58dc408780a6474de0523afd0ec553a/sampleproject-4.0.0-py3-none-any.whl",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "PK"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -29864,6 +29678,72 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "cccf96cc6a222caf8b9597a9",
+      "provider_id": "aliyun",
+      "upstream_id": "pypi--language-registry",
+      "tool_id": "poetry",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "pypi"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/pypi/simple/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/pypi/packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/sampleproject/",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "text/html",
+          "contains": "sampleproject-"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/d7/73/c16e5f3f0d37c60947e70865c255a58dc408780a6474de0523afd0ec553a/sampleproject-4.0.0-py3-none-any.whl",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "PK"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "cd306ac28eaba7f0620f0c4c",
       "provider_id": "aliyun",
       "upstream_id": "python-releases--release-artifacts",
@@ -30887,6 +30767,72 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "d320c27c5cf75c6c6fe900d3",
+      "provider_id": "sjtug",
+      "upstream_id": "pypi--language-registry",
+      "tool_id": "poetry",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "pypi/web/simple"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/pypi/web/simple/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/pypi-packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/sampleproject/",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "text/html",
+          "contains": "sampleproject-"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/d7/73/c16e5f3f0d37c60947e70865c255a58dc408780a6474de0523afd0ec553a/sampleproject-4.0.0-py3-none-any.whl",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "PK"
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "d323c6c0e07e29ce0363ce3e",
       "provider_id": "nju",
       "upstream_id": "bazel-apt--repository-metadata",
@@ -31080,6 +31026,72 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "d355bc684a003ceac5cde3cb",
+      "provider_id": "ustc",
+      "upstream_id": "pypi--language-registry",
+      "tool_id": "poetry",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "pypi"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/pypi/simple/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/pypi/packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/sampleproject/",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "text/html",
+          "contains": "sampleproject-"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/d7/73/c16e5f3f0d37c60947e70865c255a58dc408780a6474de0523afd0ec553a/sampleproject-4.0.0-py3-none-any.whl",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "PK"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/pypi.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

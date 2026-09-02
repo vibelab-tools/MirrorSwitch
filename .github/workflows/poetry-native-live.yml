@@ -1,0 +1,143 @@
+name: Poetry macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "13 2 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: Poetry (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel, python_arch: x64 }
+          - { name: macOS arm64, runner: macos-15, python_arch: arm64 }
+          - { name: Windows x86_64, runner: windows-2025, python_arch: x64 }
+          - { name: Windows arm64, runner: windows-11-arm, python_arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          architecture: ${{ matrix.python_arch }}
+      - name: Install Poetry and Rust
+        shell: bash
+        run: |
+          python -m pip install --disable-pip-version-check 'poetry==2.4.1'
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic Poetry boundary
+        run: cargo test --locked --test poetry_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS project source and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"
+          boundary="$RUNNER_TEMP/mirrorswitch-poetry-boundary"
+          export HOME="$boundary/home"
+          unset POETRY_CONFIG_DIR POETRY_PROJECT POETRY_HTTP_BASIC_MIRRORSWITCH_PYPI_USERNAME POETRY_HTTP_BASIC_MIRRORSWITCH_PYPI_PASSWORD
+          project="$boundary/project"
+          config_root="$HOME/Library/Application Support/pypoetry"
+          mkdir -p "$project" "$config_root"
+          printf '[keyring]\nenabled = false\n' > "$config_root/config.toml"
+          : > "$config_root/auth.toml"
+          printf '[project]\nname = "native-probe"\nversion = "0.1.0"\nrequires-python = ">=3.13"\ndependencies = []\n' > "$project/pyproject.toml"
+          printf '{"version":1,"tools":[{"id":"poetry","scope":"project"}]}\n' > "$project/request.json"
+          project_before=$(shasum -a 256 "$project/pyproject.toml"|awk '{print $1}')
+          config_before=$(shasum -a 256 "$config_root/config.toml"|awk '{print $1}')
+          auth_before=$(shasum -a 256 "$config_root/auth.toml"|awk '{print $1}')
+          mode_before=$(stat -f '%Lp' "$project/pyproject.toml")
+          cd "$project"
+          "$binary" status --offline --json > status.json
+          "$binary" plan --offline --tool poetry --scope poetry=project --json > plan-cli.json
+          "$binary" plan --offline --config request.json --json > plan-config.json
+          python - <<'PY'
+          import json
+          status=json.load(open('status.json')); assert [t['adapter_key'] for t in status['detected_tools'] if t['adapter_key']=='poetry']==['poetry']
+          cli=json.load(open('plan-cli.json')); config=json.load(open('plan-config.json'))
+          assert cli['ok'] and config['ok'] and cli['plan']['tools'][0]['plan']==config['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool poetry --scope poetry=project > tui.txt
+          grep -E 'mirror=(aliyun|huaweicloud|nju|sjtug|tuna|ustc)' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          transaction_id=$(python - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json
+          python - <<'PY'
+          import json
+          r=json.load(open('idempotent.json'))['result']; assert r['successful'] and not [t for t in r['tools'] if t['status']=='applied']
+          PY
+          "$binary" restore "$transaction_id" --yes --json > restore.json
+          python - <<'PY'
+          import json
+          r=json.load(open('restore.json')); assert r['adapter_key']=='poetry' and r['receipt']['verified']
+          PY
+          test "$project_before" = "$(shasum -a 256 "$project/pyproject.toml"|awk '{print $1}')"
+          test "$config_before" = "$(shasum -a 256 "$config_root/config.toml"|awk '{print $1}')"
+          test "$auth_before" = "$(shasum -a 256 "$config_root/auth.toml"|awk '{print $1}')"
+          test "$mode_before" = "$(stat -f '%Lp' "$project/pyproject.toml")"
+      - name: Exercise Windows project source and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'
+          $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-poetry-boundary'
+          $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'
+          Remove-Item Env:POETRY_CONFIG_DIR,Env:POETRY_PROJECT,Env:POETRY_HTTP_BASIC_MIRRORSWITCH_PYPI_USERNAME,Env:POETRY_HTTP_BASIC_MIRRORSWITCH_PYPI_PASSWORD -ErrorAction SilentlyContinue
+          $project=Join-Path $boundary 'project'; $configRoot=Join-Path $env:APPDATA 'pypoetry'
+          New-Item -ItemType Directory -Force $project,$configRoot,$env:LOCALAPPDATA|Out-Null
+          "[keyring]`r`nenabled = false`r`n"|Set-Content -Encoding utf8 (Join-Path $configRoot 'config.toml')
+          ''|Set-Content -Encoding utf8 (Join-Path $configRoot 'auth.toml')
+          $projectFile=Join-Path $project 'pyproject.toml'
+          $text="[project]`r`nname = `"native-probe`"`r`nversion = `"0.1.0`"`r`nrequires-python = `">=3.13`"`r`ndependencies = []`r`n"
+          [IO.File]::WriteAllText($projectFile,$text,[Text.UTF8Encoding]::new($true))
+          '{"version":1,"tools":[{"id":"poetry","scope":"project"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          $projectBefore=(Get-FileHash $projectFile -Algorithm SHA256).Hash; $aclBefore=(Get-Acl $projectFile).Sddl
+          $configBefore=(Get-FileHash (Join-Path $configRoot 'config.toml') -Algorithm SHA256).Hash
+          $authBefore=(Get-FileHash (Join-Path $configRoot 'auth.toml') -Algorithm SHA256).Hash
+          Push-Location $project
+          try {
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json
+            (& $binary plan --offline --tool poetry --scope poetry=project --json)|Set-Content -Encoding utf8 plan-cli.json
+            (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $status=Get-Content status.json -Raw|ConvertFrom-Json; if(@($status.detected_tools|Where-Object adapter_key -eq 'poetry').Count -ne 1){throw 'Poetry not detected'}
+            $cli=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $config=Get-Content plan-config.json -Raw|ConvertFrom-Json
+            if(-not $cli.ok -or -not $config.ok -or ($cli.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($config.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)){throw 'frontend plans differ'}
+            @('','n')|& $binary tui --offline --tool poetry --scope poetry=project|Set-Content -Encoding utf8 tui.txt
+            if(-not((Get-Content tui.txt)-match 'mirror=(aliyun|huaweicloud|nju|sjtug|tuna|ustc)')){throw 'Poetry TUI mirror missing'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json
+            $apply=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $apply.result.successful){throw 'Poetry apply failed'}
+            $applied=@($apply.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $transactionId=$applied[0].receipt.transaction_id
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json
+            $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
+            (& $binary restore $transactionId --yes --json)|Set-Content -Encoding utf8 restore.json
+            $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'poetry'){throw 'restore failed'}
+          } finally {Pop-Location}
+          if($projectBefore -ne (Get-FileHash $projectFile -Algorithm SHA256).Hash -or $aclBefore -ne (Get-Acl $projectFile).Sddl){throw 'project not restored exactly'}
+          if($configBefore -ne (Get-FileHash (Join-Path $configRoot 'config.toml') -Algorithm SHA256).Hash -or $authBefore -ne (Get-FileHash (Join-Path $configRoot 'auth.toml') -Algorithm SHA256).Hash){throw 'global config changed'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: poetry-native-boundary-${{ runner.os }}-${{ matrix.python_arch }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-poetry-boundary/project/*.json
+          if-no-files-found: warn
+          retention-days: 7
