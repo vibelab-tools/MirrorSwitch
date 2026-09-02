@@ -71,7 +71,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "58"
+CATALOG_FORMAT_REVISION = "59"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -519,6 +519,20 @@ INFLUXDB_APT_REPOSITORY_VERSIONS = [
     for architecture in ["amd64", "arm64"]
 ]
 INFLUXDB_RPM_REPOSITORY_VERSIONS = ["el-9-stable-2-x86_64"]
+MARIADB_UPSTREAM = "mariadb-packages--repository-metadata"
+MARIADB_ENDPOINTS = {
+    "aliyun": "https://mirrors.aliyun.com/mariadb/",
+    "huaweicloud": "https://repo.huaweicloud.com/mariadb/",
+    "nju": "https://mirrors.nju.edu.cn/mariadb/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/mariadb/",
+    "ustc": "https://mirrors.ustc.edu.cn/mariadb/",
+}
+MARIADB_APT_REPOSITORY_VERSIONS = [
+    f"{family}-{release}-11.8-{architecture}"
+    for family, release in [("debian", "bookworm"), ("ubuntu", "jammy"), ("ubuntu", "noble")]
+    for architecture in ["amd64", "arm64"]
+]
+MARIADB_RPM_REPOSITORY_VERSIONS = ["el-9-11.8-x86_64", "el-9-11.8-aarch64"]
 BIOCONDUCTOR_RUNTIME_UPSTREAM = "bioconductor--language-registry"
 BIOCONDUCTOR_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/bioconductor/",
@@ -610,6 +624,8 @@ def runtime_upstream_identity(
         return "mongodb-community", "repository-metadata"
     if tool_id == "influxdb" and entry["raw_name"].startswith("influxdata"):
         return "influxdata-packages", "repository-metadata"
+    if tool_id == "mariadb" and entry["raw_name"].startswith("mariadb"):
+        return "mariadb-packages", "repository-metadata"
     if tool_id == "podman-registry" and entry["raw_name"] in {"gcr", "ghcr", "quay"}:
         return f"{entry['raw_name']}.io", "container-registry"
     return entry["normalized_upstream"], entry["content_type"]
@@ -876,6 +892,14 @@ def candidate_endpoints(
             {"role": role, "protocol": "https", "url": endpoint}
             for role in ["index", "metadata", "packages"]
         ]
+    if (
+        tool_id == "mariadb"
+        and upstream_key == MARIADB_UPSTREAM
+        and entry["provider_id"] in MARIADB_ENDPOINTS
+        and entry["raw_name"].endswith(("-apt-runtime", "-rpm-runtime"))
+    ):
+        endpoint = MARIADB_ENDPOINTS[entry["provider_id"]]
+        return [{"role": role, "protocol": "https", "url": endpoint} for role in ["index", "metadata", "packages"]]
     if (
         tool_id == "flutter"
         and upstream_key == FLUTTER_STORAGE_RUNTIME_UPSTREAM
@@ -3374,6 +3398,43 @@ def runtime_properties(
             {"endpoint_role": "packages", "method": "head", "path": f"{root}/influxdb2-client_2.7.5-3.x86_64.rpm", "expected_status": [200]},
         ]
     elif (
+        tool_id == "mariadb"
+        and upstream_key == MARIADB_UPSTREAM
+        and entry["provider_id"] in MARIADB_ENDPOINTS
+        and entry["raw_name"].endswith("-apt-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = MARIADB_APT_REPOSITORY_VERSIONS
+        delivery_mode = "mirror"
+        root = "/repo/11.8/{family}"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{root}/dists/{{release}}/InRelease", "expected_status": [200], "contains": "Origin: MariaDB"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/{{release}}/Release.gpg", "expected_status": [200]},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/dists/{{release}}/main/binary-{{architecture}}/Packages.gz", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/pool/main/m/mariadb/mariadb-server_11.8.9+maria~{{platform_tag}}_{{architecture}}.deb", "expected_status": [200]},
+        ]
+    elif (
+        tool_id == "mariadb"
+        and upstream_key == MARIADB_UPSTREAM
+        and entry["provider_id"] in MARIADB_ENDPOINTS
+        and entry["raw_name"].endswith("-rpm-runtime")
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = MARIADB_RPM_REPOSITORY_VERSIONS
+        delivery_mode = "mirror"
+        root = "/yum/11.8/rhel/9/{architecture}"
+        probes = [
+            {"endpoint_role": "index", "method": "get", "path": f"{root}/repodata/repomd.xml", "expected_status": [200], "contains": "<repomd"},
+            {"endpoint_role": "metadata", "method": "head", "path": f"{root}/repodata/repomd.xml", "expected_status": [200]},
+            {"endpoint_role": "packages", "method": "head", "path": f"{root}/rpms/MariaDB-server-11.8.9-1.el9.{{architecture}}.rpm", "expected_status": [200]},
+        ]
+    elif (
         tool_id in {"pip", "pdm", "poetry", "uv"}
         and upstream_key == PIP_RUNTIME_UPSTREAM
         and entry["raw_name"] in PIP_RUNTIME_ENTRY_NAMES
@@ -3576,6 +3637,13 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                             "raw_name": f"influxdata-{surface}-runtime",
                         }
                     )
+            elif (
+                any(target["tool_id"] == "mariadb" for target in targets)
+                and entry["provider_id"] in MARIADB_ENDPOINTS
+                and entry["raw_name"] == "mariadb"
+            ):
+                for surface in ["apt", "rpm"]:
+                    planned_entries.append({**entry, "raw_name": f"mariadb-{surface}-runtime"})
             elif entry["raw_name"] == "elpa":
                 for archive, (family, _) in ELPA_ARCHIVES.items():
                     root = entry["public_endpoints"][0]["url"].rstrip("/")
@@ -3667,6 +3735,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "kubernetes-images",
                         "kubernetes-packages",
                         "leiningen",
+                        "mariadb",
                         "maven",
                         "mongodb",
                         "mysql",

@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+a39698fae3cb",
-  "content_revision": 20260902080000,
-  "generated_at": "2026-09-02T08:00:00Z",
+  "content_version": "2026.08.28+0de76436382a",
+  "content_revision": 20260902083000,
+  "generated_at": "2026-09-02T08:30:00Z",
   "providers": [
     {
       "id": "aliyun",
@@ -959,12 +959,13 @@
       ]
     },
     {
-      "id": "mariadb--static-files",
-      "family": "mariadb",
-      "display_name": "mariadb",
-      "content_kind": "static-files",
+      "id": "mariadb-packages--repository-metadata",
+      "family": "mariadb-packages",
+      "display_name": "mariadb-packages",
+      "content_kind": "repository-metadata",
       "aliases": [
-        "mariadb"
+        "mariadb-apt-runtime",
+        "mariadb-rpm-runtime"
       ]
     },
     {
@@ -1940,7 +1941,7 @@
       "id": "mariadb",
       "adapter_key": "mariadb",
       "display_name": "mariadb",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/88",
       "supported_scopes": [
         "system"
@@ -3787,6 +3788,95 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "086609734f9c09253eb6b4b0",
+      "provider_id": "nju",
+      "upstream_id": "mariadb-packages--repository-metadata",
+      "tool_id": "mariadb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mariadb-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/mariadb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/mariadb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/mariadb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-11.8-amd64",
+          "debian-bookworm-11.8-arm64",
+          "ubuntu-jammy-11.8-amd64",
+          "ubuntu-jammy-11.8-arm64",
+          "ubuntu-noble-11.8-amd64",
+          "ubuntu-noble-11.8-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/repo/11.8/{family}/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: MariaDB"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repo/11.8/{family}/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repo/11.8/{family}/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/repo/11.8/{family}/pool/main/m/mariadb/mariadb-server_11.8.9+maria~{platform_tag}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "09579e86bef3ff85083b1dee",
       "provider_id": "tuna",
       "upstream_id": "debian-elts--repository-metadata",
@@ -3854,6 +3944,95 @@
       "probes": [],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "097f84f775cc7e5af045e966",
+      "provider_id": "aliyun",
+      "upstream_id": "mariadb-packages--repository-metadata",
+      "tool_id": "mariadb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mariadb-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/mariadb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/mariadb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/mariadb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-11.8-amd64",
+          "debian-bookworm-11.8-arm64",
+          "ubuntu-jammy-11.8-amd64",
+          "ubuntu-jammy-11.8-arm64",
+          "ubuntu-noble-11.8-amd64",
+          "ubuntu-noble-11.8-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/repo/11.8/{family}/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: MariaDB"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repo/11.8/{family}/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repo/11.8/{family}/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/repo/11.8/{family}/pool/main/m/mariadb/mariadb-server_11.8.9+maria~{platform_tag}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -5214,6 +5393,95 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "1721b68f5b63e77ba6797fcb",
+      "provider_id": "tuna",
+      "upstream_id": "mariadb-packages--repository-metadata",
+      "tool_id": "mariadb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mariadb-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/mariadb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/mariadb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/mariadb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-11.8-amd64",
+          "debian-bookworm-11.8-arm64",
+          "ubuntu-jammy-11.8-amd64",
+          "ubuntu-jammy-11.8-arm64",
+          "ubuntu-noble-11.8-amd64",
+          "ubuntu-noble-11.8-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/repo/11.8/{family}/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: MariaDB"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repo/11.8/{family}/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repo/11.8/{family}/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/repo/11.8/{family}/pool/main/m/mariadb/mariadb-server_11.8.9+maria~{platform_tag}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -7523,6 +7791,83 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "2409cfd39a56ed8451e4fa82",
+      "provider_id": "ustc",
+      "upstream_id": "mariadb-packages--repository-metadata",
+      "tool_id": "mariadb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mariadb-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/mariadb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/mariadb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/mariadb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-11.8-x86_64",
+          "el-9-11.8-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/yum/11.8/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/11.8/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/11.8/rhel/9/{architecture}/rpms/MariaDB-server-11.8.9-1.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/mariadb.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "247541785e06e24a4d7a15db",
       "provider_id": "sjtug",
       "upstream_id": "fedora--repository-metadata",
@@ -9253,36 +9598,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "38fd0fc4c52a8bcb0375ed6f",
-      "provider_id": "aliyun",
-      "upstream_id": "mariadb--static-files",
-      "tool_id": "mariadb",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "mariadb"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/mariadb/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "394b49882c112813447dbeb6",
       "provider_id": "huaweicloud",
       "upstream_id": "rust-toolchain--release-artifacts",
@@ -10232,6 +10547,95 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "3ed0c25b3ecd4f00e4bc7587",
+      "provider_id": "ustc",
+      "upstream_id": "mariadb-packages--repository-metadata",
+      "tool_id": "mariadb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mariadb-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/mariadb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/mariadb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/mariadb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-11.8-amd64",
+          "debian-bookworm-11.8-arm64",
+          "ubuntu-jammy-11.8-amd64",
+          "ubuntu-jammy-11.8-arm64",
+          "ubuntu-noble-11.8-amd64",
+          "ubuntu-noble-11.8-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/repo/11.8/{family}/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: MariaDB"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repo/11.8/{family}/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repo/11.8/{family}/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/repo/11.8/{family}/pool/main/m/mariadb/mariadb-server_11.8.9+maria~{platform_tag}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/mariadb.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "3ee345cf092a521ce27b7049",
       "provider_id": "nju",
       "upstream_id": "pypi--language-registry",
@@ -10939,6 +11343,83 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "47dc1fd178784cc3c9bc6549",
+      "provider_id": "aliyun",
+      "upstream_id": "mariadb-packages--repository-metadata",
+      "tool_id": "mariadb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mariadb-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/mariadb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/mariadb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/mariadb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-11.8-x86_64",
+          "el-9-11.8-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/yum/11.8/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/11.8/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/11.8/rhel/9/{architecture}/rpms/MariaDB-server-11.8.9-1.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -11984,6 +12465,83 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "50d5d7caac44e7d38e0311f0",
+      "provider_id": "tuna",
+      "upstream_id": "mariadb-packages--repository-metadata",
+      "tool_id": "mariadb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mariadb-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/mariadb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/mariadb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/mariadb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-11.8-x86_64",
+          "el-9-11.8-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/yum/11.8/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/11.8/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/11.8/rhel/9/{architecture}/rpms/MariaDB-server-11.8.9-1.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "51fed95b90e95a9675020b31",
       "provider_id": "aliyun",
       "upstream_id": "npm--language-registry",
@@ -12258,36 +12816,6 @@
       ],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "530edb96f5df03dd4e2ada3c",
-      "provider_id": "nju",
-      "upstream_id": "mariadb--static-files",
-      "tool_id": "mariadb",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "mariadb"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/mariadb/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -14695,6 +15223,83 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "6aa3ffb87e356288d7d41285",
+      "provider_id": "huaweicloud",
+      "upstream_id": "mariadb-packages--repository-metadata",
+      "tool_id": "mariadb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mariadb-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/mariadb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/mariadb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/mariadb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-11.8-x86_64",
+          "el-9-11.8-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/yum/11.8/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/11.8/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/11.8/rhel/9/{architecture}/rpms/MariaDB-server-11.8.9-1.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -18239,36 +18844,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "87fa14e83303b0aa6b870bc1",
-      "provider_id": "tuna",
-      "upstream_id": "mariadb--static-files",
-      "tool_id": "mariadb",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "mariadb"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/mariadb/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "880900cec4d44c0361c8428b",
       "provider_id": "tuna",
       "upstream_id": "homebrew-bottles--binary-cache",
@@ -19887,6 +20462,95 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "9aec8f9fd1420c5af98fef3d",
+      "provider_id": "huaweicloud",
+      "upstream_id": "mariadb-packages--repository-metadata",
+      "tool_id": "mariadb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mariadb-apt-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/mariadb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/mariadb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/mariadb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "debian-bookworm-11.8-amd64",
+          "debian-bookworm-11.8-arm64",
+          "ubuntu-jammy-11.8-amd64",
+          "ubuntu-jammy-11.8-arm64",
+          "ubuntu-noble-11.8-amd64",
+          "ubuntu-noble-11.8-arm64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/repo/11.8/{family}/dists/{release}/InRelease",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: MariaDB"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repo/11.8/{family}/dists/{release}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/repo/11.8/{family}/dists/{release}/main/binary-{architecture}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/repo/11.8/{family}/pool/main/m/mariadb/mariadb-server_11.8.9+maria~{platform_tag}_{architecture}.deb",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "9bd10ac8fdb61cc46526c789",
       "provider_id": "aliyun",
       "upstream_id": "centos-altarch--repository-metadata",
@@ -21020,36 +21684,6 @@
           "role": "artifacts",
           "protocol": "https",
           "url": "https://repo.huaweicloud.com/grafana/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "a5c7929c1af8c433c18e4a27",
-      "provider_id": "huaweicloud",
-      "upstream_id": "mariadb--static-files",
-      "tool_id": "mariadb",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "mariadb"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/mariadb/"
         }
       ],
       "compatibility": {
@@ -27740,6 +28374,83 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "d49b29faa5cc17205e887861",
+      "provider_id": "nju",
+      "upstream_id": "mariadb-packages--repository-metadata",
+      "tool_id": "mariadb",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "mariadb-rpm-runtime"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/mariadb/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/mariadb/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/mariadb/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "el-9-11.8-x86_64",
+          "el-9-11.8-aarch64"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/yum/11.8/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<repomd"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/yum/11.8/rhel/9/{architecture}/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/yum/11.8/rhel/9/{architecture}/rpms/MariaDB-server-11.8.9-1.el9.{architecture}.rpm",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "d611f8237c41b5ab6ffc9d63",
       "provider_id": "nju",
       "upstream_id": "rust-toolchain--release-artifacts",
@@ -31685,36 +32396,6 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "fdfb733c6e72e778c31e706f",
-      "provider_id": "ustc",
-      "upstream_id": "mariadb--static-files",
-      "tool_id": "mariadb",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "mariadb"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/mariadb/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/mariadb.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

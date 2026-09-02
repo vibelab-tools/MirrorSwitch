@@ -26,6 +26,7 @@ mod julia;
 mod kubernetes_images;
 mod kubernetes_packages;
 mod leiningen;
+mod mariadb;
 mod maven;
 mod mongodb;
 mod mysql;
@@ -87,6 +88,7 @@ pub use julia::JuliaAdapter;
 pub use kubernetes_images::KubernetesImagesAdapter;
 pub use kubernetes_packages::KubernetesPackagesAdapter;
 pub use leiningen::LeiningenAdapter;
+pub use mariadb::MariaDbAdapter;
 pub use maven::MavenAdapter;
 pub use mongodb::MongoDbAdapter;
 pub use mysql::MySqlAdapter;
@@ -144,6 +146,7 @@ static JULIA: JuliaAdapter = JuliaAdapter;
 static KUBERNETES_IMAGES: KubernetesImagesAdapter = KubernetesImagesAdapter;
 static KUBERNETES_PACKAGES: KubernetesPackagesAdapter = KubernetesPackagesAdapter;
 static LEININGEN: LeiningenAdapter = LeiningenAdapter;
+static MARIADB: MariaDbAdapter = MariaDbAdapter;
 static MAVEN: MavenAdapter = MavenAdapter;
 static MONGODB: MongoDbAdapter = MongoDbAdapter;
 static MYSQL: MySqlAdapter = MySqlAdapter;
@@ -202,6 +205,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &BIOCONDUCTOR,
         &DART_PUB,
         &GRADLE,
+        &MARIADB,
         &MAVEN,
         &MONGODB,
         &MYSQL,
