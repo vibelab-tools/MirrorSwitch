@@ -1,6 +1,6 @@
 # Core architecture
 
-The v0.1.0 binary has one core request and plan pipeline shared by CLI,
+The binary has one core request and plan pipeline shared by CLI,
 configuration-file, and TUI front ends:
 
 ```text
@@ -26,8 +26,25 @@ request
   deterministic latency ranking, overrides, and composition-policy enforcement.
 - `plan`: detected state, effective configuration, per-tool selection, file
   changes, transaction receipts, and verification/restore results.
-- `platform`: compile-time OS boundary; Linux runtime detection is implemented
-  by #5.
+- `platform`: compile-time OS boundary; native host detection selects Linux,
+  macOS, or Windows without changing the request/plan schema.
+
+## Native host boundary
+
+`HostDetectionOptions` resolves the compiled OS, architecture, platform version, home and project
+directories, executable search path, system/user configuration roots, catalog cache, transaction
+root, and current authority. Linux delegates to its existing distribution/container detector.
+macOS records the `sw_vers` version and Apple/Intel architecture. Windows records the native
+`cmd.exe ver` result and queries token elevation through the Windows API.
+
+`OsRuntime` uses the same read/run/apply contract on all three systems. Windows command lookup
+honors `PATHEXT` and invokes `.cmd`/`.bat` through `cmd.exe`; path comparisons in native tests use
+Windows case-insensitive semantics. Tool-specific locations remain inside adapters rather than the
+platform layer.
+
+The [native smoke workflow](../.github/workflows/platform-smoke.yml) builds and runs the same
+binary on macOS Intel, Apple Silicon, Windows x64, and Windows ARM64. Linux keeps its full existing
+workflow and adapter matrix.
 
 The catalog contains no command or script field and uses strict
 `deny_unknown_fields` deserialization. An entry can name an `adapter_key`, but
