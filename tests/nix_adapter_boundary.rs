@@ -172,11 +172,15 @@ fn install_macos_nix(
 }
 
 fn runtime(root: &Path) -> OsRuntime {
-    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")]).with_home("/home/developer")
+    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home("/home/developer")
+        .with_environment(BTreeMap::new())
 }
 
 fn macos_runtime(root: &Path) -> OsRuntime {
-    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")]).with_home("/Users/runner")
+    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home("/Users/runner")
+        .with_environment(BTreeMap::new())
 }
 
 fn selection_for(tool_id: &str, url: &str) -> MirrorSelection {
