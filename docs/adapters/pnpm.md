@@ -1,9 +1,9 @@
 # pnpm adapter
 
-The pnpm adapter supports Linux `x86_64` and `arm64`, detects `pnpm` independently from npm, and
-defaults to user scope. Project configuration is discovered and reported but is read-only in
-v0.1.0. A project default registry blocks a user-level plan because the resulting setting would not
-be effective.
+The pnpm adapter supports Linux, macOS, and native Windows hosts on `x86_64` and `arm64`, detects
+`pnpm` independently from npm, and defaults to user scope. Project configuration is discovered and
+reported but remains read-only. A project default registry blocks a user-level plan because the
+resulting setting would not be effective.
 
 The reviewed compatibility ranges intentionally follow pnpm's configuration split:
 
@@ -15,6 +15,10 @@ The reviewed compatibility ranges intentionally follow pnpm's configuration spli
   `config.yaml`. It uses `pnpm_config_*`; npm-prefixed registry environment variables are not
   treated as pnpm 11 inputs. An explicit absolute `pnpm_config_config_dir` or
   `pnpm_config_userconfig` is honored.
+
+For pnpm 11, the default config directory is `~/.config/pnpm` on Linux,
+`~/Library/Preferences/pnpm` on macOS, and `%LOCALAPPDATA%\pnpm\config` on Windows. pnpm 10 keeps
+using the home `.npmrc` on all three platforms. Existing UTF-8 BOM and LF/CRLF layout are preserved.
 
 Older releases and pnpm 12 are reported as outside the reviewed range instead of guessing their
 precedence. These boundaries account for pnpm 10.34.2's project-registry hardening and pnpm 11.22's

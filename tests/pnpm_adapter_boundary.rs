@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::BTreeMap,
@@ -33,6 +33,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
             version_codename: Some("bookworm".into()),
             id_like: Vec::new(),
         }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
         root: root.to_path_buf(),
     }
 }
@@ -84,6 +94,13 @@ fn install_pnpm(
 fn runtime(root: &Path, environment: BTreeMap<String, String>) -> OsRuntime {
     OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
         .with_home("/home/developer")
+        .with_project_dir("/work/project")
+        .with_environment(environment)
+}
+
+fn native_runtime(root: &Path, environment: BTreeMap<String, String>) -> OsRuntime {
+    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home("/Users/test")
         .with_project_dir("/work/project")
         .with_environment(environment)
 }
@@ -497,6 +514,109 @@ fn unsupported_versions_environment_project_private_tls_and_auth_are_blocked() {
 }
 
 #[test]
+fn pnpm_11_uses_native_macos_and_windows_config_directories() {
+    for (os, architecture, selected, config, environment, bom, newline) in [
+        (
+            OperatingSystem::Macos,
+            Architecture::X86_64,
+            "/Users/test/Library/Preferences/pnpm/auth.ini",
+            "/Users/test/Library/Preferences/pnpm/config.yaml",
+            BTreeMap::new(),
+            false,
+            "\n",
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::Arm64,
+            "/Users/test/AppData/Local/pnpm/config/auth.ini",
+            "/Users/test/AppData/Local/pnpm/config/config.yaml",
+            BTreeMap::from([("LOCALAPPDATA".into(), "/Users/test/AppData/Local".into())]),
+            true,
+            "\r\n",
+        ),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_pnpm(root, "11.24.0", selected, "/Users/test/.npmrc", 0, None);
+        let text = format!(
+            "# native pnpm auth{newline}registry=https://registry.npmjs.org/{newline}@corp:registry=https://reader:secret@packages.invalid.example/npm/{newline}unknown-option=keep{newline}"
+        );
+        let mut original = text.into_bytes();
+        if bom {
+            original.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let auth = write(root, selected, &original);
+        let fallback_contents = b"@legacy:registry=https://packages.invalid.example/legacy/\n";
+        let fallback = write(root, "/Users/test/.npmrc", fallback_contents);
+        let config_contents = b"storeDir: /native/pnpm-store\nverifyStoreIntegrity: true\n";
+        let config_file = write(root, config, config_contents);
+        write(
+            root,
+            "/work/project/pnpm-workspace.yaml",
+            b"packages:\n  - packages/*\n",
+        );
+        let context = native_context(root, os, architecture);
+        let adapter = PnpmAdapter;
+        let mut runtime = native_runtime(root, environment);
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(!serde_json::to_string(&current).unwrap().contains("secret"));
+        let chosen = [selection(HUAWEI)];
+        let plan = adapter.plan(&context, &current, &chosen).unwrap();
+        assert_eq!(plan, adapter.plan(&context, &current, &chosen).unwrap());
+        assert_eq!(plan.changes[0].target, auth);
+        assert_eq!(
+            plan.changes[0]
+                .new_contents
+                .starts_with(&[0xef, 0xbb, 0xbf]),
+            bom
+        );
+        let rendered = std::str::from_utf8(
+            plan.changes[0]
+                .new_contents
+                .strip_prefix(&[0xef, 0xbb, 0xbf])
+                .unwrap_or(&plan.changes[0].new_contents),
+        )
+        .unwrap();
+        assert!(rendered.contains("unknown-option=keep"));
+        assert!(!rendered.replace(newline, "").contains('\n'));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+        else {
+            panic!("native pnpm auth should change")
+        };
+        if !bom {
+            assert!(
+                adapter
+                    .verify(&context, &mut runtime, &receipt)
+                    .unwrap()
+                    .valid
+            );
+        }
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &chosen)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(auth).unwrap(), original);
+        assert_eq!(fs::read(fallback).unwrap(), fallback_contents);
+        assert_eq!(fs::read(config_file).unwrap(), config_contents);
+    }
+}
+
+#[test]
 fn embedded_catalog_requires_metadata_and_tarball_for_pnpm() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -509,7 +629,12 @@ fn embedded_catalog_requires_metadata_and_tarball_for_pnpm() {
     assert!(candidates.iter().all(|candidate| {
         candidate.upstream_id == UPSTREAM
             && candidate.delivery_mode == DeliveryMode::Proxy
-            && candidate.compatibility.operating_systems == [OperatingSystem::Linux]
+            && candidate.compatibility.operating_systems
+                == [
+                    OperatingSystem::Linux,
+                    OperatingSystem::Macos,
+                    OperatingSystem::Windows,
+                ]
             && candidate.compatibility.architectures == [Architecture::X86_64, Architecture::Arm64]
             && candidate.endpoints[0].role == EndpointRole::Index
             && candidate.endpoints[0].protocol == Protocol::Https

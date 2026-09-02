@@ -43,7 +43,7 @@ content remain unchanged and are reported.
 | `poetry` | project | Linux/macOS/Windows Poetry resolver; package sources are explicit project state, not publishing repositories ([details](adapters/poetry.md)) |
 | `uv` | user/project | Linux/macOS/Windows no-cache dry-run resolution; native config roots and named/private project sources preserved ([details](adapters/uv.md)) |
 | `npm` | system/user/project | Linux/macOS/Windows registry metadata, tarball and client query; npm-reported paths, scopes and auth preserved ([details](adapters/npm.md)) |
-| `pnpm` | user | Registry metadata/tarball and `pnpm view`; project/auth/TLS overrides block changes ([details](adapters/pnpm.md)) |
+| `pnpm` | user | Linux/macOS/Windows registry metadata/tarball and `pnpm view`; native pnpm 10/11 config roots and project/auth/TLS policy preserved ([details](adapters/pnpm.md)) |
 | `yarn` | user/project | Classic/Berry-specific query; generations and configuration formats never cross ([details](adapters/yarn.md)) |
 | `conda` | user | Linux/macOS/Windows Conda/Mamba/Micromamba search; native channel/subdir completeness required ([details](adapters/conda.md)) |
 | `pyenv` | user | Exact Python release/archive query; custom definitions and runtime overrides preserved ([#69](https://github.com/vibelab-tools/MirrorSwitch/issues/69)) |

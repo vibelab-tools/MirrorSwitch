@@ -1,0 +1,112 @@
+name: pnpm macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "21 3 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: pnpm (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel, node_arch: x64 }
+          - { name: macOS arm64, runner: macos-15, node_arch: arm64 }
+          - { name: Windows x86_64, runner: windows-2025, node_arch: x64 }
+          - { name: Windows arm64, runner: windows-11-arm, node_arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          architecture: ${{ matrix.node_arch }}
+      - name: Install pnpm and Rust
+        shell: bash
+        run: |
+          npm install --global pnpm@11.24.0
+          pnpm --version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic pnpm boundary
+        run: cargo test --locked --test pnpm_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS config directory and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-pnpm-boundary"; export HOME="$boundary/home"
+          unset pnpm_config_config_dir PNPM_CONFIG_CONFIG_DIR pnpm_config_userconfig PNPM_CONFIG_USERCONFIG pnpm_config_registry PNPM_CONFIG_REGISTRY XDG_CONFIG_HOME
+          config_dir="$HOME/Library/Preferences/pnpm"; project="$boundary/project"; auth="$config_dir/auth.ini"
+          mkdir -p "$config_dir" "$project"
+          printf 'registry=https://registry.npmjs.org/\n' > "$auth"; chmod 0600 "$auth"
+          printf '@private:registry=https://packages.invalid.example/npm/\n' > "$HOME/.npmrc"
+          printf 'storeDir: %s\nverifyStoreIntegrity: true\n' "$boundary/store" > "$config_dir/config.yaml"
+          printf 'packages:\n  - packages/*\n' > "$project/pnpm-workspace.yaml"
+          printf '{"version":1,"tools":[{"id":"pnpm","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$auth"|awk '{print $1}'); fallback=$(shasum -a 256 "$HOME/.npmrc"|awk '{print $1}'); settings=$(shasum -a 256 "$config_dir/config.yaml"|awk '{print $1}'); mode=$(stat -f '%Lp' "$auth")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool pnpm --scope pnpm=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('status.json')); assert [t['adapter_key'] for t in s['detected_tools'] if t['adapter_key']=='pnpm']==['pnpm']
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool pnpm --scope pnpm=user > tui.txt; grep -F 'mirror=huaweicloud' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          again=json.load(open('idempotent.json'))['result']; restore=json.load(open('restore.json'))
+          assert again['successful'] and not [t for t in again['tools'] if t['status']=='applied']
+          assert restore['adapter_key']=='pnpm' and restore['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$auth"|awk '{print $1}')"; test "$fallback" = "$(shasum -a 256 "$HOME/.npmrc"|awk '{print $1}')"; test "$settings" = "$(shasum -a 256 "$config_dir/config.yaml"|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$auth")"
+      - name: Exercise Windows config directory and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-pnpm-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'
+          Remove-Item Env:pnpm_config_config_dir,Env:PNPM_CONFIG_CONFIG_DIR,Env:pnpm_config_userconfig,Env:PNPM_CONFIG_USERCONFIG,Env:pnpm_config_registry,Env:PNPM_CONFIG_REGISTRY,Env:XDG_CONFIG_HOME -ErrorAction SilentlyContinue
+          $dir=Join-Path $env:LOCALAPPDATA 'pnpm/config'; $project=Join-Path $boundary 'project'; $auth=Join-Path $dir 'auth.ini'; New-Item -ItemType Directory -Force $dir,$project,$env:USERPROFILE|Out-Null
+          [IO.File]::WriteAllText($auth,"# native pnpm auth`r`nregistry=https://registry.npmjs.org/`r`n",[Text.UTF8Encoding]::new($true))
+          '@private:registry=https://packages.invalid.example/npm/'|Set-Content -Encoding utf8 (Join-Path $env:USERPROFILE '.npmrc'); "storeDir: $boundary/store`r`nverifyStoreIntegrity: true`r`n"|Set-Content -Encoding utf8 (Join-Path $dir 'config.yaml')
+          "packages:`r`n  - packages/*`r`n"|Set-Content -Encoding utf8 (Join-Path $project 'pnpm-workspace.yaml'); '{"version":1,"tools":[{"id":"pnpm","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          $before=(Get-FileHash $auth -Algorithm SHA256).Hash; $fallback=(Get-FileHash (Join-Path $env:USERPROFILE '.npmrc') -Algorithm SHA256).Hash; $settings=(Get-FileHash (Join-Path $dir 'config.yaml') -Algorithm SHA256).Hash; $acl=(Get-Acl $auth).Sddl
+          Push-Location $project
+          try {
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool pnpm --scope pnpm=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; if(@($s.detected_tools|Where-Object adapter_key -eq 'pnpm').Count -ne 1){throw 'pnpm not detected'}
+            $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)){throw 'frontend plans differ'}
+            @('','n')|& $binary tui --offline --tool pnpm --scope pnpm=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=huaweicloud')){throw 'pnpm mirror missing'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'pnpm apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
+            (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'pnpm'){throw 'restore failed'}
+          } finally {Pop-Location}
+          if($before -ne (Get-FileHash $auth -Algorithm SHA256).Hash -or $fallback -ne (Get-FileHash (Join-Path $env:USERPROFILE '.npmrc') -Algorithm SHA256).Hash -or $settings -ne (Get-FileHash (Join-Path $dir 'config.yaml') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $auth).Sddl){throw 'pnpm config not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pnpm-native-boundary-${{ runner.os }}-${{ matrix.node_arch }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-pnpm-boundary/project/*.json
+          if-no-files-found: warn
+          retention-days: 7
