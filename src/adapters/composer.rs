@@ -9,7 +9,7 @@ use serde_json::{Map, Value, json};
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{Architecture, OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -63,7 +63,7 @@ impl Adapter for ComposerAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("composer") || !runtime.command_exists("php") {
             return Ok(None);
         }
@@ -71,11 +71,16 @@ impl Adapter for ComposerAdapter {
         let global = read_json_document(runtime, &snapshot.global_config, "global config")?;
         analyze_global(global.value.as_ref())?;
         let global_repositories = repository_entries(global.value.as_ref(), "global config")?;
-        let project_repositories = snapshot
+        let project = snapshot
             .project_config
             .as_ref()
             .map(|path| read_json_document(runtime, path, "project config"))
-            .transpose()?
+            .transpose()?;
+        if let Some(project) = &project {
+            validate_project_policy(project.value.as_ref())?;
+        }
+        let project_repositories = project
+            .as_ref()
             .map(|document| repository_entries(document.value.as_ref(), "project config"))
             .transpose()?
             .unwrap_or_default();
@@ -92,6 +97,11 @@ impl Adapter for ComposerAdapter {
             evidence: vec![
                 format!("Composer {}", snapshot.composer_version),
                 format!("PHP {}", snapshot.php_version),
+                format!(
+                    "native platform is {:?} {:?}; composer resolved through native PATH semantics",
+                    context.os, context.architecture
+                ),
+                format!("selected user home is {}", snapshot.user_home.display()),
                 format!("Composer {} repository protocol", snapshot.protocol),
                 format!("Composer home is {}", snapshot.home.display()),
                 format!(
@@ -119,7 +129,7 @@ impl Adapter for ComposerAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "composer" {
             return Err(AdapterError::InvalidConfiguration(
@@ -159,6 +169,7 @@ impl Adapter for ComposerAdapter {
             .collect::<Vec<_>>();
         if let Some(path) = &snapshot.project_config {
             let project = read_json_document(runtime, path, "project config")?;
+            validate_project_policy(project.value.as_ref())?;
             sources.extend(configured_sources(project.value.as_ref(), "project", path)?);
             if project.exists {
                 files.push(path.clone());
@@ -169,6 +180,19 @@ impl Adapter for ComposerAdapter {
                 contents: project.contents,
             });
         }
+        let verification = read_json_document(
+            runtime,
+            &snapshot.verification_config,
+            "verification config",
+        )?;
+        if verification.exists {
+            files.push(snapshot.verification_config.clone());
+        }
+        documents.push(ConfigurationDocument {
+            path: snapshot.verification_config.clone(),
+            format: "composer-verification-config".into(),
+            contents: verification.contents,
+        });
         for source in authentication_sources(runtime, &snapshot) {
             sources.push(ConfiguredSource {
                 upstream_id: None,
@@ -204,7 +228,7 @@ impl Adapter for ComposerAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let protocol =
             reviewed_composer_version(detected.version.as_deref().ok_or_else(|| {
@@ -243,7 +267,7 @@ impl Adapter for ComposerAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_current_policy(current)?;
         let endpoint = selected_endpoint(selections)?;
@@ -265,7 +289,10 @@ impl Adapter for ComposerAdapter {
             .map(|version| version.0)
             .unwrap_or(2);
         let text = utf8(&document.path, &document.contents)?;
-        let new_contents = rewrite_global_config(text, major, endpoint)?.into_bytes();
+        let mut new_contents = rewrite_global_config(text, major, endpoint)?.into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            new_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let private_count = current
             .sources
             .iter()
@@ -274,7 +301,7 @@ impl Adapter for ComposerAdapter {
                     && source.upstream_id.is_none()
             })
             .count();
-        let changes = (new_contents != document.contents)
+        let mut changes = (new_contents != document.contents)
             .then(|| PlannedFileChange {
                 target: rooted(&context.root, &document.path),
                 old_contents: current
@@ -290,7 +317,30 @@ impl Adapter for ComposerAdapter {
                 ),
             })
             .into_iter()
-            .collect();
+            .collect::<Vec<_>>();
+        let verification = current
+            .documents
+            .iter()
+            .find(|document| document.format == "composer-verification-config")
+            .ok_or_else(|| {
+                AdapterError::InvalidConfiguration(
+                    "Composer verification configuration document is missing".into(),
+                )
+            })?;
+        let expected_verification = rewrite_global_config("", major, endpoint)?.into_bytes();
+        if verification.contents != expected_verification {
+            changes.push(PlannedFileChange {
+                target: rooted(&context.root, &verification.path),
+                old_contents: current
+                    .files
+                    .contains(&verification.path)
+                    .then(|| verification.contents.clone()),
+                old_mode: None,
+                new_contents: expected_verification,
+                new_mode: None,
+                summary: "create an isolated credential-free Composer verification config".into(),
+            });
+        }
         Ok(ChangePlan {
             adapter_key: "composer".into(),
             tool_id: "composer".into(),
@@ -318,10 +368,17 @@ impl Adapter for ComposerAdapter {
     ) -> Result<VerificationResult, AdapterError> {
         let result = (|| {
             let snapshot = composer_snapshot(runtime)?;
-            let target = rooted(context.root.as_path(), &snapshot.global_config);
-            if !receipt.changed_targets.contains(&target) {
+            let known_targets = [
+                rooted(context.root.as_path(), &snapshot.global_config),
+                rooted(context.root.as_path(), &snapshot.verification_config),
+            ];
+            if receipt
+                .changed_targets
+                .iter()
+                .all(|target| !known_targets.contains(target))
+            {
                 return Err(AdapterError::Verification(
-                    "Composer transaction receipt does not contain the global config".into(),
+                    "Composer transaction receipt contains no known config".into(),
                 ));
             }
             let document = read_json_document(runtime, &snapshot.global_config, "global config")?;
@@ -353,9 +410,27 @@ impl Adapter for ComposerAdapter {
                     "Composer config still permits the implicit official Packagist fallback".into(),
                 ));
             }
-            let listed = run_composer(
+            let verification = read_json_document(
                 runtime,
-                None,
+                &snapshot.verification_config,
+                "verification config",
+            )?;
+            let composer_major = version_components(&snapshot.composer_version)
+                .map(|version| version.0)
+                .ok_or_else(|| {
+                    AdapterError::Verification("Composer version changed while verifying".into())
+                })?;
+            let expected_verification =
+                rewrite_global_config("", composer_major, HUAWEI_ENDPOINT)?.into_bytes();
+            if verification.contents != expected_verification {
+                return Err(AdapterError::Verification(
+                    "Composer isolated verification config is not canonical".into(),
+                ));
+            }
+            let listed = run_composer_at_home(
+                runtime,
+                &snapshot.home,
+                false,
                 &["config", "--global", "--list", "--source"],
                 "composer global config verification",
             )?;
@@ -364,7 +439,7 @@ impl Adapter for ComposerAdapter {
                     "composer config did not report the selected Packagist mirror".into(),
                 ));
             }
-            let diagnosed = run_composer_diagnose(runtime, &snapshot.home)?;
+            let diagnosed = run_composer_diagnose(runtime, &snapshot.verification_home)?;
             if !diagnosed
                 .lines()
                 .any(|line| line.contains(HUAWEI_ENDPOINT) && line.contains("OK"))
@@ -373,9 +448,10 @@ impl Adapter for ComposerAdapter {
                     "composer diagnose did not confirm connectivity to the selected mirror".into(),
                 ));
             }
-            let shown = run_composer(
+            let shown = run_composer_at_home(
                 runtime,
-                Some(&snapshot.home),
+                &snapshot.verification_home,
+                true,
                 &[
                     "show",
                     REVIEWED_PACKAGE,
@@ -435,8 +511,11 @@ struct ComposerSnapshot {
     composer_version: String,
     php_version: String,
     protocol: &'static str,
+    user_home: PathBuf,
     home: PathBuf,
     global_config: PathBuf,
+    verification_home: PathBuf,
+    verification_config: PathBuf,
     project_config: Option<PathBuf>,
     project_auth: Option<PathBuf>,
 }
@@ -490,7 +569,19 @@ fn composer_snapshot(runtime: &dyn Runtime) -> Result<ComposerSnapshot, AdapterE
     )?);
     validate_path(&home, "home")?;
     validate_user_path(runtime, &home)?;
+    let user_home = runtime
+        .home_dir()
+        .ok_or_else(|| AdapterError::Unsupported("Composer user home is unavailable".into()))?;
     let global_config = home.join("config.json");
+    let verification_home = user_home.join(".mirrorswitch/verification/composer");
+    let verification_config = verification_home.join("config.json");
+    validate_user_path(runtime, &verification_home)?;
+    validate_user_path(runtime, &verification_config)?;
+    if global_config == verification_config {
+        return Err(AdapterError::Unsupported(
+            "Composer global config collides with the isolated verification config".into(),
+        ));
+    }
     let project_config = project_config_path(runtime)?;
     let project_auth = runtime
         .project_dir()
@@ -500,8 +591,11 @@ fn composer_snapshot(runtime: &dyn Runtime) -> Result<ComposerSnapshot, AdapterE
         composer_version,
         php_version,
         protocol,
+        user_home,
         home,
         global_config,
+        verification_home,
+        verification_config,
         project_config,
         project_auth,
     })
@@ -561,7 +655,8 @@ fn read_json_document(
             value: None,
         });
     }
-    let value = serde_json::from_slice::<Value>(&contents).map_err(|error| {
+    let text = utf8(path, &contents)?;
+    let value = serde_json::from_str::<Value>(text).map_err(|error| {
         AdapterError::InvalidConfiguration(format!("{} is not valid JSON: {error}", path.display()))
     })?;
     if !value.is_object() {
@@ -674,6 +769,7 @@ fn repository_from_object(
 }
 
 fn analyze_global(root: Option<&Value>) -> Result<GlobalAnalysis, AdapterError> {
+    validate_transport_policy(root, "global config")?;
     let entries = repository_entries(root, "global config")?;
     let repositories = root.and_then(|value| value.get("repositories"));
     let mut matches = Vec::new();
@@ -754,6 +850,40 @@ fn analyze_global(root: Option<&Value>) -> Result<GlobalAnalysis, AdapterError> 
         url: Some(url),
         disabled_packagist,
     })
+}
+
+fn validate_project_policy(root: Option<&Value>) -> Result<(), AdapterError> {
+    validate_transport_policy(root, "project config")?;
+    if repository_entries(root, "project config")?
+        .iter()
+        .any(|entry| is_packagist_name(&entry.name) || normalized_public_url(&entry.url).is_some())
+    {
+        return Err(AdapterError::Unsupported(
+            "project Composer config controls Packagist precedence; only the global user source can be changed automatically"
+                .into(),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_transport_policy(root: Option<&Value>, label: &str) -> Result<(), AdapterError> {
+    let config = root
+        .and_then(|value| value.get("config"))
+        .and_then(Value::as_object);
+    if config
+        .and_then(|config| config.get("disable-tls"))
+        .and_then(Value::as_bool)
+        == Some(true)
+        || config
+            .and_then(|config| config.get("secure-http"))
+            .and_then(Value::as_bool)
+            == Some(false)
+    {
+        return Err(AdapterError::Unsupported(format!(
+            "{label} disables Composer HTTPS transport"
+        )));
+    }
+    Ok(())
 }
 
 fn configured_sources(
@@ -905,11 +1035,15 @@ fn rewrite_global_config(
             }
         }
     }
-    serde_json::to_string_pretty(&root)
-        .map(|rendered| rendered + "\n")
-        .map_err(|error| {
-            AdapterError::Runtime(format!("could not render Composer config: {error}"))
-        })
+    let mut rendered = serde_json::to_string_pretty(&root).map_err(|error| {
+        AdapterError::Runtime(format!("could not render Composer config: {error}"))
+    })?;
+    let newline = if text.contains("\r\n") { "\r\n" } else { "\n" };
+    if newline == "\r\n" {
+        rendered = rendered.replace('\n', newline);
+    }
+    rendered.push_str(newline);
+    Ok(rendered)
 }
 
 fn validate_current_policy(current: &CurrentConfiguration) -> Result<(), AdapterError> {
@@ -985,12 +1119,26 @@ fn run_composer(
     run_program_in(runtime, directory, "composer", arguments, operation)
 }
 
-fn run_composer_diagnose(runtime: &dyn Runtime, directory: &Path) -> Result<String, AdapterError> {
-    let arguments = ["diagnose", "--no-interaction", "--no-plugins"]
-        .into_iter()
-        .map(str::to_owned)
-        .collect::<Vec<_>>();
-    let output = runtime.run_in(directory, "composer", &arguments)?;
+fn run_composer_at_home(
+    runtime: &dyn Runtime,
+    home: &Path,
+    remove_auth: bool,
+    arguments: &[&str],
+    operation: &str,
+) -> Result<String, AdapterError> {
+    output_text(
+        run_composer_at_home_output(runtime, home, remove_auth, arguments)?,
+        operation,
+    )
+}
+
+fn run_composer_diagnose(runtime: &dyn Runtime, home: &Path) -> Result<String, AdapterError> {
+    let output = run_composer_at_home_output(
+        runtime,
+        home,
+        true,
+        &["diagnose", "--no-interaction", "--no-plugins"],
+    )?;
     if !output.status.success() && output.status.code() != Some(2) {
         return Err(AdapterError::Runtime(format!(
             "composer diagnose failed with status {}",
@@ -1000,6 +1148,35 @@ fn run_composer_diagnose(runtime: &dyn Runtime, directory: &Path) -> Result<Stri
     String::from_utf8(output.stdout)
         .map(|value| value.trim().to_owned())
         .map_err(|_| AdapterError::Runtime("composer diagnose returned non-UTF-8 stdout".into()))
+}
+
+fn run_composer_at_home_output(
+    runtime: &dyn Runtime,
+    home: &Path,
+    remove_auth: bool,
+    arguments: &[&str],
+) -> Result<Output, AdapterError> {
+    let arguments = arguments
+        .iter()
+        .map(|argument| (*argument).to_owned())
+        .collect::<Vec<_>>();
+    let home_value = home.to_str().ok_or_else(|| {
+        AdapterError::Unsupported(format!(
+            "Composer home path {} is not UTF-8",
+            home.display()
+        ))
+    })?;
+    let mut removed_environment = vec!["COMPOSER".into()];
+    if remove_auth {
+        removed_environment.push("COMPOSER_AUTH".into());
+    }
+    runtime.run_in_with_environment(
+        home,
+        "composer",
+        &arguments,
+        &BTreeMap::from([("COMPOSER_HOME".into(), home_value.into())]),
+        &removed_environment,
+    )
 }
 
 fn run_program(
@@ -1139,12 +1316,9 @@ fn validate_user_path(runtime: &dyn Runtime, path: &Path) -> Result<(), AdapterE
 
 fn validate_path(path: &Path, label: &str) -> Result<(), AdapterError> {
     if !path.is_absolute()
-        || path.components().any(|component| {
-            matches!(
-                component,
-                Component::ParentDir | Component::CurDir | Component::Prefix(_)
-            )
-        })
+        || path
+            .components()
+            .any(|component| matches!(component, Component::ParentDir | Component::CurDir))
     {
         return Err(AdapterError::InvalidConfiguration(format!(
             "Composer {label} path {} is not an absolute normalized path",
@@ -1154,10 +1328,16 @@ fn validate_path(path: &Path, label: &str) -> Result<(), AdapterError> {
     Ok(())
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "Composer adapter v0.1 only supports Linux".into(),
+            "Composer on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "Composer on Windows arm64 is unavailable because PHP does not publish a native Windows arm64 runtime"
+                .into(),
         ));
     }
     if !matches!(
@@ -1174,7 +1354,7 @@ fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
 fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
     if scope != ConfigurationScope::User {
         return Err(AdapterError::Unsupported(
-            "Composer v0.1 only changes global user config; project composer.json and lockfiles are read-only"
+            "Composer only changes global user config; project composer.json and lockfiles are read-only"
                 .into(),
         ));
     }
@@ -1191,6 +1371,9 @@ fn require_current(current: &CurrentConfiguration) -> Result<(), AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "Composer configuration {} is not UTF-8",

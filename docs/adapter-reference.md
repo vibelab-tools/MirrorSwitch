@@ -59,7 +59,7 @@ content remain unchanged and are reported.
 | `rustup` | user | Linux/macOS shell or Windows HKCU environment plus `rustup check`; platform triples and dist/update roots stay paired ([details](adapters/rustup.md)) |
 | `rubygems` | user | Linux/macOS/Windows RubyGems-reported gemrc plus fixed dependency query; ordered private sources, credentials, TLS options, encoding and native permissions preserved ([details](adapters/rubygems.md)) |
 | `bundler` | user/project | Linux/macOS/Windows native config hierarchy and fixed lock query; private/auth/TLS settings, BOM/newlines, Gemfile and lockfile are preserved ([details](adapters/bundler.md)) |
-| `composer` | user | Composer diagnose/query with metadata/dist/VCS chain; auth and project config preserved ([details](adapters/composer.md)) |
+| `composer` | user | Linux/macOS/Windows native COMPOSER_HOME plus isolated diagnose/query; auth, private/project priority, TLS config, BOM/newlines and native permissions preserved ([details](adapters/composer.md)) |
 | `cocoapods` | user/project | Existing Specs Git repo or explicit Podfile source; CDN and dependency assets remain distinct ([details](adapters/cocoapods.md)) |
 | `scoop` | user | Installed official bucket origins plus architecture-specific `scoop download`; manifest assets are not rewritten ([details](adapters/scoop.md)) |
 | `nuget` | user | Linux and Windows NuGet/dotnet config hierarchy and fixed restore/install; shared Windows config, encoding, mappings and auth preserved ([details](adapters/nuget.md)) |

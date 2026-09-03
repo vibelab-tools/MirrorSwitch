@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     cell::RefCell,
@@ -52,6 +52,16 @@ fn context(
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -73,6 +83,7 @@ fn install_composer(
     query_exit: i32,
 ) -> PathBuf {
     let physical_home = root.join("home/developer/.composer");
+    let verification_home = root.join("home/developer/.mirrorswitch/verification/composer");
     fs::create_dir_all(&physical_home).unwrap();
     let physical_config = physical_home.join("config.json");
     if let Some(contents) = global_config {
@@ -88,23 +99,32 @@ fn install_composer(
         "/usr/bin/composer",
         format!(
             r#"#!/bin/sh
-config='{config}'
-home='{home}'
+global_config='{config}'
+verification_config='{verification_config}'
+verification_home='{verification_home}'
 case "$*" in
   "--version --no-ansi") printf '%s\n' 'Composer version {version} 2026-08-01 00:00:00' ;;
   "config --global home") printf '%s\n' '/home/developer/.composer' ;;
   "config --global --list --source")
-    grep -q 'repo.huaweicloud.com/repository/php' "$config" || exit 71
+    [ "$COMPOSER_HOME" = '/home/developer/.composer' ] || exit 71
+    [ -z "${{COMPOSER+x}}" ] || exit 72
+    grep -q 'repo.huaweicloud.com/repository/php' "$global_config" || exit 73
     printf '%s\n' '[repositories.packagist.url] https://repo.huaweicloud.com/repository/php/ (/home/developer/.composer/config.json)'
     ;;
   "diagnose --no-interaction --no-plugins")
-    [ "$PWD" = "$home" ] || exit 72
-    grep -q 'repo.huaweicloud.com/repository/php' "$config" || exit 73
+    [ "$PWD" = "$verification_home" ] || exit 74
+    [ "$COMPOSER_HOME" = '/home/developer/.mirrorswitch/verification/composer' ] || exit 75
+    [ -z "${{COMPOSER+x}}" ] || exit 76
+    [ -z "${{COMPOSER_AUTH+x}}" ] || exit 77
+    grep -q 'repo.huaweicloud.com/repository/php' "$verification_config" || exit 78
     printf '%s\n' 'Checking connectivity to https://repo.huaweicloud.com/repository/php/: OK'
     ;;
   "show psr/log 3.0.2 --all --no-interaction --no-plugins")
-    [ "$PWD" = "$home" ] || exit 74
-    grep -q 'repo.huaweicloud.com/repository/php' "$config" || exit 75
+    [ "$PWD" = "$verification_home" ] || exit 79
+    [ "$COMPOSER_HOME" = '/home/developer/.mirrorswitch/verification/composer' ] || exit 80
+    [ -z "${{COMPOSER+x}}" ] || exit 81
+    [ -z "${{COMPOSER_AUTH+x}}" ] || exit 82
+    grep -q 'repo.huaweicloud.com/repository/php' "$verification_config" || exit 83
     [ {query_exit} -eq 0 ] || exit {query_exit}
     printf '%s\n' \
       'name     : psr/log' \
@@ -112,11 +132,12 @@ case "$*" in
       'source   : [git] https://github.com/php-fig/log.git f16e1d5863e37f8d8c2a01719f5b34baa2b714d3' \
       'dist     : [zip] https://repo.huaweicloud.com/repository/php/psr/log/3.0.2/psr-log-3.0.2.zip f16e1d5863e37f8d8c2a01719f5b34baa2b714d3'
     ;;
-  *) exit 76 ;;
+  *) exit 84 ;;
 esac
 "#,
             config = physical_config.display(),
-            home = physical_home.display(),
+            verification_config = verification_home.join("config.json").display(),
+            verification_home = verification_home.display(),
         ),
     );
     physical_config
@@ -216,7 +237,7 @@ fn composer_two_preserves_private_project_and_auth_state_and_is_reversible() {
     let current = adapter
         .read_current(&context, &runtime, &detected, ConfigurationScope::User)
         .unwrap();
-    assert_eq!(current.documents.len(), 2);
+    assert_eq!(current.documents.len(), 3);
     assert!(!format!("{current:?}").contains("build:credential@"));
     let request = adapter
         .selection_request(&context, &detected, &current)
@@ -236,7 +257,7 @@ fn composer_two_preserves_private_project_and_auth_state_and_is_reversible() {
     let cli = adapter.plan(&context, &current, &selected).unwrap();
     assert_eq!(cli, adapter.plan(&context, &current, &selected).unwrap());
     assert_eq!(cli, adapter.plan(&context, &current, &selected).unwrap());
-    assert_eq!(cli.changes.len(), 1);
+    assert_eq!(cli.changes.len(), 2);
     assert_eq!(cli.changes[0].target, config);
     let before: Value = serde_json::from_slice(original).unwrap();
     let after: Value = serde_json::from_slice(&cli.changes[0].new_contents).unwrap();
@@ -282,6 +303,115 @@ fn composer_two_preserves_private_project_and_auth_state_and_is_reversible() {
             .restored
     );
     assert_eq!(fs::read(config).unwrap(), original);
+    assert!(
+        !root
+            .join("home/developer/.mirrorswitch/verification/composer/config.json")
+            .exists()
+    );
+}
+
+#[test]
+fn synthetic_native_contexts_preserve_bom_newlines_auth_security_and_project_state() {
+    for (os, architecture, original) in [
+        (
+            OperatingSystem::Macos,
+            Architecture::Arm64,
+            br#"{
+  "config": {"secure-http": true, "cafile": "/private/fixture/ca.pem"},
+  "repositories": [{"name":"private","type":"composer","url":"https://fixture:credential@packages.corp.example/api","canonical":false}],
+  "extra": {"preserve": true}
+}
+"#
+            .as_slice(),
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::X86_64,
+            b"\xef\xbb\xbf{\r\n  \"config\": {\"secure-http\": true, \"cafile\": \"C:/fixture/ca.pem\"},\r\n  \"repositories\": [{\"name\":\"private\",\"type\":\"composer\",\"url\":\"https://fixture:credential@packages.corp.example/api\",\"canonical\":false}],\r\n  \"extra\": {\"preserve\": true}\r\n}\r\n".as_slice(),
+        ),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        let config = install_composer(root, "2.10.3", Some(original), 0);
+        let project_contents = br#"{"repositories":[{"type":"vcs","url":"ssh://git@corp.example/project.git"}],"config":{"secure-http":true},"require":{"psr/log":"3.0.2"}}
+"#;
+        let project = write(root, "/work/project/composer.json", project_contents);
+        let lock = write(root, "/work/project/composer.lock", b"native-lock\n");
+        let global_auth = write(
+            root,
+            "/home/developer/.composer/auth.json",
+            b"global-fixture-credential\n",
+        );
+        let project_auth = write(
+            root,
+            "/work/project/auth.json",
+            b"project-fixture-credential\n",
+        );
+        let adapter = ComposerAdapter;
+        let context = native_context(root, os, architecture);
+        let mut runtime = runtime(
+            root,
+            BTreeMap::from([("COMPOSER_AUTH".into(), "environment-fixture".into())]),
+            Some("/work/project"),
+        );
+
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        assert!(detected.evidence.iter().any(|line| line.contains(&format!("{os:?}"))));
+        assert!(!format!("{detected:?}").contains("environment-fixture"));
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let selected = [selection()];
+        let cli = adapter.plan(&context, &current, &selected).unwrap();
+        let config_plan = adapter.plan(&context, &current, &selected).unwrap();
+        let tui = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(cli, config_plan);
+        assert_eq!(config_plan, tui);
+        assert!(!format!("{cli:?}").contains("fixture:credential"));
+        let rendered = &cli.changes[0].new_contents;
+        assert_eq!(
+            rendered.starts_with(&[0xef, 0xbb, 0xbf]),
+            os == OperatingSystem::Windows
+        );
+        if os == OperatingSystem::Windows {
+            assert!(rendered.iter().enumerate().all(|(index, byte)| {
+                *byte != b'\n' || index > 0 && rendered[index - 1] == b'\r'
+            }));
+        }
+
+        let ApplyOutcome::Applied(receipt) =
+            adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("Composer global config should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &selected)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(config).unwrap(), original);
+        assert_eq!(fs::read(project).unwrap(), project_contents);
+        assert_eq!(fs::read(lock).unwrap(), b"native-lock\n");
+        assert_eq!(fs::read(global_auth).unwrap(), b"global-fixture-credential\n");
+        assert_eq!(fs::read(project_auth).unwrap(), b"project-fixture-credential\n");
+    }
 }
 
 #[test]
@@ -337,13 +467,23 @@ fn composer_one_uses_object_config_and_arm64_container_protocol() {
 #[test]
 fn disabled_ambiguous_private_packagist_and_escaping_override_are_blocked() {
     let adapter = ComposerAdapter;
-    let cases: [(&[u8], &str); 3] = [
+    let cases: [(&[u8], &str); 5] = [
         (br#"{"repositories":{"packagist.org":false}}
 "#, "explicitly disables"),
         (br#"{"repositories":{"packagist":{"type":"composer","url":"https://private.example/api"}}}
 "#, "private or unreviewed"),
         (br#"{"repositories":[{"name":"packagist","type":"composer","url":"https://repo.packagist.org"},{"type":"composer","url":"https://mirrors.aliyun.com/composer"}]}
 "#, "multiple public"),
+        (
+            br#"{"config":{"disable-tls":true}}
+"#,
+            "disables Composer HTTPS",
+        ),
+        (
+            br#"{"config":{"secure-http":false}}
+"#,
+            "disables Composer HTTPS",
+        ),
     ];
     for (contents, expected) in cases {
         let directory = tempdir().unwrap();
@@ -361,23 +501,42 @@ fn disabled_ambiguous_private_packagist_and_escaping_override_are_blocked() {
     let directory = tempdir().unwrap();
     install_composer(directory.path(), "2.10.2", Some(b"{}\n"), 0);
     write(directory.path(), "/outside/composer.json", b"{}\n");
-    let context = context(
+    let outside_context = context(
         directory.path(),
         Architecture::X86_64,
         ExecutionEnvironment::Host,
     );
-    let runtime = runtime(
+    let outside_runtime = runtime(
         directory.path(),
         BTreeMap::from([("COMPOSER".into(), "/outside/composer.json".into())]),
         Some("/work/project"),
     );
     assert!(
         adapter
-            .detect(&context, &runtime)
+            .detect(&outside_context, &outside_runtime)
             .unwrap_err()
             .to_string()
             .contains("outside the detected project")
     );
+
+    for project in [
+        br#"{"repositories":{"packagist.org":{"type":"composer","url":"https://repo.packagist.org"}}}
+"#
+            .as_slice(),
+        br#"{"config":{"secure-http":false}}
+"#.as_slice(),
+    ] {
+        let directory = tempdir().unwrap();
+        install_composer(directory.path(), "2.10.3", Some(b"{}\n"), 0);
+        write(directory.path(), "/work/project/composer.json", project);
+        let context = context(
+            directory.path(),
+            Architecture::X86_64,
+            ExecutionEnvironment::Host,
+        );
+        let runtime = runtime(directory.path(), BTreeMap::new(), Some("/work/project"));
+        assert!(adapter.detect(&context, &runtime).unwrap_err().to_string().contains("project"));
+    }
 }
 
 #[test]
@@ -408,6 +567,12 @@ fn failed_real_composer_query_restores_the_original_global_config() {
         .unwrap_err();
     assert!(error.to_string().contains("configuration restored: true"));
     assert_eq!(fs::read(config).unwrap(), original);
+    assert!(
+        !directory
+            .path()
+            .join("home/developer/.mirrorswitch/verification/composer/config.json")
+            .exists()
+    );
 }
 
 #[derive(Clone)]
@@ -493,6 +658,18 @@ fn catalog_requires_v1_v2_metadata_dist_and_source_before_latency() {
         .unwrap();
     assert_eq!(candidate.provider_id, "huaweicloud");
     assert_eq!(candidate.delivery_mode, DeliveryMode::Mirror);
+    assert_eq!(
+        candidate.compatibility.operating_systems,
+        [
+            OperatingSystem::Linux,
+            OperatingSystem::Macos,
+            OperatingSystem::Windows,
+        ]
+    );
+    assert_eq!(
+        candidate.compatibility.architectures,
+        [Architecture::X86_64, Architecture::Arm64]
+    );
     assert_eq!(candidate.compatibility.repository_versions, ["v1", "v2"]);
     assert_eq!(candidate.probes.len(), 6);
     assert!(
@@ -586,7 +763,7 @@ fn catalog_requires_v1_v2_metadata_dist_and_source_before_latency() {
 }
 
 #[test]
-fn unsupported_platform_version_and_missing_commands_are_inert() {
+fn unsupported_version_non_native_or_windows_arm_context_and_missing_commands_are_inert() {
     let adapter = ComposerAdapter;
     let directory = tempdir().unwrap();
     install_composer(directory.path(), "3.0.0", Some(b"{}\n"), 0);
@@ -606,19 +783,38 @@ fn unsupported_platform_version_and_missing_commands_are_inert() {
 
     let directory = tempdir().unwrap();
     install_composer(directory.path(), "2.10.2", Some(b"{}\n"), 0);
-    let mut windows = context(
+    let windows = native_context(
         directory.path(),
+        OperatingSystem::Windows,
         Architecture::X86_64,
-        ExecutionEnvironment::Host,
     );
-    windows.os = OperatingSystem::Windows;
     let installed = runtime(directory.path(), BTreeMap::new(), None);
+    assert!(adapter.detect(&windows, &installed).unwrap().is_some());
+    let windows_arm = SystemContext {
+        architecture: Architecture::Arm64,
+        ..windows.clone()
+    };
     assert!(
         adapter
-            .detect(&windows, &installed)
+            .detect(&windows_arm, &installed)
             .unwrap_err()
             .to_string()
-            .contains("Linux")
+            .contains("native Windows arm64 runtime")
+    );
+    let macos_container = SystemContext {
+        environment: ExecutionEnvironment::Container,
+        ..native_context(
+            directory.path(),
+            OperatingSystem::Macos,
+            Architecture::Arm64,
+        )
+    };
+    assert!(
+        adapter
+            .detect(&macos_container, &installed)
+            .unwrap_err()
+            .to_string()
+            .contains("native host")
     );
 
     let empty = tempdir().unwrap();
