@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "94"
+CATALOG_FORMAT_REVISION = "95"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -2131,7 +2131,9 @@ def runtime_properties(
         and entry["raw_name"] == "dart-pub"
         and entry["provider_id"] in DART_PUB_HOSTED_ENDPOINTS
     ):
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = (
+            ["linux", "macos", "windows"] if tool_id == "dart-pub" else ["linux"]
+        )
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []

@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+ce045eb89aa2",
-  "content_revision": 20260903032908,
-  "generated_at": "2026-09-03T03:29:08Z",
+  "content_version": "2026.08.28+ddfe48529230",
+  "content_revision": 20260903034727,
+  "generated_at": "2026-09-03T03:47:27Z",
   "providers": [
     {
       "id": "aliyun",
@@ -4608,6 +4608,98 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/gentoo.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "0e1be20ef779ba65fe1592f7",
+      "provider_id": "sjtug",
+      "upstream_id": "dart-pub--language-registry",
+      "tool_id": "dart-pub",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "dart-pub"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/dart-pub/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/dart-pub/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://storage.flutter-io.cn/dartlang-pub-exported-api/latest/api/archives/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/api/packages/retry",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"retry\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/api/packages/retry",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/json",
+          "contains": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/retry-3.1.2.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/retry-3.1.2.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet",
+          "sha256": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -12777,96 +12869,6 @@
       ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "5240f4be6cc4820fc6247061",
-      "provider_id": "sjtug",
-      "upstream_id": "dart-pub--language-registry",
-      "tool_id": "dart-pub",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "dart-pub"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/dart-pub/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/dart-pub/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://storage.flutter-io.cn/dartlang-pub-exported-api/latest/api/archives/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/api/packages/retry",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"retry\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/api/packages/retry",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/json",
-          "contains": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/retry-3.1.2.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/retry-3.1.2.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet",
-          "sha256": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
-        }
-      ],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -22308,96 +22310,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "a09840b82076009395d4371e",
-      "provider_id": "tuna",
-      "upstream_id": "dart-pub--language-registry",
-      "tool_id": "dart-pub",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "dart-pub"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/packages/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/api/packages/retry",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"retry\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/api/packages/retry",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/json",
-          "contains": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/retry/versions/3.1.2.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/retry/versions/3.1.2.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream",
-          "sha256": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
-        }
-      ],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "a0aaa12f9ecce51b35f6407f",
       "provider_id": "sjtug",
       "upstream_id": "nix-channels--binary-cache",
@@ -31600,6 +31512,98 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "db922f3eddcb61f736e29e5c",
+      "provider_id": "tuna",
+      "upstream_id": "dart-pub--language-registry",
+      "tool_id": "dart-pub",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "dart-pub"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/api/packages/retry",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"retry\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/api/packages/retry",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/json",
+          "contains": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/retry/versions/3.1.2.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/retry/versions/3.1.2.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

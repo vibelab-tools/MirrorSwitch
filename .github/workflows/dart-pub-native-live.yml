@@ -1,0 +1,109 @@
+name: Dart Pub macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "51 6 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: Dart Pub (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel, dart_arch: x64 }
+          - { name: macOS arm64, runner: macos-15, dart_arch: arm64 }
+          - { name: Windows x86_64, runner: windows-2025, dart_arch: x64 }
+          - { name: Windows arm64, runner: windows-11-arm, dart_arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.9.3"
+          architecture: ${{ matrix.dart_arch }}
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          dart --version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic Dart Pub boundary
+        run: cargo test --locked --test dart_pub_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS profile, token path, frontends, query, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-dart-pub-boundary"; export HOME="$boundary/home" SHELL=/bin/zsh
+          unset PROFILE ZDOTDIR PUB_HOSTED_URL PUB_CACHE FLUTTER_STORAGE_BASE_URL
+          project="$HOME/project"; profile="$HOME/.zshrc"; token_dir="$HOME/Library/Application Support/dart"; mkdir -p "$project" "$token_dir"
+          printf '%s\n' '# native shell policy' "export PUB_HOSTED_URL='https://pub.dev'" > "$profile"; chmod 0600 "$profile"
+          printf '%s\n' '{"version":1,"hosted":[]}' > "$token_dir/pub-tokens.json"; chmod 0600 "$token_dir/pub-tokens.json"
+          printf '%s\n' 'name: native_project' 'publish_to: none' 'environment:' "  sdk: '>=3.0.0 <4.0.0'" > "$project/pubspec.yaml"; chmod 0400 "$project/pubspec.yaml"
+          printf '%s\n' 'packages: {}' > "$project/pubspec.lock"; chmod 0400 "$project/pubspec.lock"
+          printf '{"version":1,"tools":[{"id":"dart-pub","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$profile"|awk '{print $1}'); token_before=$(shasum -a 256 "$token_dir/pub-tokens.json"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/pubspec.yaml"|awk '{print $1}'); lock_before=$(shasum -a 256 "$project/pubspec.lock"|awk '{print $1}'); mode=$(stat -f '%Lp' "$profile")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool dart-pub --scope dart-pub=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - "$profile" "$token_dir" <<'PY'
+          import json, sys
+          status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='dart-pub']; assert len(tools)==1
+          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and 'Macos' in evidence and 'Pub token store file(s): 1' in evidence
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool dart-pub --scope dart-pub=user > tui.txt; grep -E 'mirror=(sjtug|tuna)' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          grep -E "PUB_HOSTED_URL='https://(mirror\.sjtu\.edu\.cn|mirrors\.tuna\.tsinghua\.edu\.cn)/dart-pub'" "$profile"
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='dart-pub' and r['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$profile"|awk '{print $1}')"; test "$token_before" = "$(shasum -a 256 "$token_dir/pub-tokens.json"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 pubspec.yaml|awk '{print $1}')"; test "$lock_before" = "$(shasum -a 256 pubspec.lock|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$profile")"; test ! -e "$HOME/.mirrorswitch/verification/dart-pub/pubspec.yaml"
+      - name: Exercise Windows registry, token path, frontends, query, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-dart-pub-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:PUB_HOSTED_URL,Env:PUB_CACHE,Env:FLUTTER_STORAGE_BASE_URL -ErrorAction SilentlyContinue
+          $launcher=(Get-Command dart -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -ne '.exe'){throw "native Dart launcher is not an executable: $launcher"}
+          $project=Join-Path $env:USERPROFILE 'project'; $tokenDir=Join-Path $env:APPDATA 'dart'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA,$project,$tokenDir|Out-Null
+          & reg.exe add 'HKCU\Environment' /v PUB_HOSTED_URL /t REG_SZ /d 'https://pub.dev' /f|Out-Null
+          [IO.File]::WriteAllText((Join-Path $tokenDir 'pub-tokens.json'),'{"version":1,"hosted":[]}',[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project 'pubspec.yaml'),"name: native_project`r`npublish_to: none`r`nenvironment:`r`n  sdk: '>=3.0.0 <4.0.0'`r`n",[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project 'pubspec.lock'),"packages: {}`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'pubspec.yaml') IsReadOnly $true; Set-ItemProperty (Join-Path $project 'pubspec.lock') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"dart-pub","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+          $token=Join-Path $tokenDir 'pub-tokens.json'; $beforeToken=(Get-FileHash $token -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'pubspec.yaml') -Algorithm SHA256).Hash; $lockBefore=(Get-FileHash (Join-Path $project 'pubspec.lock') -Algorithm SHA256).Hash; $tokenAcl=(Get-Acl $token).Sddl
+          Push-Location $project
+          try{
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool dart-pub --scope dart-pub=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'dart-pub'); if($tools.Count -ne 1){throw 'Dart Pub not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains('Windows') -or -not $evidence.Contains('Windows user environment') -or -not $evidence.Contains('Pub token store file(s): 1')){throw 'native persistence/platform evidence missing'}
+            $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)){throw 'frontend plans differ'}
+            @('','n')|& $binary tui --offline --tool dart-pub --scope dart-pub=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(sjtug|tuna)')){throw 'Dart Pub mirror missing'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Dart Pub apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            $value=(Get-ItemProperty 'HKCU:\Environment' PUB_HOSTED_URL).PUB_HOSTED_URL; if($value -notmatch '^https://(mirror\.sjtu\.edu\.cn|mirrors\.tuna\.tsinghua\.edu\.cn)/dart-pub$'){throw "registry mirror mismatch: $value"}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'dart-pub'){throw 'restore failed'}
+          }finally{Pop-Location}
+          $restored=(Get-ItemProperty 'HKCU:\Environment' PUB_HOSTED_URL).PUB_HOSTED_URL; $recovery=Join-Path $env:LOCALAPPDATA 'MirrorSwitch/dart-pub/environment-recovery.json'; $fixture=Join-Path $env:USERPROFILE '.mirrorswitch/verification/dart-pub/pubspec.yaml'; if($restored -ne 'https://pub.dev' -or $beforeToken -ne (Get-FileHash $token -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'pubspec.yaml') -Algorithm SHA256).Hash -or $lockBefore -ne (Get-FileHash (Join-Path $project 'pubspec.lock') -Algorithm SHA256).Hash -or $tokenAcl -ne (Get-Acl $token).Sddl -or (Test-Path $recovery) -or (Test-Path $fixture)){throw 'Dart Pub state not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dart-pub-native-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-dart-pub-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

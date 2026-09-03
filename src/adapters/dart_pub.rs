@@ -4,6 +4,8 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
@@ -24,6 +26,7 @@ const OFFICIAL_HOSTS: &[&str] = &["https://pub.dev", "https://pub.dartlang.org"]
 const MANAGED_BEGIN: &str = "# >>> MirrorSwitch Dart Pub mirror >>>";
 const MANAGED_END: &str = "# <<< MirrorSwitch Dart Pub mirror <<<";
 const VERIFY_MARKER: &str = "# Managed by MirrorSwitch: Dart Pub verification project v1";
+const PUB_VARIABLE: &str = "PUB_HOSTED_URL";
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct DartPubAdapter;
@@ -54,13 +57,13 @@ impl Adapter for DartPubAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("dart") {
             return Ok(None);
         }
-        if !runtime.command_exists("env") {
+        if context.os == OperatingSystem::Windows && !runtime.command_exists("reg.exe") {
             return Err(AdapterError::Unsupported(
-                "Dart Pub verification requires the standard env command".into(),
+                "Dart Pub Windows persistence requires reg.exe".into(),
             ));
         }
         let version_output = run_dart(runtime, None, &["--version"], "dart --version")?;
@@ -79,8 +82,15 @@ impl Adapter for DartPubAdapter {
                 format!("Dart SDK {version}"),
                 architecture_evidence(&version_output),
                 "dart pub exposes get and deps commands".into(),
-                format!("selected shell is {}", layout.shell.name()),
-                format!("selected profile is {}", layout.profile.display()),
+                format!(
+                    "native platform is {:?} {:?}",
+                    context.os, context.architecture
+                ),
+                format!("selected persistence is {}", layout.shell.name()),
+                format!(
+                    "selected persistence target is {}",
+                    layout.profile.display()
+                ),
                 format!(
                     "PUB_HOSTED_URL is {}",
                     environment_state(runtime, "PUB_HOSTED_URL")
@@ -105,7 +115,7 @@ impl Adapter for DartPubAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "dart-pub" {
             return Err(AdapterError::InvalidConfiguration(
@@ -121,6 +131,9 @@ impl Adapter for DartPubAdapter {
             ));
         }
         let layout = config_layout(context, runtime)?;
+        if layout.shell == ShellKind::WindowsRegistry {
+            return windows_current(runtime, &layout, &version);
+        }
         let profile_contents = runtime.read(&layout.profile)?;
         let profile_exists = profile_contents.is_some();
         let profile_contents = profile_contents.unwrap_or_default();
@@ -172,37 +185,7 @@ impl Adapter for DartPubAdapter {
             format: format!("dart-pub-selected-{}-profile", layout.shell.name()),
             contents: profile_contents,
         }];
-        for (path, format) in project_paths(runtime)? {
-            let Some(contents) = runtime.read(&path)? else {
-                continue;
-            };
-            files.push(path.clone());
-            let text = utf8(&path, &contents)?;
-            sources.extend(project_sources(text, &path, format));
-            documents.push(ConfigurationDocument {
-                path,
-                format: format.into(),
-                contents,
-            });
-        }
-        let fixture = runtime.read(&layout.verification_pubspec)?;
-        let fixture_exists = fixture.is_some();
-        let fixture = fixture.unwrap_or_default();
-        if fixture_exists {
-            files.push(layout.verification_pubspec.clone());
-            if utf8(&layout.verification_pubspec, &fixture)? != render_verification_pubspec() {
-                sources.push(policy_source(
-                    "verification-conflict",
-                    &layout.verification_pubspec,
-                    layout.shell,
-                ));
-            }
-        }
-        documents.push(ConfigurationDocument {
-            path: layout.verification_pubspec,
-            format: "dart-pub-verification-pubspec".into(),
-            contents: fixture,
-        });
+        append_shared_current(runtime, &layout, &mut files, &mut sources, &mut documents)?;
         Ok(CurrentConfiguration {
             tool_id: "dart-pub".into(),
             scope,
@@ -218,7 +201,7 @@ impl Adapter for DartPubAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         reviewed_version(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("Dart SDK version is missing".into())
@@ -255,10 +238,13 @@ impl Adapter for DartPubAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         let endpoint = selected_hosted_endpoint(selections)?;
+        if context.os == OperatingSystem::Windows {
+            return windows_plan(context, current, &endpoint);
+        }
         let profile = current
             .documents
             .iter()
@@ -270,7 +256,11 @@ impl Adapter for DartPubAdapter {
             })?;
         let shell = shell_from_format(&profile.format)?;
         let profile_text = utf8(&profile.path, &profile.contents)?;
-        let rendered = rewrite_profile(profile_text, &profile.path, shell, &endpoint)?.into_bytes();
+        let mut rendered =
+            rewrite_profile(profile_text, &profile.path, shell, &endpoint)?.into_bytes();
+        if profile.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let fixture = find_document(current, "dart-pub-verification-pubspec")?;
         let mut changes = Vec::new();
         add_change(
@@ -301,11 +291,15 @@ impl Adapter for DartPubAdapter {
 
     fn apply(
         &self,
-        _context: &SystemContext,
+        context: &SystemContext,
         runtime: &mut dyn Runtime,
         plan: &ChangePlan,
     ) -> Result<ApplyOutcome, AdapterError> {
-        runtime.apply_plan(plan)
+        if context.os == OperatingSystem::Windows {
+            windows_apply(runtime, plan)
+        } else {
+            runtime.apply_plan(plan)
+        }
     }
 
     fn verify(
@@ -314,6 +308,9 @@ impl Adapter for DartPubAdapter {
         runtime: &mut dyn Runtime,
         receipt: &TransactionReceipt,
     ) -> Result<VerificationResult, AdapterError> {
+        if context.os == OperatingSystem::Windows {
+            return windows_verify(context, runtime, receipt);
+        }
         let result = (|| {
             let layout = config_layout(context, runtime)?;
             let known = [
@@ -399,10 +396,13 @@ impl Adapter for DartPubAdapter {
 
     fn restore(
         &self,
-        _context: &SystemContext,
+        context: &SystemContext,
         runtime: &mut dyn Runtime,
         receipt: &TransactionReceipt,
     ) -> Result<RestoreResult, AdapterError> {
+        if context.os == OperatingSystem::Windows {
+            return windows_restore(context, runtime, receipt);
+        }
         let restored = runtime.restore_transaction(&receipt.transaction_id)?;
         Ok(RestoreResult {
             restored: restored.verified,
@@ -419,6 +419,7 @@ enum ShellKind {
     Bash,
     Zsh,
     Fish,
+    WindowsRegistry,
 }
 
 impl ShellKind {
@@ -427,6 +428,7 @@ impl ShellKind {
             Self::Bash => "bash",
             Self::Zsh => "zsh",
             Self::Fish => "fish",
+            Self::WindowsRegistry => "Windows user environment",
         }
     }
 }
@@ -440,6 +442,34 @@ struct Layout {
     verification_pubspec: PathBuf,
     verification_lock: PathBuf,
     verification_cache: PathBuf,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct WindowsRecoveryState {
+    schema_version: u32,
+    original: Option<String>,
+    selected: String,
+}
+
+impl WindowsRecoveryState {
+    fn validate(&self) -> Result<(), AdapterError> {
+        if self.schema_version != 1 || !is_reviewed(&self.selected) {
+            return Err(AdapterError::InvalidConfiguration(
+                "Dart Pub Windows recovery state has an invalid selected endpoint".into(),
+            ));
+        }
+        if self
+            .original
+            .as_deref()
+            .is_some_and(|value| !valid_registry_url(value))
+        {
+            return Err(AdapterError::InvalidConfiguration(
+                "Dart Pub Windows recovery state has an invalid original endpoint".into(),
+            ));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -462,15 +492,18 @@ struct ProjectObservation {
     lock_hosted: usize,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "Dart Pub v0.1 supports Linux x86_64 and arm64 only".into(),
+            "Dart Pub on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "Dart Pub requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -499,6 +532,20 @@ fn config_layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layou
         .home_dir()
         .ok_or_else(|| AdapterError::Unsupported("Dart Pub requires a user home".into()))?;
     validate_path(&home, "home")?;
+    let verification_root = home.join(".mirrorswitch/verification/dart-pub");
+    if context.os == OperatingSystem::Windows {
+        let local_app_data = required_environment_path(runtime, "LOCALAPPDATA")?;
+        let app_data = required_environment_path(runtime, "APPDATA")?;
+        return Ok(Layout {
+            shell: ShellKind::WindowsRegistry,
+            profile: local_app_data.join("MirrorSwitch/dart-pub/environment-recovery.json"),
+            token_dir: app_data.join("dart"),
+            verification_pubspec: verification_root.join("pubspec.yaml"),
+            verification_lock: verification_root.join("pubspec.lock"),
+            verification_cache: verification_root.join("cache"),
+            verification_root,
+        });
+    }
     let shell = runtime
         .environment_variable("SHELL")
         .and_then(|value| Path::new(&value).file_name().map(|name| name.to_owned()))
@@ -509,18 +556,21 @@ fn config_layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layou
             )
         })?;
     let profile = selected_profile(context, runtime, &home, shell)?;
-    let token_dir = match runtime
-        .environment_variable("XDG_CONFIG_HOME")
-        .filter(|value| !value.trim().is_empty())
-    {
-        Some(value) => {
-            let path = PathBuf::from(value);
-            validate_path(&path, "XDG_CONFIG_HOME")?;
-            path.join("dart")
-        }
-        None => home.join(".config/dart"),
+    let token_dir = match context.os {
+        OperatingSystem::Macos => home.join("Library/Application Support/dart"),
+        OperatingSystem::Linux => match runtime
+            .environment_variable("XDG_CONFIG_HOME")
+            .filter(|value| !value.trim().is_empty())
+        {
+            Some(value) => {
+                let path = PathBuf::from(value);
+                validate_path(&path, "XDG_CONFIG_HOME")?;
+                path.join("dart")
+            }
+            None => home.join(".config/dart"),
+        },
+        OperatingSystem::Windows => unreachable!("Windows layout returned above"),
     };
-    let verification_root = home.join(".mirrorswitch/verification/dart-pub");
     Ok(Layout {
         shell,
         profile,
@@ -529,6 +579,516 @@ fn config_layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layou
         verification_lock: verification_root.join("pubspec.lock"),
         verification_cache: verification_root.join("cache"),
         verification_root,
+    })
+}
+
+fn required_environment_path(
+    runtime: &dyn Runtime,
+    variable: &str,
+) -> Result<PathBuf, AdapterError> {
+    let path = runtime
+        .environment_variable(variable)
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from)
+        .ok_or_else(|| {
+            AdapterError::Unsupported(format!("Dart Pub Windows persistence requires {variable}"))
+        })?;
+    validate_path(&path, variable)?;
+    Ok(path)
+}
+
+fn windows_current(
+    runtime: &dyn Runtime,
+    layout: &Layout,
+    version: &str,
+) -> Result<CurrentConfiguration, AdapterError> {
+    let observed = runtime.read(&layout.profile)?;
+    let recovery_exists = observed.is_some();
+    let recovery_contents = observed.unwrap_or_default();
+    let recovery = if recovery_exists {
+        let state: WindowsRecoveryState =
+            serde_json::from_slice(&recovery_contents).map_err(|error| {
+                AdapterError::InvalidConfiguration(format!(
+                    "Dart Pub Windows recovery state is invalid: {error}"
+                ))
+            })?;
+        state.validate()?;
+        Some(state)
+    } else {
+        None
+    };
+    let registry = query_windows_variable(runtime)?;
+    let mut sources = vec![snapshot_source("dart-version", version)];
+    if let Some(cache) = runtime
+        .environment_variable("PUB_CACHE")
+        .filter(|value| !value.trim().is_empty())
+    {
+        sources.push(snapshot_source(
+            "pub-cache-configured",
+            &safe_path_snapshot(&cache),
+        ));
+    }
+    if recovery.is_some() {
+        sources.push(policy_source(
+            "windows-recovery-active",
+            &layout.profile,
+            ShellKind::WindowsRegistry,
+        ));
+    }
+    if let Some(value) = &registry {
+        let kind = if recovery
+            .as_ref()
+            .is_some_and(|state| same_base(&state.selected, value))
+        {
+            "managed-shell-profile"
+        } else if is_public(value) {
+            "adoptable-shell-profile"
+        } else {
+            "private-shell-profile"
+        };
+        sources.push(configured_source(
+            value,
+            kind,
+            Path::new(r"HKCU\Environment"),
+            ShellKind::WindowsRegistry,
+        ));
+    }
+    if let Some(value) = runtime
+        .environment_variable(PUB_VARIABLE)
+        .filter(|value| !value.trim().is_empty())
+    {
+        let stale_original = recovery
+            .as_ref()
+            .and_then(|state| state.original.as_deref())
+            .is_some_and(|original| same_base(original, &value));
+        if !registry
+            .as_deref()
+            .is_some_and(|persistent| same_base(persistent, &value))
+            && !stale_original
+        {
+            sources.push(policy_source(
+                "environment-override",
+                Path::new(":env:"),
+                ShellKind::WindowsRegistry,
+            ));
+        }
+    }
+    if token_file_count(runtime, &layout.token_dir)? > 0 {
+        sources.push(policy_source(
+            "credentials-detected",
+            &layout.token_dir,
+            ShellKind::WindowsRegistry,
+        ));
+    }
+
+    let mut files = recovery_exists
+        .then_some(layout.profile.clone())
+        .into_iter()
+        .collect::<Vec<_>>();
+    let mut documents = vec![
+        ConfigurationDocument {
+            path: layout.profile.clone(),
+            format: "dart-pub-windows-recovery".into(),
+            contents: recovery_contents,
+        },
+        ConfigurationDocument {
+            path: PathBuf::from(r"HKCU\Environment\PUB_HOSTED_URL"),
+            format: "dart-pub-windows-registry-snapshot".into(),
+            contents: registry.as_deref().unwrap_or_default().as_bytes().to_vec(),
+        },
+    ];
+    append_shared_current(runtime, layout, &mut files, &mut sources, &mut documents)?;
+    Ok(CurrentConfiguration {
+        tool_id: "dart-pub".into(),
+        scope: ConfigurationScope::User,
+        files,
+        sources,
+        documents,
+    })
+}
+
+fn append_shared_current(
+    runtime: &dyn Runtime,
+    layout: &Layout,
+    files: &mut Vec<PathBuf>,
+    sources: &mut Vec<ConfiguredSource>,
+    documents: &mut Vec<ConfigurationDocument>,
+) -> Result<(), AdapterError> {
+    for (path, format) in project_paths(runtime)? {
+        let Some(contents) = runtime.read(&path)? else {
+            continue;
+        };
+        files.push(path.clone());
+        let text = utf8(&path, &contents)?;
+        sources.extend(project_sources(text, &path, format));
+        documents.push(ConfigurationDocument {
+            path,
+            format: format.into(),
+            contents,
+        });
+    }
+    let fixture = runtime.read(&layout.verification_pubspec)?;
+    let fixture_exists = fixture.is_some();
+    let fixture = fixture.unwrap_or_default();
+    if fixture_exists {
+        files.push(layout.verification_pubspec.clone());
+        if utf8(&layout.verification_pubspec, &fixture)? != render_verification_pubspec() {
+            sources.push(policy_source(
+                "verification-conflict",
+                &layout.verification_pubspec,
+                layout.shell,
+            ));
+        }
+    }
+    documents.push(ConfigurationDocument {
+        path: layout.verification_pubspec.clone(),
+        format: "dart-pub-verification-pubspec".into(),
+        contents: fixture,
+    });
+    Ok(())
+}
+
+fn windows_plan(
+    context: &SystemContext,
+    current: &CurrentConfiguration,
+    endpoint: &str,
+) -> Result<ChangePlan, AdapterError> {
+    let recovery = find_document(current, "dart-pub-windows-recovery")?;
+    let fixture = find_document(current, "dart-pub-verification-pubspec")?;
+    if !recovery.contents.is_empty() {
+        let state: WindowsRecoveryState =
+            serde_json::from_slice(&recovery.contents).map_err(|error| {
+                AdapterError::InvalidConfiguration(format!(
+                    "Dart Pub Windows recovery state is invalid: {error}"
+                ))
+            })?;
+        state.validate()?;
+        if !same_base(&state.selected, endpoint) {
+            return Err(AdapterError::Unsupported(
+                "a previous Dart Pub Windows recovery state is active; restore it before selecting another mirror"
+                    .into(),
+            ));
+        }
+        if fixture.contents != render_verification_pubspec().as_bytes() {
+            return Err(AdapterError::Unsupported(
+                "active Dart Pub Windows recovery state has an incomplete verification fixture; restore it first"
+                    .into(),
+            ));
+        }
+        return Ok(ChangePlan {
+            adapter_key: "dart-pub".into(),
+            tool_id: "dart-pub".into(),
+            scope: ConfigurationScope::User,
+            changes: Vec::new(),
+            requires_elevation: false,
+            service_impact: ServiceImpact::None,
+        });
+    }
+    let registry = find_document(current, "dart-pub-windows-registry-snapshot")?;
+    let original = if registry.contents.is_empty() {
+        None
+    } else {
+        Some(
+            std::str::from_utf8(&registry.contents)
+                .map_err(|_| {
+                    AdapterError::InvalidConfiguration(
+                        "Dart Pub Windows registry snapshot is not UTF-8".into(),
+                    )
+                })?
+                .to_owned(),
+        )
+    };
+    let state = WindowsRecoveryState {
+        schema_version: 1,
+        original,
+        selected: endpoint.into(),
+    };
+    state.validate()?;
+    let mut recovery_contents = serde_json::to_vec_pretty(&state).map_err(|error| {
+        AdapterError::Runtime(format!(
+            "could not serialize Dart Pub Windows recovery state: {error}"
+        ))
+    })?;
+    recovery_contents.push(b'\n');
+    let mut changes = Vec::new();
+    add_change(
+        context,
+        current,
+        recovery,
+        recovery_contents,
+        "record private Dart Pub Windows user-environment recovery state before updating PUB_HOSTED_URL",
+        &mut changes,
+    );
+    add_change(
+        context,
+        current,
+        fixture,
+        render_verification_pubspec().into_bytes(),
+        "create an isolated Dart Pub dependency fixture",
+        &mut changes,
+    );
+    Ok(ChangePlan {
+        adapter_key: "dart-pub".into(),
+        tool_id: "dart-pub".into(),
+        scope: ConfigurationScope::User,
+        changes,
+        requires_elevation: false,
+        service_impact: ServiceImpact::None,
+    })
+}
+
+fn windows_apply(
+    runtime: &mut dyn Runtime,
+    plan: &ChangePlan,
+) -> Result<ApplyOutcome, AdapterError> {
+    if plan.adapter_key != "dart-pub" || plan.tool_id != "dart-pub" {
+        return Err(AdapterError::InvalidConfiguration(
+            "Dart Pub Windows apply received another tool's plan".into(),
+        ));
+    }
+    let state = plan.changes.iter().find_map(|change| {
+        serde_json::from_slice::<WindowsRecoveryState>(&change.new_contents).ok()
+    });
+    let Some(state) = state else {
+        return runtime.apply_plan(plan);
+    };
+    state.validate()?;
+    let outcome = runtime.apply_plan(plan)?;
+    let ApplyOutcome::Applied(receipt) = &outcome else {
+        return Ok(outcome);
+    };
+    if let Err(error) = set_windows_variable(runtime, &state.selected) {
+        let registry_restored =
+            restore_windows_variable(runtime, state.original.as_deref()).is_ok();
+        let state_restored =
+            registry_restored && runtime.restore_transaction(&receipt.transaction_id).is_ok();
+        return Err(AdapterError::Runtime(format!(
+            "Dart Pub Windows environment update failed: {error}; registry restored: {registry_restored}; recovery files restored: {state_restored}"
+        )));
+    }
+    Ok(outcome)
+}
+
+fn windows_verify(
+    context: &SystemContext,
+    runtime: &mut dyn Runtime,
+    receipt: &TransactionReceipt,
+) -> Result<VerificationResult, AdapterError> {
+    let layout = config_layout(context, runtime)?;
+    let state = read_windows_recovery(runtime, &layout)?;
+    let known = [
+        rooted(&context.root, &layout.profile),
+        rooted(&context.root, &layout.verification_pubspec),
+    ];
+    if receipt
+        .changed_targets
+        .iter()
+        .all(|target| !known.contains(target))
+    {
+        return Err(AdapterError::InvalidConfiguration(
+            "Dart Pub Windows receipt contains no known target".into(),
+        ));
+    }
+    let result = (|| {
+        if query_windows_variable(runtime)?.as_deref() != Some(state.selected.as_str()) {
+            return Err(AdapterError::Verification(
+                "Dart Pub Windows user environment did not retain PUB_HOSTED_URL".into(),
+            ));
+        }
+        let pubspec = runtime.read(&layout.verification_pubspec)?.ok_or_else(|| {
+            AdapterError::Verification("Dart Pub verification pubspec disappeared".into())
+        })?;
+        if utf8(&layout.verification_pubspec, &pubspec)? != render_verification_pubspec() {
+            return Err(AdapterError::Verification(
+                "Dart Pub verification pubspec is not canonical".into(),
+            ));
+        }
+        run_verification(runtime, &layout, &state.selected, &["pub", "get"])?;
+        let deps = run_verification(
+            runtime,
+            &layout,
+            &state.selected,
+            &["pub", "deps", "--style=compact"],
+        )?;
+        if !deps.contains("retry 3.1.2") {
+            return Err(AdapterError::Verification(
+                "Dart Pub dependency query did not resolve retry 3.1.2".into(),
+            ));
+        }
+        let lock = runtime.read(&layout.verification_lock)?.ok_or_else(|| {
+            AdapterError::Verification("Dart Pub verification lockfile was not created".into())
+        })?;
+        let lock = utf8(&layout.verification_lock, &lock)?;
+        if !lock.contains("retry:")
+            || !lock.contains("version: \"3.1.2\"")
+            || !lock.contains(state.selected.trim_end_matches('/'))
+        {
+            return Err(AdapterError::Verification(
+                "Dart Pub lockfile does not bind retry 3.1.2 to the selected hosted URL".into(),
+            ));
+        }
+        Ok(VerificationResult {
+            valid: true,
+            summary: format!(
+                "Dart Pub resolved retry 3.1.2 through {} with native Windows user persistence and an isolated cache",
+                state.selected
+            ),
+        })
+    })();
+    if let Err(error) = result {
+        let registry_restored =
+            restore_windows_variable(runtime, state.original.as_deref()).is_ok();
+        let state_restored =
+            registry_restored && runtime.restore_transaction(&receipt.transaction_id).is_ok();
+        return Err(AdapterError::Verification(format!(
+            "{error}; registry restored: {registry_restored}; recovery files restored: {state_restored}"
+        )));
+    }
+    result
+}
+
+fn windows_restore(
+    context: &SystemContext,
+    runtime: &mut dyn Runtime,
+    receipt: &TransactionReceipt,
+) -> Result<RestoreResult, AdapterError> {
+    let layout = config_layout(context, runtime)?;
+    let state = read_windows_recovery(runtime, &layout)?;
+    restore_windows_variable(runtime, state.original.as_deref())?;
+    let restored = runtime.restore_transaction(&receipt.transaction_id)?;
+    Ok(RestoreResult {
+        restored: restored.verified,
+        summary: "restored the previous Dart Pub Windows user environment and recovery files"
+            .into(),
+    })
+}
+
+fn read_windows_recovery(
+    runtime: &dyn Runtime,
+    layout: &Layout,
+) -> Result<WindowsRecoveryState, AdapterError> {
+    let contents = runtime.read(&layout.profile)?.ok_or_else(|| {
+        AdapterError::Runtime("Dart Pub Windows recovery state is missing".into())
+    })?;
+    let state: WindowsRecoveryState = serde_json::from_slice(&contents).map_err(|error| {
+        AdapterError::InvalidConfiguration(format!(
+            "Dart Pub Windows recovery state is invalid: {error}"
+        ))
+    })?;
+    state.validate()?;
+    Ok(state)
+}
+
+fn query_windows_variable(runtime: &dyn Runtime) -> Result<Option<String>, AdapterError> {
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "query".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            PUB_VARIABLE.into(),
+        ],
+    )?;
+    if output.status.code() == Some(1) {
+        return Ok(None);
+    }
+    if !output.status.success() {
+        return Err(AdapterError::Runtime(format!(
+            "reg.exe query {PUB_VARIABLE} failed with status {}",
+            output.status
+        )));
+    }
+    let text = String::from_utf8(output.stdout)
+        .map_err(|_| AdapterError::Runtime("reg.exe returned non-UTF-8 output".into()))?;
+    let line = text
+        .lines()
+        .map(str::trim)
+        .find(|line| line.starts_with(PUB_VARIABLE))
+        .ok_or_else(|| {
+            AdapterError::InvalidConfiguration(format!("reg.exe returned no {PUB_VARIABLE} value"))
+        })?;
+    let rest = line[PUB_VARIABLE.len()..].trim_start();
+    let split = rest.find(char::is_whitespace).ok_or_else(|| {
+        AdapterError::InvalidConfiguration(format!(
+            "reg.exe returned malformed {PUB_VARIABLE} state"
+        ))
+    })?;
+    let kind = &rest[..split];
+    let value = rest[split..].trim();
+    if kind != "REG_SZ" || !valid_registry_url(value) {
+        return Err(AdapterError::Unsupported(format!(
+            "Dart Pub Windows {PUB_VARIABLE} must be a non-empty HTTPS REG_SZ URL"
+        )));
+    }
+    Ok(Some(value.into()))
+}
+
+fn set_windows_variable(runtime: &dyn Runtime, value: &str) -> Result<(), AdapterError> {
+    if !valid_registry_url(value) {
+        return Err(AdapterError::InvalidConfiguration(
+            "Dart Pub Windows endpoint is not a valid HTTPS URL".into(),
+        ));
+    }
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "add".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            PUB_VARIABLE.into(),
+            "/t".into(),
+            "REG_SZ".into(),
+            "/d".into(),
+            value.into(),
+            "/f".into(),
+        ],
+    )?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(AdapterError::Runtime(format!(
+            "reg.exe add {PUB_VARIABLE} failed with status {}",
+            output.status
+        )))
+    }
+}
+
+fn restore_windows_variable(
+    runtime: &dyn Runtime,
+    original: Option<&str>,
+) -> Result<(), AdapterError> {
+    match original {
+        Some(value) => set_windows_variable(runtime, value),
+        None => delete_windows_variable(runtime),
+    }
+}
+
+fn delete_windows_variable(runtime: &dyn Runtime) -> Result<(), AdapterError> {
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "delete".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            PUB_VARIABLE.into(),
+            "/f".into(),
+        ],
+    )?;
+    if output.status.success() || output.status.code() == Some(1) {
+        Ok(())
+    } else {
+        Err(AdapterError::Runtime(format!(
+            "reg.exe delete {PUB_VARIABLE} failed with status {}",
+            output.status
+        )))
+    }
+}
+
+fn valid_registry_url(value: &str) -> bool {
+    reqwest::Url::parse(value).is_ok_and(|url| {
+        url.scheme() == "https"
+            && url.host_str().is_some()
+            && !value.chars().any(char::is_whitespace)
     })
 }
 
@@ -584,6 +1144,9 @@ fn selected_profile(
             None => home.join(".zshrc"),
         },
         ShellKind::Fish => home.join(".config/fish/conf.d/mirrorswitch-dart-pub.fish"),
+        ShellKind::WindowsRegistry => {
+            unreachable!("Windows layout returned before shell selection")
+        }
     };
     validate_user_path(&path, home, "shell profile")?;
     Ok(path)
@@ -752,6 +1315,11 @@ fn assignment(line: &str, shell: ShellKind) -> Result<Option<&str>, AdapterError
                 ));
             }
             value
+        }
+        ShellKind::WindowsRegistry => {
+            return Err(AdapterError::InvalidConfiguration(
+                "Dart Pub Windows registry is not a shell profile".into(),
+            ));
         }
     };
     literal_value(raw).map(Some)
@@ -936,6 +1504,9 @@ fn render_managed(endpoint: &str, newline: &str, shell: ShellKind) -> String {
             format!("export PUB_HOSTED_URL='{endpoint}'")
         }
         ShellKind::Fish => format!("set -gx PUB_HOSTED_URL '{endpoint}'"),
+        ShellKind::WindowsRegistry => {
+            unreachable!("Dart Pub Windows persistence does not render a shell block")
+        }
     };
     format!("{MANAGED_BEGIN}{newline}{assignment}{newline}{MANAGED_END}{newline}")
 }
@@ -1083,14 +1654,22 @@ fn run_verification(
     let cache = layout.verification_cache.to_str().ok_or_else(|| {
         AdapterError::Verification("Dart Pub verification cache path is not UTF-8".into())
     })?;
-    let mut command = vec![
-        format!("PUB_HOSTED_URL={endpoint}"),
-        format!("PUB_CACHE={cache}"),
-        "DART_SUPPRESS_ANALYTICS=1".into(),
-        "dart".into(),
-    ];
-    command.extend(arguments.iter().map(|argument| (*argument).into()));
-    let output = runtime.run_in(&layout.verification_root, "env", &command)?;
+    let environment = BTreeMap::from([
+        (PUB_VARIABLE.into(), endpoint.into()),
+        ("PUB_CACHE".into(), cache.into()),
+        ("DART_SUPPRESS_ANALYTICS".into(), "1".into()),
+    ]);
+    let arguments = arguments
+        .iter()
+        .map(|argument| (*argument).into())
+        .collect::<Vec<_>>();
+    let output = runtime.run_in_with_environment(
+        &layout.verification_root,
+        "dart",
+        &arguments,
+        &environment,
+        &["FLUTTER_STORAGE_BASE_URL".into()],
+    )?;
     command_output(output, "Dart Pub dependency verification")
 }
 
@@ -1290,7 +1869,7 @@ fn validate_path(path: &Path, kind: &str) -> Result<(), AdapterError> {
     if !path.is_absolute()
         || path
             .components()
-            .any(|component| component == Component::ParentDir)
+            .any(|component| matches!(component, Component::ParentDir | Component::CurDir))
     {
         return Err(AdapterError::InvalidConfiguration(format!(
             "Dart Pub reported unsafe {kind} path {}",
@@ -1301,6 +1880,9 @@ fn validate_path(path: &Path, kind: &str) -> Result<(), AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "Dart Pub configuration {} is not UTF-8",
