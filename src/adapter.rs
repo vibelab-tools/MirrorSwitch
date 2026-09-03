@@ -59,6 +59,17 @@ pub trait Runtime {
             "native per-command environment isolation is unavailable in this runtime".into(),
         ))
     }
+    fn run_with_environment(
+        &self,
+        _program: &str,
+        _arguments: &[String],
+        _environment: &BTreeMap<String, String>,
+        _removed_environment: &[String],
+    ) -> Result<Output, AdapterError> {
+        Err(AdapterError::Unsupported(
+            "native per-command environment isolation is unavailable in this runtime".into(),
+        ))
+    }
     fn apply_plan(&mut self, _plan: &ChangePlan) -> Result<ApplyOutcome, AdapterError> {
         Err(AdapterError::Unsupported(
             "transaction apply is unavailable in this runtime".into(),

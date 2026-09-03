@@ -4,7 +4,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     Adapter, AdapterError, Runtime,
@@ -36,6 +36,8 @@ const MANAGED_BEGIN: &str = "# >>> MirrorSwitch Flutter mirrors >>>";
 const MANAGED_END: &str = "# <<< MirrorSwitch Flutter mirrors <<<";
 const FOREIGN_DART_BEGIN: &str = "# >>> MirrorSwitch Dart Pub mirror >>>";
 const VERIFY_MARKER: &str = "# Managed by MirrorSwitch: Flutter verification project v1";
+const STORAGE_VARIABLE: &str = "FLUTTER_STORAGE_BASE_URL";
+const PUB_VARIABLE: &str = "PUB_HOSTED_URL";
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct FlutterAdapter;
@@ -66,13 +68,13 @@ impl Adapter for FlutterAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("flutter") {
             return Ok(None);
         }
-        if !runtime.command_exists("env") {
+        if context.os == OperatingSystem::Windows && !runtime.command_exists("reg.exe") {
             return Err(AdapterError::Unsupported(
-                "Flutter mirror verification requires the standard env command".into(),
+                "Flutter Windows persistence requires reg.exe".into(),
             ));
         }
         let version = flutter_version(runtime, None, None)?;
@@ -86,10 +88,11 @@ impl Adapter for FlutterAdapter {
             &["precache", "--help"],
             "flutter precache --help",
         )?;
-        if !help.lines().any(|line| line.contains("--linux")) {
-            return Err(AdapterError::Unsupported(
-                "Flutter precache does not expose Linux artifacts".into(),
-            ));
+        let artifact_flag = platform_artifact_flag(context);
+        if !help.lines().any(|line| line.contains(artifact_flag)) {
+            return Err(AdapterError::Unsupported(format!(
+                "Flutter precache does not expose {artifact_flag} artifacts"
+            )));
         }
         let layout = config_layout(context, runtime)?;
         let project = inspect_project(runtime)?;
@@ -121,9 +124,18 @@ impl Adapter for FlutterAdapter {
                     "Flutter SDK repository is {}",
                     repository_state(&version.repository_url)
                 ),
-                "Flutter bootstrap cache and Linux precache command are operable".into(),
-                format!("selected shell is {}", layout.shell.name()),
-                format!("selected profile is {}", layout.profile.display()),
+                format!(
+                    "Flutter bootstrap cache and {artifact_flag} precache command are operable"
+                ),
+                format!(
+                    "native platform is {:?} {:?}",
+                    context.os, context.architecture
+                ),
+                format!("selected persistence is {}", layout.shell.name()),
+                format!(
+                    "selected persistence target is {}",
+                    layout.profile.display()
+                ),
                 format!(
                     "FLUTTER_STORAGE_BASE_URL is {}",
                     environment_state(runtime, "FLUTTER_STORAGE_BASE_URL", ManagedKey::Storage)
@@ -147,7 +159,7 @@ impl Adapter for FlutterAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "flutter" {
             return Err(AdapterError::InvalidConfiguration(
@@ -162,6 +174,9 @@ impl Adapter for FlutterAdapter {
             ));
         }
         let layout = config_layout(context, runtime)?;
+        if layout.shell == ShellKind::WindowsRegistry {
+            return windows_current(runtime, &layout, &version);
+        }
         let profile_contents = runtime.read(&layout.profile)?;
         let profile_exists = profile_contents.is_some();
         let profile_contents = profile_contents.unwrap_or_default();
@@ -227,56 +242,7 @@ impl Adapter for FlutterAdapter {
             format: format!("flutter-selected-{}-profile", layout.shell.name()),
             contents: profile_contents,
         }];
-        for (path, format) in project_paths(runtime)? {
-            let Some(contents) = runtime.read(&path)? else {
-                continue;
-            };
-            files.push(path.clone());
-            sources.extend(project_sources(utf8(&path, &contents)?, &path, format));
-            documents.push(ConfigurationDocument {
-                path,
-                format: format.into(),
-                contents,
-            });
-        }
-        let fixture = runtime.read(&layout.verification_pubspec)?;
-        let fixture_exists = fixture.is_some();
-        let fixture = fixture.unwrap_or_default();
-        if fixture_exists
-            && utf8(&layout.verification_pubspec, &fixture)? != render_verification_pubspec()
-        {
-            sources.push(policy_source(
-                "verification-conflict",
-                &layout.verification_pubspec,
-                layout.shell,
-            ));
-        }
-        if fixture_exists {
-            files.push(layout.verification_pubspec.clone());
-        }
-        documents.push(ConfigurationDocument {
-            path: layout.verification_pubspec,
-            format: "flutter-verification-pubspec".into(),
-            contents: fixture,
-        });
-        let lock = runtime.read(&layout.verification_lock)?;
-        let lock_exists = lock.is_some();
-        let lock = lock.unwrap_or_default();
-        if lock_exists && !fixture_exists {
-            sources.push(policy_source(
-                "verification-conflict",
-                &layout.verification_lock,
-                layout.shell,
-            ));
-        }
-        if lock_exists {
-            files.push(layout.verification_lock.clone());
-        }
-        documents.push(ConfigurationDocument {
-            path: layout.verification_lock,
-            format: "flutter-verification-lock".into(),
-            contents: lock,
-        });
+        append_shared_current(runtime, &layout, &mut files, &mut sources, &mut documents)?;
         Ok(CurrentConfiguration {
             tool_id: "flutter".into(),
             scope,
@@ -292,7 +258,7 @@ impl Adapter for FlutterAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let version = detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("Flutter version is missing".into())
@@ -309,7 +275,10 @@ impl Adapter for FlutterAdapter {
                 STORAGE_UPSTREAM.into(),
                 release_identity.into(),
             )]),
-            probe_contexts: BTreeMap::new(),
+            probe_contexts: BTreeMap::from([(
+                STORAGE_UPSTREAM.into(),
+                vec![storage_probe_context(context)],
+            )]),
             required_compatibility_evidence: vec![
                 CompatibilityDimension::OperatingSystem,
                 CompatibilityDimension::Architecture,
@@ -334,10 +303,13 @@ impl Adapter for FlutterAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         let selected = selected_endpoints(selections)?;
+        if context.os == OperatingSystem::Windows {
+            return windows_plan(context, current, &selected);
+        }
         let profile = current
             .documents
             .iter()
@@ -348,7 +320,7 @@ impl Adapter for FlutterAdapter {
                 )
             })?;
         let shell = shell_from_format(&profile.format)?;
-        let rendered = rewrite_profile(
+        let mut rendered = rewrite_profile(
             utf8(&profile.path, &profile.contents)?,
             &profile.path,
             shell,
@@ -356,6 +328,9 @@ impl Adapter for FlutterAdapter {
             &selected.hosted,
         )?
         .into_bytes();
+        if profile.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let fixture = find_document(current, "flutter-verification-pubspec")?;
         let lock = find_document(current, "flutter-verification-lock")?;
         let mut changes = Vec::new();
@@ -397,11 +372,15 @@ impl Adapter for FlutterAdapter {
 
     fn apply(
         &self,
-        _context: &SystemContext,
+        context: &SystemContext,
         runtime: &mut dyn Runtime,
         plan: &ChangePlan,
     ) -> Result<ApplyOutcome, AdapterError> {
-        runtime.apply_plan(plan)
+        if context.os == OperatingSystem::Windows {
+            windows_apply(runtime, plan)
+        } else {
+            runtime.apply_plan(plan)
+        }
     }
 
     fn verify(
@@ -410,6 +389,9 @@ impl Adapter for FlutterAdapter {
         runtime: &mut dyn Runtime,
         receipt: &TransactionReceipt,
     ) -> Result<VerificationResult, AdapterError> {
+        if context.os == OperatingSystem::Windows {
+            return windows_verify(context, runtime, receipt);
+        }
         let result = (|| {
             let layout = config_layout(context, runtime)?;
             let known = [
@@ -466,8 +448,12 @@ impl Adapter for FlutterAdapter {
                 Some(&managed.storage),
                 Some(&managed.hosted),
                 None,
-                &["--suppress-analytics", "precache", "--linux"],
-                "Flutter Linux precache verification",
+                &[
+                    "--suppress-analytics",
+                    "precache",
+                    platform_artifact_flag(context),
+                ],
+                "Flutter platform precache verification",
             )?;
             let doctor = run_flutter(
                 runtime,
@@ -522,8 +508,12 @@ impl Adapter for FlutterAdapter {
             Ok(VerificationResult {
                 valid: true,
                 summary: format!(
-                    "Flutter {} {} verified Linux artifacts through {} and Pub through {}",
-                    version.framework_version, version.channel, managed.storage, managed.hosted
+                    "Flutter {} {} verified {:?} artifacts through {} and Pub through {}",
+                    version.framework_version,
+                    version.channel,
+                    context.os,
+                    managed.storage,
+                    managed.hosted
                 ),
             })
         })();
@@ -535,10 +525,13 @@ impl Adapter for FlutterAdapter {
 
     fn restore(
         &self,
-        _context: &SystemContext,
+        context: &SystemContext,
         runtime: &mut dyn Runtime,
         receipt: &TransactionReceipt,
     ) -> Result<RestoreResult, AdapterError> {
+        if context.os == OperatingSystem::Windows {
+            return windows_restore(context, runtime, receipt);
+        }
         let restored = runtime.restore_transaction(&receipt.transaction_id)?;
         Ok(RestoreResult {
             restored: restored.verified,
@@ -577,6 +570,7 @@ enum ShellKind {
     Bash,
     Zsh,
     Fish,
+    WindowsRegistry,
 }
 
 impl ShellKind {
@@ -585,6 +579,7 @@ impl ShellKind {
             Self::Bash => "bash",
             Self::Zsh => "zsh",
             Self::Fish => "fish",
+            Self::WindowsRegistry => "Windows user environment",
         }
     }
 }
@@ -619,6 +614,43 @@ struct Layout {
     verification_pubspec: PathBuf,
     verification_lock: PathBuf,
     verification_cache: PathBuf,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct WindowsRecoveryState {
+    schema_version: u32,
+    original_storage: Option<String>,
+    original_pub: Option<String>,
+    selected_storage: String,
+    selected_pub: String,
+}
+
+impl WindowsRecoveryState {
+    fn validate(&self) -> Result<(), AdapterError> {
+        if self.schema_version != 1
+            || !is_reviewed_storage(&self.selected_storage)
+            || !is_reviewed_pub(&self.selected_pub)
+        {
+            return Err(AdapterError::InvalidConfiguration(
+                "Flutter Windows recovery state has an invalid selected endpoint pair".into(),
+            ));
+        }
+        for original in [
+            self.original_storage.as_deref(),
+            self.original_pub.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            if !valid_registry_url(original) {
+                return Err(AdapterError::InvalidConfiguration(
+                    "Flutter Windows recovery state has an invalid original endpoint".into(),
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -662,18 +694,73 @@ struct SelectedEndpoints {
     hosted: String,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "Flutter v0.1 supports Linux x86_64 and arm64 only".into(),
+            "Flutter on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "Flutter on Windows arm64 is unavailable because the reviewed SDK channel has no native Windows arm64 archive"
+                .into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "Flutter requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
+}
+
+fn platform_artifact_flag(context: &SystemContext) -> &'static str {
+    match context.os {
+        OperatingSystem::Linux => "--linux",
+        OperatingSystem::Macos => "--macos",
+        OperatingSystem::Windows => "--windows",
+    }
+}
+
+fn storage_probe_context(context: &SystemContext) -> BTreeMap<String, String> {
+    let (manifest, platform, provenance) = match (context.os, context.architecture) {
+        (OperatingSystem::Linux, Architecture::X86_64) => (
+            "releases_linux.json",
+            "linux-x64",
+            "233a40905c350398edeb1eacad7ef43b68a8b84f0cf520201c27071dc3a70124",
+        ),
+        (OperatingSystem::Linux, Architecture::Arm64) => (
+            "releases_linux.json",
+            "linux-arm64",
+            "d06ce9d4f7f1907523507c082e4511a0ce1d45a0853bde8e0aa0ab86b2d446cc",
+        ),
+        (OperatingSystem::Macos, Architecture::X86_64) => (
+            "releases_macos.json",
+            "darwin-x64",
+            "6b3a832033f2c8e2a5d77bf96bbd61c549a1125e2fa6f47f8997880ef3191beb",
+        ),
+        (OperatingSystem::Macos, Architecture::Arm64) => (
+            "releases_macos.json",
+            "darwin-arm64",
+            "b8175594873362eaec01a6bb880b0267179974f40c2cfd151d1de8b83c4041eb",
+        ),
+        (OperatingSystem::Windows, Architecture::X86_64) => (
+            "releases_windows.json",
+            "windows-x64",
+            "c7d27a8ce0bb6bd69a661e231b7b88cb89d1011c205b8573068022ead8e9deb9",
+        ),
+        (OperatingSystem::Windows, Architecture::Arm64) => {
+            unreachable!("Windows arm64 is rejected before candidate selection")
+        }
+    };
+    BTreeMap::from([
+        ("flutter_release_manifest".into(), manifest.into()),
+        ("flutter_engine_platform".into(), platform.into()),
+        ("flutter_engine_provenance_sha".into(), provenance.into()),
+    ])
 }
 
 fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
@@ -699,6 +786,20 @@ fn config_layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layou
         .home_dir()
         .ok_or_else(|| AdapterError::Unsupported("Flutter requires a user home".into()))?;
     validate_path(&home, "home")?;
+    let verification_root = home.join(".mirrorswitch/verification/flutter");
+    if context.os == OperatingSystem::Windows {
+        let local_app_data = required_environment_path(runtime, "LOCALAPPDATA")?;
+        let app_data = required_environment_path(runtime, "APPDATA")?;
+        return Ok(Layout {
+            shell: ShellKind::WindowsRegistry,
+            profile: local_app_data.join("MirrorSwitch/flutter/environment-recovery.json"),
+            token_dir: app_data.join("dart"),
+            verification_pubspec: verification_root.join("pubspec.yaml"),
+            verification_lock: verification_root.join("pubspec.lock"),
+            verification_cache: verification_root.join("cache"),
+            verification_root,
+        });
+    }
     let shell = runtime
         .environment_variable("SHELL")
         .and_then(|value| Path::new(&value).file_name().map(|name| name.to_owned()))
@@ -709,18 +810,21 @@ fn config_layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layou
             )
         })?;
     let profile = selected_profile(context, runtime, &home, shell)?;
-    let token_dir = match runtime
-        .environment_variable("XDG_CONFIG_HOME")
-        .filter(|value| !value.trim().is_empty())
-    {
-        Some(value) => {
-            let path = PathBuf::from(value);
-            validate_path(&path, "XDG_CONFIG_HOME")?;
-            path.join("dart")
-        }
-        None => home.join(".config/dart"),
+    let token_dir = match context.os {
+        OperatingSystem::Macos => home.join("Library/Application Support/dart"),
+        OperatingSystem::Linux => match runtime
+            .environment_variable("XDG_CONFIG_HOME")
+            .filter(|value| !value.trim().is_empty())
+        {
+            Some(value) => {
+                let path = PathBuf::from(value);
+                validate_path(&path, "XDG_CONFIG_HOME")?;
+                path.join("dart")
+            }
+            None => home.join(".config/dart"),
+        },
+        OperatingSystem::Windows => unreachable!("Windows layout returned above"),
     };
-    let verification_root = home.join(".mirrorswitch/verification/flutter");
     Ok(Layout {
         shell,
         profile,
@@ -729,6 +833,636 @@ fn config_layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layou
         verification_lock: verification_root.join("pubspec.lock"),
         verification_cache: verification_root.join("cache"),
         verification_root,
+    })
+}
+
+fn required_environment_path(
+    runtime: &dyn Runtime,
+    variable: &str,
+) -> Result<PathBuf, AdapterError> {
+    let path = runtime
+        .environment_variable(variable)
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from)
+        .ok_or_else(|| {
+            AdapterError::Unsupported(format!("Flutter Windows persistence requires {variable}"))
+        })?;
+    validate_path(&path, variable)?;
+    Ok(path)
+}
+
+fn append_shared_current(
+    runtime: &dyn Runtime,
+    layout: &Layout,
+    files: &mut Vec<PathBuf>,
+    sources: &mut Vec<ConfiguredSource>,
+    documents: &mut Vec<ConfigurationDocument>,
+) -> Result<(), AdapterError> {
+    for (path, format) in project_paths(runtime)? {
+        let Some(contents) = runtime.read(&path)? else {
+            continue;
+        };
+        files.push(path.clone());
+        sources.extend(project_sources(utf8(&path, &contents)?, &path, format));
+        documents.push(ConfigurationDocument {
+            path,
+            format: format.into(),
+            contents,
+        });
+    }
+    let fixture = runtime.read(&layout.verification_pubspec)?;
+    let fixture_exists = fixture.is_some();
+    let fixture = fixture.unwrap_or_default();
+    if fixture_exists
+        && utf8(&layout.verification_pubspec, &fixture)? != render_verification_pubspec()
+    {
+        sources.push(policy_source(
+            "verification-conflict",
+            &layout.verification_pubspec,
+            layout.shell,
+        ));
+    }
+    if fixture_exists {
+        files.push(layout.verification_pubspec.clone());
+    }
+    documents.push(ConfigurationDocument {
+        path: layout.verification_pubspec.clone(),
+        format: "flutter-verification-pubspec".into(),
+        contents: fixture,
+    });
+    let lock = runtime.read(&layout.verification_lock)?;
+    let lock_exists = lock.is_some();
+    let lock = lock.unwrap_or_default();
+    if lock_exists && !fixture_exists {
+        sources.push(policy_source(
+            "verification-conflict",
+            &layout.verification_lock,
+            layout.shell,
+        ));
+    }
+    if lock_exists {
+        files.push(layout.verification_lock.clone());
+    }
+    documents.push(ConfigurationDocument {
+        path: layout.verification_lock.clone(),
+        format: "flutter-verification-lock".into(),
+        contents: lock,
+    });
+    Ok(())
+}
+
+fn windows_current(
+    runtime: &dyn Runtime,
+    layout: &Layout,
+    version: &FlutterVersion,
+) -> Result<CurrentConfiguration, AdapterError> {
+    let observed = runtime.read(&layout.profile)?;
+    let recovery_exists = observed.is_some();
+    let recovery_contents = observed.unwrap_or_default();
+    let recovery = if recovery_exists {
+        let state: WindowsRecoveryState =
+            serde_json::from_slice(&recovery_contents).map_err(|error| {
+                AdapterError::InvalidConfiguration(format!(
+                    "Flutter Windows recovery state is invalid: {error}"
+                ))
+            })?;
+        state.validate()?;
+        Some(state)
+    } else {
+        None
+    };
+    let storage = query_windows_variable(runtime, STORAGE_VARIABLE)?;
+    let hosted = query_windows_variable(runtime, PUB_VARIABLE)?;
+    let mut sources = vec![
+        snapshot_source("release-identity", &version.release_identity()),
+        snapshot_source("framework-version", &version.framework_version),
+        snapshot_source("flutter-channel", &version.channel),
+        snapshot_source("engine-artifact-version", &version.engine_revision),
+    ];
+    if recovery.is_some() {
+        sources.push(policy_source(
+            "windows-recovery-active",
+            &layout.profile,
+            ShellKind::WindowsRegistry,
+        ));
+    }
+    for (key, value, upstream) in [
+        (ManagedKey::Storage, storage.as_deref(), STORAGE_UPSTREAM),
+        (ManagedKey::Pub, hosted.as_deref(), PUB_UPSTREAM),
+    ] {
+        if let Some(value) = value {
+            let managed = recovery.as_ref().is_some_and(|state| match key {
+                ManagedKey::Storage => same_base(&state.selected_storage, value),
+                ManagedKey::Pub => same_base(&state.selected_pub, value),
+            });
+            let kind = if managed {
+                format!("{}-managed-shell-profile", key.policy_name())
+            } else if is_public(key, value) {
+                format!("{}-adoptable-shell-profile", key.policy_name())
+            } else {
+                format!("{}-private-shell-profile", key.policy_name())
+            };
+            sources.push(configured_source(
+                value,
+                upstream,
+                &kind,
+                Path::new(r"HKCU\Environment"),
+                ShellKind::WindowsRegistry,
+            ));
+        }
+    }
+    for (key, persistent) in [
+        (ManagedKey::Storage, storage.as_deref()),
+        (ManagedKey::Pub, hosted.as_deref()),
+    ] {
+        if let Some(value) = runtime
+            .environment_variable(key.environment_name())
+            .filter(|value| !value.trim().is_empty())
+        {
+            let stale_original = recovery.as_ref().is_some_and(|state| {
+                let original = match key {
+                    ManagedKey::Storage => state.original_storage.as_deref(),
+                    ManagedKey::Pub => state.original_pub.as_deref(),
+                };
+                original.is_some_and(|original| same_base(original, &value))
+            });
+            if !persistent.is_some_and(|persistent| same_base(persistent, &value))
+                && !stale_original
+            {
+                sources.push(policy_source(
+                    &format!("{}-environment-override", key.policy_name()),
+                    Path::new(":env:"),
+                    ShellKind::WindowsRegistry,
+                ));
+            }
+        }
+    }
+    if token_file_count(runtime, &layout.token_dir)? > 0 {
+        sources.push(policy_source(
+            "credentials-detected",
+            &layout.token_dir,
+            ShellKind::WindowsRegistry,
+        ));
+    }
+
+    let mut files = recovery_exists
+        .then_some(layout.profile.clone())
+        .into_iter()
+        .collect::<Vec<_>>();
+    let mut documents = vec![
+        ConfigurationDocument {
+            path: layout.profile.clone(),
+            format: "flutter-windows-recovery".into(),
+            contents: recovery_contents,
+        },
+        ConfigurationDocument {
+            path: PathBuf::from(r"HKCU\Environment\FLUTTER_STORAGE_BASE_URL"),
+            format: "flutter-windows-storage-snapshot".into(),
+            contents: storage.as_deref().unwrap_or_default().as_bytes().to_vec(),
+        },
+        ConfigurationDocument {
+            path: PathBuf::from(r"HKCU\Environment\PUB_HOSTED_URL"),
+            format: "flutter-windows-pub-snapshot".into(),
+            contents: hosted.as_deref().unwrap_or_default().as_bytes().to_vec(),
+        },
+    ];
+    append_shared_current(runtime, layout, &mut files, &mut sources, &mut documents)?;
+    Ok(CurrentConfiguration {
+        tool_id: "flutter".into(),
+        scope: ConfigurationScope::User,
+        files,
+        sources,
+        documents,
+    })
+}
+
+fn windows_plan(
+    context: &SystemContext,
+    current: &CurrentConfiguration,
+    selected: &SelectedEndpoints,
+) -> Result<ChangePlan, AdapterError> {
+    let recovery = find_document(current, "flutter-windows-recovery")?;
+    let fixture = find_document(current, "flutter-verification-pubspec")?;
+    let lock = find_document(current, "flutter-verification-lock")?;
+    if !recovery.contents.is_empty() {
+        let state: WindowsRecoveryState =
+            serde_json::from_slice(&recovery.contents).map_err(|error| {
+                AdapterError::InvalidConfiguration(format!(
+                    "Flutter Windows recovery state is invalid: {error}"
+                ))
+            })?;
+        state.validate()?;
+        if !same_base(&state.selected_storage, &selected.storage)
+            || !same_base(&state.selected_pub, &selected.hosted)
+        {
+            return Err(AdapterError::Unsupported(
+                "a previous Flutter Windows recovery state is active; restore it before selecting another endpoint pair"
+                    .into(),
+            ));
+        }
+        if fixture.contents != render_verification_pubspec().as_bytes()
+            || !current.files.contains(&lock.path)
+        {
+            return Err(AdapterError::Unsupported(
+                "active Flutter Windows recovery state has incomplete verification files; restore it first"
+                    .into(),
+            ));
+        }
+        return Ok(ChangePlan {
+            adapter_key: "flutter".into(),
+            tool_id: "flutter".into(),
+            scope: ConfigurationScope::User,
+            changes: Vec::new(),
+            requires_elevation: false,
+            service_impact: ServiceImpact::None,
+        });
+    }
+    let state = WindowsRecoveryState {
+        schema_version: 1,
+        original_storage: snapshot_document_value(current, "flutter-windows-storage-snapshot")?,
+        original_pub: snapshot_document_value(current, "flutter-windows-pub-snapshot")?,
+        selected_storage: selected.storage.clone(),
+        selected_pub: selected.hosted.clone(),
+    };
+    state.validate()?;
+    let mut recovery_contents = serde_json::to_vec_pretty(&state).map_err(|error| {
+        AdapterError::Runtime(format!(
+            "could not serialize Flutter Windows recovery state: {error}"
+        ))
+    })?;
+    recovery_contents.push(b'\n');
+    let mut changes = Vec::new();
+    add_change(
+        context,
+        current,
+        recovery,
+        recovery_contents,
+        "record private Flutter Windows user-environment recovery state before updating the storage and Pub pair",
+        &mut changes,
+    );
+    add_change(
+        context,
+        current,
+        fixture,
+        render_verification_pubspec().into_bytes(),
+        "create an isolated Flutter Pub dependency fixture",
+        &mut changes,
+    );
+    add_change(
+        context,
+        current,
+        lock,
+        render_verification_lock().into_bytes(),
+        "snapshot the isolated Flutter Pub lockfile inside the configuration transaction",
+        &mut changes,
+    );
+    Ok(ChangePlan {
+        adapter_key: "flutter".into(),
+        tool_id: "flutter".into(),
+        scope: ConfigurationScope::User,
+        changes,
+        requires_elevation: false,
+        service_impact: ServiceImpact::None,
+    })
+}
+
+fn snapshot_document_value(
+    current: &CurrentConfiguration,
+    format: &str,
+) -> Result<Option<String>, AdapterError> {
+    let document = find_document(current, format)?;
+    if document.contents.is_empty() {
+        return Ok(None);
+    }
+    String::from_utf8(document.contents.clone())
+        .map(Some)
+        .map_err(|_| AdapterError::InvalidConfiguration(format!("{format} is not UTF-8")))
+}
+
+fn windows_apply(
+    runtime: &mut dyn Runtime,
+    plan: &ChangePlan,
+) -> Result<ApplyOutcome, AdapterError> {
+    if plan.adapter_key != "flutter" || plan.tool_id != "flutter" {
+        return Err(AdapterError::InvalidConfiguration(
+            "Flutter Windows apply received another tool's plan".into(),
+        ));
+    }
+    let state = plan.changes.iter().find_map(|change| {
+        serde_json::from_slice::<WindowsRecoveryState>(&change.new_contents).ok()
+    });
+    let Some(state) = state else {
+        return runtime.apply_plan(plan);
+    };
+    state.validate()?;
+    let outcome = runtime.apply_plan(plan)?;
+    let ApplyOutcome::Applied(receipt) = &outcome else {
+        return Ok(outcome);
+    };
+    if let Err(error) = set_windows_pair(runtime, &state.selected_storage, &state.selected_pub) {
+        let registry_restored = restore_windows_pair(runtime, &state).is_ok();
+        let state_restored =
+            registry_restored && runtime.restore_transaction(&receipt.transaction_id).is_ok();
+        return Err(AdapterError::Runtime(format!(
+            "Flutter Windows environment update failed: {error}; registry restored: {registry_restored}; recovery files restored: {state_restored}"
+        )));
+    }
+    Ok(outcome)
+}
+
+fn windows_verify(
+    context: &SystemContext,
+    runtime: &mut dyn Runtime,
+    receipt: &TransactionReceipt,
+) -> Result<VerificationResult, AdapterError> {
+    let layout = config_layout(context, runtime)?;
+    let state = read_windows_recovery(runtime, &layout)?;
+    let known = [
+        rooted(&context.root, &layout.profile),
+        rooted(&context.root, &layout.verification_pubspec),
+        rooted(&context.root, &layout.verification_lock),
+    ];
+    if receipt
+        .changed_targets
+        .iter()
+        .all(|target| !known.contains(target))
+    {
+        return Err(AdapterError::InvalidConfiguration(
+            "Flutter Windows receipt contains no known target".into(),
+        ));
+    }
+    let result = (|| {
+        if query_windows_variable(runtime, STORAGE_VARIABLE)?.as_deref()
+            != Some(state.selected_storage.as_str())
+            || query_windows_variable(runtime, PUB_VARIABLE)?.as_deref()
+                != Some(state.selected_pub.as_str())
+        {
+            return Err(AdapterError::Verification(
+                "Flutter Windows user environment did not retain the selected endpoint pair".into(),
+            ));
+        }
+        let pubspec = runtime.read(&layout.verification_pubspec)?.ok_or_else(|| {
+            AdapterError::Verification("Flutter verification pubspec disappeared".into())
+        })?;
+        if utf8(&layout.verification_pubspec, &pubspec)? != render_verification_pubspec() {
+            return Err(AdapterError::Verification(
+                "Flutter verification pubspec is not canonical".into(),
+            ));
+        }
+        let version = flutter_version(
+            runtime,
+            Some(&state.selected_storage),
+            Some(&state.selected_pub),
+        )?;
+        validate_version(&version)?;
+        run_flutter(
+            runtime,
+            None,
+            Some(&state.selected_storage),
+            Some(&state.selected_pub),
+            None,
+            &[
+                "--suppress-analytics",
+                "precache",
+                platform_artifact_flag(context),
+            ],
+            "Flutter Windows precache verification",
+        )?;
+        let doctor = run_flutter(
+            runtime,
+            None,
+            Some(&state.selected_storage),
+            Some(&state.selected_pub),
+            None,
+            &["--suppress-analytics", "doctor", "--verbose"],
+            "Flutter doctor verification",
+        )?;
+        if !doctor.contains("Flutter") {
+            return Err(AdapterError::Verification(
+                "flutter doctor did not report the Flutter installation".into(),
+            ));
+        }
+        run_flutter(
+            runtime,
+            Some(&layout.verification_root),
+            Some(&state.selected_storage),
+            Some(&state.selected_pub),
+            Some(&layout.verification_cache),
+            &["--suppress-analytics", "pub", "get"],
+            "Flutter Pub dependency verification",
+        )?;
+        let deps = run_flutter(
+            runtime,
+            Some(&layout.verification_root),
+            Some(&state.selected_storage),
+            Some(&state.selected_pub),
+            Some(&layout.verification_cache),
+            &["--suppress-analytics", "pub", "deps", "--style=compact"],
+            "Flutter Pub dependency query",
+        )?;
+        if !deps.contains("retry 3.1.2") {
+            return Err(AdapterError::Verification(
+                "Flutter Pub query did not resolve retry 3.1.2".into(),
+            ));
+        }
+        let lock = runtime.read(&layout.verification_lock)?.ok_or_else(|| {
+            AdapterError::Verification("Flutter verification lockfile was not created".into())
+        })?;
+        let lock = utf8(&layout.verification_lock, &lock)?;
+        if !lock.contains("retry:")
+            || !lock.contains("version: \"3.1.2\"")
+            || !lock.contains(state.selected_pub.trim_end_matches('/'))
+        {
+            return Err(AdapterError::Verification(
+                "Flutter lockfile does not bind retry 3.1.2 to the selected Pub endpoint".into(),
+            ));
+        }
+        Ok(VerificationResult {
+            valid: true,
+            summary: format!(
+                "Flutter {} {} verified Windows artifacts through {} and Pub through {}",
+                version.framework_version,
+                version.channel,
+                state.selected_storage,
+                state.selected_pub
+            ),
+        })
+    })();
+    if let Err(error) = result {
+        let registry_restored = restore_windows_pair(runtime, &state).is_ok();
+        let state_restored =
+            registry_restored && runtime.restore_transaction(&receipt.transaction_id).is_ok();
+        return Err(AdapterError::Verification(format!(
+            "{error}; registry restored: {registry_restored}; recovery files restored: {state_restored}"
+        )));
+    }
+    result
+}
+
+fn windows_restore(
+    context: &SystemContext,
+    runtime: &mut dyn Runtime,
+    receipt: &TransactionReceipt,
+) -> Result<RestoreResult, AdapterError> {
+    let layout = config_layout(context, runtime)?;
+    let state = read_windows_recovery(runtime, &layout)?;
+    restore_windows_pair(runtime, &state)?;
+    let restored = runtime.restore_transaction(&receipt.transaction_id)?;
+    Ok(RestoreResult {
+        restored: restored.verified,
+        summary: "restored the previous Flutter Windows user environment and recovery files".into(),
+    })
+}
+
+fn read_windows_recovery(
+    runtime: &dyn Runtime,
+    layout: &Layout,
+) -> Result<WindowsRecoveryState, AdapterError> {
+    let contents = runtime
+        .read(&layout.profile)?
+        .ok_or_else(|| AdapterError::Runtime("Flutter Windows recovery state is missing".into()))?;
+    let state: WindowsRecoveryState = serde_json::from_slice(&contents).map_err(|error| {
+        AdapterError::InvalidConfiguration(format!(
+            "Flutter Windows recovery state is invalid: {error}"
+        ))
+    })?;
+    state.validate()?;
+    Ok(state)
+}
+
+fn query_windows_variable(
+    runtime: &dyn Runtime,
+    variable: &str,
+) -> Result<Option<String>, AdapterError> {
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "query".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            variable.into(),
+        ],
+    )?;
+    if output.status.code() == Some(1) {
+        return Ok(None);
+    }
+    if !output.status.success() {
+        return Err(AdapterError::Runtime(format!(
+            "reg.exe query {variable} failed with status {}",
+            output.status
+        )));
+    }
+    let text = String::from_utf8(output.stdout)
+        .map_err(|_| AdapterError::Runtime("reg.exe returned non-UTF-8 output".into()))?;
+    let line = text
+        .lines()
+        .map(str::trim)
+        .find(|line| line.starts_with(variable))
+        .ok_or_else(|| {
+            AdapterError::InvalidConfiguration(format!("reg.exe returned no {variable} value"))
+        })?;
+    let rest = line[variable.len()..].trim_start();
+    let split = rest.find(char::is_whitespace).ok_or_else(|| {
+        AdapterError::InvalidConfiguration(format!("reg.exe returned malformed {variable} state"))
+    })?;
+    let kind = &rest[..split];
+    let value = rest[split..].trim();
+    if kind != "REG_SZ" || !valid_registry_url(value) {
+        return Err(AdapterError::Unsupported(format!(
+            "Flutter Windows {variable} must be a non-empty HTTPS REG_SZ URL"
+        )));
+    }
+    Ok(Some(value.into()))
+}
+
+fn set_windows_pair(
+    runtime: &dyn Runtime,
+    storage: &str,
+    hosted: &str,
+) -> Result<(), AdapterError> {
+    set_windows_variable(runtime, STORAGE_VARIABLE, storage)?;
+    set_windows_variable(runtime, PUB_VARIABLE, hosted)
+}
+
+fn restore_windows_pair(
+    runtime: &dyn Runtime,
+    state: &WindowsRecoveryState,
+) -> Result<(), AdapterError> {
+    restore_windows_variable(runtime, STORAGE_VARIABLE, state.original_storage.as_deref())?;
+    restore_windows_variable(runtime, PUB_VARIABLE, state.original_pub.as_deref())
+}
+
+fn restore_windows_variable(
+    runtime: &dyn Runtime,
+    variable: &str,
+    original: Option<&str>,
+) -> Result<(), AdapterError> {
+    match original {
+        Some(value) => set_windows_variable(runtime, variable, value),
+        None => delete_windows_variable(runtime, variable),
+    }
+}
+
+fn set_windows_variable(
+    runtime: &dyn Runtime,
+    variable: &str,
+    value: &str,
+) -> Result<(), AdapterError> {
+    if !valid_registry_url(value) {
+        return Err(AdapterError::InvalidConfiguration(format!(
+            "Flutter Windows {variable} endpoint is not a valid HTTPS URL"
+        )));
+    }
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "add".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            variable.into(),
+            "/t".into(),
+            "REG_SZ".into(),
+            "/d".into(),
+            value.into(),
+            "/f".into(),
+        ],
+    )?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(AdapterError::Runtime(format!(
+            "reg.exe add {variable} failed with status {}",
+            output.status
+        )))
+    }
+}
+
+fn delete_windows_variable(runtime: &dyn Runtime, variable: &str) -> Result<(), AdapterError> {
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "delete".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            variable.into(),
+            "/f".into(),
+        ],
+    )?;
+    if output.status.success() || output.status.code() == Some(1) {
+        Ok(())
+    } else {
+        Err(AdapterError::Runtime(format!(
+            "reg.exe delete {variable} failed with status {}",
+            output.status
+        )))
+    }
+}
+
+fn valid_registry_url(value: &str) -> bool {
+    reqwest::Url::parse(value).is_ok_and(|url| {
+        url.scheme() == "https"
+            && url.host_str().is_some()
+            && !value.chars().any(char::is_whitespace)
     })
 }
 
@@ -784,6 +1518,9 @@ fn selected_profile(
             None => home.join(".zshrc"),
         },
         ShellKind::Fish => home.join(".config/fish/conf.d/mirrorswitch-flutter.fish"),
+        ShellKind::WindowsRegistry => {
+            unreachable!("Windows layout returned before shell selection")
+        }
     };
     validate_user_path(&path, home, "shell profile")?;
     Ok(path)
@@ -983,6 +1720,11 @@ fn assignment(line: &str, shell: ShellKind) -> Result<Option<(ManagedKey, &str)>
                 )));
             }
             (key, value)
+        }
+        ShellKind::WindowsRegistry => {
+            return Err(AdapterError::InvalidConfiguration(
+                "Flutter Windows registry is not a shell profile".into(),
+            ));
         }
     };
     Ok(Some((key, literal_value(raw, key)?)))
@@ -1242,6 +1984,9 @@ fn render_managed(storage: &str, hosted: &str, newline: &str, shell: ShellKind) 
             format!("set -gx FLUTTER_STORAGE_BASE_URL '{storage}'"),
             format!("set -gx PUB_HOSTED_URL '{hosted}'"),
         ),
+        ShellKind::WindowsRegistry => {
+            unreachable!("Flutter Windows persistence does not render a shell block")
+        }
     };
     format!("{MANAGED_BEGIN}{newline}{storage}{newline}{hosted}{newline}{MANAGED_END}{newline}")
 }
@@ -1628,28 +2373,32 @@ fn run_flutter_output(
     cache: Option<&Path>,
     arguments: &[&str],
 ) -> Result<std::process::Output, AdapterError> {
-    let mut command = vec![
-        "CI=true".into(),
-        "DART_SUPPRESS_ANALYTICS=1".into(),
-        "FLUTTER_SUPPRESS_ANALYTICS=true".into(),
-    ];
+    let mut environment = BTreeMap::from([
+        ("CI".into(), "true".into()),
+        ("DART_SUPPRESS_ANALYTICS".into(), "1".into()),
+        ("FLUTTER_SUPPRESS_ANALYTICS".into(), "true".into()),
+    ]);
     if let Some(storage) = storage {
-        command.push(format!("FLUTTER_STORAGE_BASE_URL={storage}"));
+        environment.insert(STORAGE_VARIABLE.into(), storage.into());
     }
     if let Some(hosted) = hosted {
-        command.push(format!("PUB_HOSTED_URL={hosted}"));
+        environment.insert(PUB_VARIABLE.into(), hosted.into());
     }
     if let Some(cache) = cache {
         let cache = cache.to_str().ok_or_else(|| {
             AdapterError::Verification("Flutter verification cache path is not UTF-8".into())
         })?;
-        command.push(format!("PUB_CACHE={cache}"));
+        environment.insert("PUB_CACHE".into(), cache.into());
     }
-    command.push("flutter".into());
-    command.extend(arguments.iter().map(|argument| (*argument).into()));
+    let arguments = arguments
+        .iter()
+        .map(|argument| (*argument).into())
+        .collect::<Vec<_>>();
     match directory {
-        Some(directory) => runtime.run_in(directory, "env", &command),
-        None => runtime.run("env", &command),
+        Some(directory) => {
+            runtime.run_in_with_environment(directory, "flutter", &arguments, &environment, &[])
+        }
+        None => runtime.run_with_environment("flutter", &arguments, &environment, &[]),
     }
 }
 
@@ -1767,7 +2516,7 @@ fn validate_path(path: &Path, kind: &str) -> Result<(), AdapterError> {
     if !path.is_absolute()
         || path
             .components()
-            .any(|component| component == Component::ParentDir)
+            .any(|component| matches!(component, Component::ParentDir | Component::CurDir))
     {
         return Err(AdapterError::InvalidConfiguration(format!(
             "Flutter reported unsafe {kind} path {}",
@@ -1778,6 +2527,9 @@ fn validate_path(path: &Path, kind: &str) -> Result<(), AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "Flutter configuration {} is not UTF-8",

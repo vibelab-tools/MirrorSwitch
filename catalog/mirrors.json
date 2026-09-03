@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+ddfe48529230",
-  "content_revision": 20260903034727,
-  "generated_at": "2026-09-03T03:47:27Z",
+  "content_version": "2026.08.28+9251ba2962a5",
+  "content_revision": 20260903040807,
+  "generated_at": "2026-09-03T04:08:07Z",
   "providers": [
     {
       "id": "aliyun",
@@ -5190,6 +5190,86 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "131e57127d4487c2452e72d7",
+      "provider_id": "nju",
+      "upstream_id": "flutter--release-artifacts",
+      "tool_id": "flutter",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "flutter"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/flutter/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/flutter/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/flutter/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "stable/3.47.2/d3b14c876900e553bc736ca19295fc09e3853e8e/a804b261645ef8c13eb3d5c44a5c2fb0340c5539"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/flutter_infra_release/releases/{flutter_release_manifest}",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"hash\": \"d3b14c876900e553bc736ca19295fc09e3853e8e\",\n      \"channel\": \"stable\",\n      \"version\": \"3.47.2\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/flutter_infra_release/flutter/a804b261645ef8c13eb3d5c44a5c2fb0340c5539/{flutter_engine_platform}/artifacts.zip.intoto.jsonl",
+          "expected_status": [
+            200
+          ],
+          "sha256": "{flutter_engine_provenance_sha}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/flutter_infra_release/flutter/a804b261645ef8c13eb3d5c44a5c2fb0340c5539/{flutter_engine_platform}/artifacts.zip",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "14119ee1aedecd3764d3eefc",
       "provider_id": "sjtug",
       "upstream_id": "docker-ce--repository-metadata",
@@ -6648,101 +6728,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "1bb2e6b0cd9a0633685935fc",
-      "provider_id": "nju",
-      "upstream_id": "flutter--release-artifacts",
-      "tool_id": "flutter",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "flutter"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/flutter/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/flutter/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/flutter/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": [
-          "stable/3.47.2/d3b14c876900e553bc736ca19295fc09e3853e8e/a804b261645ef8c13eb3d5c44a5c2fb0340c5539"
-        ]
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/flutter_infra_release/releases/releases_linux.json",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"hash\": \"d3b14c876900e553bc736ca19295fc09e3853e8e\",\n      \"channel\": \"stable\",\n      \"version\": \"3.47.2\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/flutter_infra_release/flutter/a804b261645ef8c13eb3d5c44a5c2fb0340c5539/linux-x64/artifacts.zip.intoto.jsonl",
-          "expected_status": [
-            200
-          ],
-          "sha256": "233a40905c350398edeb1eacad7ef43b68a8b84f0cf520201c27071dc3a70124"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/flutter_infra_release/flutter/a804b261645ef8c13eb3d5c44a5c2fb0340c5539/linux-x64/artifacts.zip",
-          "expected_status": [
-            200
-          ]
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/flutter_infra_release/flutter/a804b261645ef8c13eb3d5c44a5c2fb0340c5539/linux-arm64/artifacts.zip.intoto.jsonl",
-          "expected_status": [
-            200
-          ],
-          "sha256": "d06ce9d4f7f1907523507c082e4511a0ce1d45a0853bde8e0aa0ab86b2d446cc"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/flutter_infra_release/flutter/a804b261645ef8c13eb3d5c44a5c2fb0340c5539/linux-arm64/artifacts.zip",
-          "expected_status": [
-            200
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "1bcbe4ef532779c3f5caa1ad",
       "provider_id": "tuna",
       "upstream_id": "manjaro--repository-metadata",
@@ -8006,96 +7991,6 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "22d8d0e0affda32fc294cae8",
-      "provider_id": "tuna",
-      "upstream_id": "dart-pub--language-registry",
-      "tool_id": "flutter",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "dart-pub"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/packages/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/api/packages/retry",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"retry\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/api/packages/retry",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/json",
-          "contains": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/retry/versions/3.1.2.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/retry/versions/3.1.2.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream",
-          "sha256": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
-        }
-      ],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -10446,6 +10341,98 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "3b26357390557d4fd99376a7",
+      "provider_id": "sjtug",
+      "upstream_id": "dart-pub--language-registry",
+      "tool_id": "flutter",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "dart-pub"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/dart-pub/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/dart-pub/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://storage.flutter-io.cn/dartlang-pub-exported-api/latest/api/archives/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/api/packages/retry",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"retry\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/api/packages/retry",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/json",
+          "contains": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/retry-3.1.2.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/retry-3.1.2.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet",
+          "sha256": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -20079,6 +20066,98 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "8e596bd9cb376b9019520008",
+      "provider_id": "tuna",
+      "upstream_id": "dart-pub--language-registry",
+      "tool_id": "flutter",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "dart-pub"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/api/packages/retry",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"retry\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/api/packages/retry",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/json",
+          "contains": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/retry/versions/3.1.2.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/retry/versions/3.1.2.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "8f218d323ea38c4f868b7fa0",
       "provider_id": "aliyun",
       "upstream_id": "archlinux--repository-metadata",
@@ -28373,101 +28452,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "c885b47bf707a564bd462cdf",
-      "provider_id": "sjtug",
-      "upstream_id": "flutter--release-artifacts",
-      "tool_id": "flutter",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "flutter_infra"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": [
-          "stable/3.47.2/d3b14c876900e553bc736ca19295fc09e3853e8e/a804b261645ef8c13eb3d5c44a5c2fb0340c5539"
-        ]
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/flutter_infra_release/releases/releases_linux.json",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"hash\": \"d3b14c876900e553bc736ca19295fc09e3853e8e\",\n      \"channel\": \"stable\",\n      \"version\": \"3.47.2\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/flutter_infra_release/flutter/a804b261645ef8c13eb3d5c44a5c2fb0340c5539/linux-x64/artifacts.zip.intoto.jsonl",
-          "expected_status": [
-            200
-          ],
-          "sha256": "233a40905c350398edeb1eacad7ef43b68a8b84f0cf520201c27071dc3a70124"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/flutter_infra_release/flutter/a804b261645ef8c13eb3d5c44a5c2fb0340c5539/linux-x64/artifacts.zip",
-          "expected_status": [
-            200
-          ]
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/flutter_infra_release/flutter/a804b261645ef8c13eb3d5c44a5c2fb0340c5539/linux-arm64/artifacts.zip.intoto.jsonl",
-          "expected_status": [
-            200
-          ],
-          "sha256": "d06ce9d4f7f1907523507c082e4511a0ce1d45a0853bde8e0aa0ab86b2d446cc"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/flutter_infra_release/flutter/a804b261645ef8c13eb3d5c44a5c2fb0340c5539/linux-arm64/artifacts.zip",
-          "expected_status": [
-            200
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "c8cbe7146aa2305d73ae4f1a",
       "provider_id": "sjtug",
       "upstream_id": "pypi--language-registry",
@@ -29381,96 +29365,6 @@
           ],
           "expected_content_type": "text/html",
           "contains": "sampleproject-"
-        }
-      ],
-      "source_urls": [
-        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "ce3963d030a2f489d7ceb557",
-      "provider_id": "sjtug",
-      "upstream_id": "dart-pub--language-registry",
-      "tool_id": "flutter",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "dart-pub"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/dart-pub/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirror.sjtu.edu.cn/dart-pub/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://storage.flutter-io.cn/dartlang-pub-exported-api/latest/api/archives/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/api/packages/retry",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"retry\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/api/packages/retry",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/json",
-          "contains": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/retry-3.1.2.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/retry-3.1.2.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet",
-          "sha256": "822e118d5b3aafed083109c72d5f484c6dc66707885e07c0fbcb8b986bba7efc"
         }
       ],
       "source_urls": [
@@ -30860,6 +30754,86 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "d4adc82f7bfa5d96f0dfe0b6",
+      "provider_id": "sjtug",
+      "upstream_id": "flutter--release-artifacts",
+      "tool_id": "flutter",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "flutter_infra"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirror.sjtu.edu.cn/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "stable/3.47.2/d3b14c876900e553bc736ca19295fc09e3853e8e/a804b261645ef8c13eb3d5c44a5c2fb0340c5539"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/flutter_infra_release/releases/{flutter_release_manifest}",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"hash\": \"d3b14c876900e553bc736ca19295fc09e3853e8e\",\n      \"channel\": \"stable\",\n      \"version\": \"3.47.2\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/flutter_infra_release/flutter/a804b261645ef8c13eb3d5c44a5c2fb0340c5539/{flutter_engine_platform}/artifacts.zip.intoto.jsonl",
+          "expected_status": [
+            200
+          ],
+          "sha256": "{flutter_engine_provenance_sha}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/flutter_infra_release/flutter/a804b261645ef8c13eb3d5c44a5c2fb0340c5539/{flutter_engine_platform}/artifacts.zip",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

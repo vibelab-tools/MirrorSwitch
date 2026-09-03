@@ -728,6 +728,30 @@ impl Runtime for OsRuntime {
         })
     }
 
+    fn run_with_environment(
+        &self,
+        program: &str,
+        arguments: &[String],
+        environment: &BTreeMap<String, String>,
+        removed_environment: &[String],
+    ) -> Result<Output, AdapterError> {
+        let logical = self.find_command(program).ok_or_else(|| {
+            AdapterError::Runtime(format!("command {program} is not available on PATH"))
+        })?;
+        run_command_with_environment(
+            &physical_path(&self.root, &logical),
+            arguments,
+            None,
+            environment,
+            removed_environment,
+        )
+        .map_err(|error| {
+            AdapterError::Runtime(format!(
+                "could not run {program} with an isolated environment: {error}"
+            ))
+        })
+    }
+
     fn apply_plan(
         &mut self,
         plan: &crate::plan::ChangePlan,

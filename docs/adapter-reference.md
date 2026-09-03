@@ -71,7 +71,7 @@ content remain unchanged and are reported.
 | `bioconductor` | user | Version-paired repository/package query; project/renv configuration stays read-only ([#64](https://github.com/vibelab-tools/MirrorSwitch/issues/64)) |
 | `tlmgr` | system/user | TeX Live remote query; release year and installation platform must match ([#65](https://github.com/vibelab-tools/MirrorSwitch/issues/65)) |
 | `dart-pub` | user | Linux/macOS shell profile or Windows HKCU environment plus isolated fixed-package resolution; token/project state preserved and Flutter SDK artifacts excluded ([details](adapters/dart-pub.md)) |
-| `flutter` | user | Flutter storage plus Pub query; both repository classes must validate ([#66](https://github.com/vibelab-tools/MirrorSwitch/issues/66)) |
+| `flutter` | user | Linux/macOS profile or Windows HKCU pair; platform-specific Flutter storage and Pub chains must both validate before native precache/doctor/query ([details](adapters/flutter.md)) |
 | `julia` | user | Isolated Pkg resolve; depot/registries/projects remain read-only ([#72](https://github.com/vibelab-tools/MirrorSwitch/issues/72)) |
 | `opam` | user | Repository/package archive query; project switches remain read-only ([#71](https://github.com/vibelab-tools/MirrorSwitch/issues/71)) |
 | `elpa` | user | Batch archive refresh; GNU/NonGNU/MELPA selected independently ([#80](https://github.com/vibelab-tools/MirrorSwitch/issues/80)) |

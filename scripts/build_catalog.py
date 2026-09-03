@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "95"
+CATALOG_FORMAT_REVISION = "96"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -342,12 +342,6 @@ FLUTTER_RELEASE_IDENTITY = (
 FLUTTER_FRAMEWORK_VERSION = "3.47.2"
 FLUTTER_FRAMEWORK_REVISION = "d3b14c876900e553bc736ca19295fc09e3853e8e"
 FLUTTER_ENGINE_ARTIFACT_VERSION = "a804b261645ef8c13eb3d5c44a5c2fb0340c5539"
-FLUTTER_X64_PROVENANCE_SHA256 = (
-    "233a40905c350398edeb1eacad7ef43b68a8b84f0cf520201c27071dc3a70124"
-)
-FLUTTER_ARM64_PROVENANCE_SHA256 = (
-    "d06ce9d4f7f1907523507c082e4511a0ce1d45a0853bde8e0aa0ab86b2d446cc"
-)
 CPAN_RUNTIME_UPSTREAM = "cpan--language-registry"
 CPAN_TRY_TINY_SHA256 = (
     "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
@@ -2075,7 +2069,7 @@ def runtime_properties(
             )
         )
     ):
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []
@@ -2089,7 +2083,7 @@ def runtime_properties(
             {
                 "endpoint_role": "index",
                 "method": "get",
-                "path": "/flutter_infra_release/releases/releases_linux.json",
+                "path": "/flutter_infra_release/releases/{flutter_release_manifest}",
                 "expected_status": [200],
                 "expected_content_type": "application/json",
                 "contains": (
@@ -2101,27 +2095,14 @@ def runtime_properties(
             {
                 "endpoint_role": "metadata",
                 "method": "get",
-                "path": f"{engine_root}/linux-x64/artifacts.zip.intoto.jsonl",
+                "path": f"{engine_root}/{{flutter_engine_platform}}/artifacts.zip.intoto.jsonl",
                 "expected_status": [200],
-                "sha256": FLUTTER_X64_PROVENANCE_SHA256,
+                "sha256": "{flutter_engine_provenance_sha}",
             },
             {
                 "endpoint_role": "artifacts",
                 "method": "head",
-                "path": f"{engine_root}/linux-x64/artifacts.zip",
-                "expected_status": [200],
-            },
-            {
-                "endpoint_role": "metadata",
-                "method": "get",
-                "path": f"{engine_root}/linux-arm64/artifacts.zip.intoto.jsonl",
-                "expected_status": [200],
-                "sha256": FLUTTER_ARM64_PROVENANCE_SHA256,
-            },
-            {
-                "endpoint_role": "artifacts",
-                "method": "head",
-                "path": f"{engine_root}/linux-arm64/artifacts.zip",
+                "path": f"{engine_root}/{{flutter_engine_platform}}/artifacts.zip",
                 "expected_status": [200],
             },
         ]
@@ -2131,9 +2112,7 @@ def runtime_properties(
         and entry["raw_name"] == "dart-pub"
         and entry["provider_id"] in DART_PUB_HOSTED_ENDPOINTS
     ):
-        compatibility["operating_systems"] = (
-            ["linux", "macos", "windows"] if tool_id == "dart-pub" else ["linux"]
-        )
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []
