@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+9251ba2962a5",
-  "content_revision": 20260903040807,
-  "generated_at": "2026-09-03T04:08:07Z",
+  "content_version": "2026.08.28+03afca257545",
+  "content_revision": 20260903042551,
+  "generated_at": "2026-09-03T04:25:51Z",
   "providers": [
     {
       "id": "aliyun",
@@ -21363,6 +21363,106 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "98bc4ef0f2e9c0531365555f",
+      "provider_id": "nju",
+      "upstream_id": "julia--language-registry",
+      "tool_id": "julia",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "julia"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/julia/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/julia/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/julia/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/registries",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "/registry/23338594-aafe-5451-b93e-139f81909106/"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/registry/23338594-aafe-5451-b93e-139f81909106/c6e23649d0bda5ca27b700da3c569fe000639859",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/package/7876af07-990d-54b4-ab0e-23690620f79a/e1f0e1a832ccd8e97d6d0348dec33ee139a5aeaf",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "87dd4f0b8977bbdc95ce08fa896d635aafaa3e65ddd06af5e9a2c3eaa432cad8"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/package/dca1746e-5efc-54fc-8249-22745bc95a49/370059fde9f8b780a2335dcbcf05ba224053d45f",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "1aec74638a21b3890c58763ff1bbe05ec26d48a567f5b5d87c7e68a2a7d9f51c"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/artifact/{julia_artifact_tree}",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{julia_artifact_sha}"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "993238c6d8b4a777818fa954",
       "provider_id": "tuna",
       "upstream_id": "docker-ce--repository-metadata",
@@ -25900,114 +26000,6 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "ba4744d3fed0a4ff4ef3c099",
-      "provider_id": "nju",
-      "upstream_id": "julia--language-registry",
-      "tool_id": "julia",
-      "catalog_state": "cataloged",
-      "delivery_mode": "proxy",
-      "raw_names": [
-        "julia"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/julia/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/julia/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/julia/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/registries",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "contains": "/registry/23338594-aafe-5451-b93e-139f81909106/"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "head",
-          "path": "/registry/23338594-aafe-5451-b93e-139f81909106/c6e23649d0bda5ca27b700da3c569fe000639859",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/package/7876af07-990d-54b4-ab0e-23690620f79a/e1f0e1a832ccd8e97d6d0348dec33ee139a5aeaf",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "sha256": "87dd4f0b8977bbdc95ce08fa896d635aafaa3e65ddd06af5e9a2c3eaa432cad8"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/package/dca1746e-5efc-54fc-8249-22745bc95a49/370059fde9f8b780a2335dcbcf05ba224053d45f",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "sha256": "1aec74638a21b3890c58763ff1bbe05ec26d48a567f5b5d87c7e68a2a7d9f51c"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/artifact/c8aa41cab66118db2387696eba33856344935ce3",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "sha256": "ba2e68bc72a3e6cadefb8ff892bc7c76289b06b7606cc4d1f2613ce917c5425f"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/artifact/a2368a2caae8074bdda6e71d51acb43553fcd076",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "sha256": "7b56d8aa960fe3e540f945126c942f4be1bcb1da66f4fd530450a70efcd76955"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

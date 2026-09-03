@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "96"
+CATALOG_FORMAT_REVISION = "97"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -413,16 +413,6 @@ JULIA_HELLO_TREE = "370059fde9f8b780a2335dcbcf05ba224053d45f"
 JULIA_HELLO_SOURCE_SHA256 = (
     "1aec74638a21b3890c58763ff1bbe05ec26d48a567f5b5d87c7e68a2a7d9f51c"
 )
-JULIA_HELLO_ARTIFACTS = {
-    "x86_64": (
-        "c8aa41cab66118db2387696eba33856344935ce3",
-        "ba2e68bc72a3e6cadefb8ff892bc7c76289b06b7606cc4d1f2613ce917c5425f",
-    ),
-    "arm64": (
-        "a2368a2caae8074bdda6e71d51acb43553fcd076",
-        "7b56d8aa960fe3e540f945126c942f4be1bcb1da66f4fd530450a70efcd76955",
-    ),
-}
 KUBERNETES_IMAGES_UPSTREAM = "registry.k8s.io--container-registry"
 KUBERNETES_IMAGES_ENDPOINT = "https://k8s.nju.edu.cn/"
 OCI_MANIFEST_ACCEPT = (
@@ -3415,7 +3405,7 @@ def runtime_properties(
         and entry["provider_id"] == "nju"
         and entry["raw_name"] == "julia"
     ):
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []
@@ -3456,17 +3446,14 @@ def runtime_properties(
                 "expected_content_type": "application/octet-stream",
                 "sha256": JULIA_HELLO_SOURCE_SHA256,
             },
-            *[
-                {
-                    "endpoint_role": "artifacts",
-                    "method": "get",
-                    "path": f"/artifact/{tree}",
-                    "expected_status": [200],
-                    "expected_content_type": "application/octet-stream",
-                    "sha256": digest,
-                }
-                for tree, digest in JULIA_HELLO_ARTIFACTS.values()
-            ],
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/artifact/{julia_artifact_tree}",
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+                "sha256": "{julia_artifact_sha}",
+            },
         ]
     elif (
         tool_id == "kubernetes-images"

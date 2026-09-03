@@ -4,6 +4,8 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
@@ -21,6 +23,7 @@ const NJU_PKG_SERVER: &str = "https://mirrors.nju.edu.cn/julia";
 const OFFICIAL_PKG_SERVER: &str = "https://pkg.julialang.org";
 const MANAGED_BEGIN: &str = "# >>> MirrorSwitch Julia Pkg server >>>";
 const MANAGED_END: &str = "# <<< MirrorSwitch Julia Pkg server <<<";
+const PKG_VARIABLE: &str = "JULIA_PKG_SERVER";
 const EXAMPLE_TREE: &str = "e1f0e1a832ccd8e97d6d0348dec33ee139a5aeaf";
 const HELLO_TREE: &str = "370059fde9f8b780a2335dcbcf05ba224053d45f";
 
@@ -62,8 +65,7 @@ mktempdir() do environment
     hello = dependencies[UUID("dca1746e-5efc-54fc-8249-22745bc95a49")]
     @assert string(example.tree_hash) == "e1f0e1a832ccd8e97d6d0348dec33ee139a5aeaf"
     @assert string(hello.tree_hash) == "370059fde9f8b780a2335dcbcf05ba224053d45f"
-    artifact = Sys.ARCH == :x86_64 ? "c8aa41cab66118db2387696eba33856344935ce3" :
-        Sys.ARCH == :aarch64 ? "a2368a2caae8074bdda6e71d51acb43553fcd076" : error("unsupported architecture")
+    artifact = ENV["MIRRORSWITCH_EXPECTED_ARTIFACT"]
     @assert isdir(joinpath(first(DEPOT_PATH), "artifacts", artifact))
     println("MIRRORSWITCH_JULIA_VERIFY=registry:General example:", example.tree_hash,
         " hello:", hello.tree_hash, " artifact:ready:", artifact)
@@ -99,13 +101,13 @@ impl Adapter for JuliaAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("julia") {
             return Ok(None);
         }
-        if !runtime.command_exists("env") {
+        if context.os == OperatingSystem::Windows && !runtime.command_exists("reg.exe") {
             return Err(AdapterError::Unsupported(
-                "Julia Pkg verification requires the standard env command".into(),
+                "Julia Pkg Windows persistence requires reg.exe".into(),
             ));
         }
         let version = julia_version(runtime)?;
@@ -120,8 +122,15 @@ impl Adapter for JuliaAdapter {
             evidence: vec![
                 format!("Julia {version}"),
                 format!("Pkg {}", discovery.pkg_version),
-                format!("selected shell is {}", layout.shell.name()),
-                format!("selected profile is {}", layout.profile.display()),
+                format!(
+                    "native platform is {:?} {:?}",
+                    context.os, context.architecture
+                ),
+                format!("selected persistence is {}", layout.shell.name()),
+                format!(
+                    "selected persistence target is {}",
+                    layout.profile.display()
+                ),
                 format!(
                     "JULIA_PKG_SERVER is {}",
                     environment_state(runtime, "JULIA_PKG_SERVER", true)
@@ -156,7 +165,7 @@ impl Adapter for JuliaAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "julia" {
             return Err(AdapterError::InvalidConfiguration(
@@ -173,6 +182,9 @@ impl Adapter for JuliaAdapter {
         let discovery = discover_pkg(runtime)?;
         reviewed_version(&discovery.pkg_version, "Pkg")?;
         let layout = config_layout(context, runtime)?;
+        if layout.shell == ShellKind::WindowsRegistry {
+            return windows_current(runtime, &layout, &version, &discovery);
+        }
         let profile_contents = runtime.read(&layout.profile)?;
         let profile_exists = profile_contents.is_some();
         let profile_contents = profile_contents.unwrap_or_default();
@@ -235,7 +247,7 @@ impl Adapter for JuliaAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         reviewed_version(
             detected.version.as_deref().ok_or_else(|| {
@@ -250,7 +262,10 @@ impl Adapter for JuliaAdapter {
             tool_version: detected.version.clone(),
             required_upstreams: vec![PKG_UPSTREAM.into()],
             repository_versions: BTreeMap::new(),
-            probe_contexts: BTreeMap::new(),
+            probe_contexts: BTreeMap::from([(
+                PKG_UPSTREAM.into(),
+                vec![artifact_probe_context(context)],
+            )]),
             required_compatibility_evidence: vec![
                 CompatibilityDimension::OperatingSystem,
                 CompatibilityDimension::Architecture,
@@ -275,10 +290,13 @@ impl Adapter for JuliaAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         let endpoint = selected_pkg_server(selections)?;
+        if context.os == OperatingSystem::Windows {
+            return windows_plan(context, current, &endpoint);
+        }
         let profile = current
             .documents
             .iter()
@@ -287,13 +305,16 @@ impl Adapter for JuliaAdapter {
                 AdapterError::InvalidConfiguration("selected Julia shell profile is missing".into())
             })?;
         let shell = shell_from_format(&profile.format)?;
-        let rendered = rewrite_profile(
+        let mut rendered = rewrite_profile(
             utf8(&profile.path, &profile.contents)?,
             &profile.path,
             shell,
             &endpoint,
         )?
         .into_bytes();
+        if profile.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let changes = if profile.contents == rendered {
             Vec::new()
         } else {
@@ -321,11 +342,15 @@ impl Adapter for JuliaAdapter {
 
     fn apply(
         &self,
-        _context: &SystemContext,
+        context: &SystemContext,
         runtime: &mut dyn Runtime,
         plan: &ChangePlan,
     ) -> Result<ApplyOutcome, AdapterError> {
-        runtime.apply_plan(plan)
+        if context.os == OperatingSystem::Windows {
+            windows_apply(runtime, plan)
+        } else {
+            runtime.apply_plan(plan)
+        }
     }
 
     fn verify(
@@ -334,6 +359,9 @@ impl Adapter for JuliaAdapter {
         runtime: &mut dyn Runtime,
         receipt: &TransactionReceipt,
     ) -> Result<VerificationResult, AdapterError> {
+        if context.os == OperatingSystem::Windows {
+            return windows_verify(context, runtime, receipt);
+        }
         let result = (|| {
             let layout = config_layout(context, runtime)?;
             let profile_target = rooted(&context.root, &layout.profile);
@@ -363,7 +391,7 @@ impl Adapter for JuliaAdapter {
                     "managed JULIA_PKG_SERVER is not the reviewed Pkg server".into(),
                 ));
             }
-            let output = run_verification(runtime, &layout, &endpoint)?;
+            let output = run_verification(context, runtime, &layout, &endpoint)?;
             for marker in [
                 "registry:General",
                 EXAMPLE_TREE,
@@ -391,10 +419,13 @@ impl Adapter for JuliaAdapter {
 
     fn restore(
         &self,
-        _context: &SystemContext,
+        context: &SystemContext,
         runtime: &mut dyn Runtime,
         receipt: &TransactionReceipt,
     ) -> Result<RestoreResult, AdapterError> {
+        if context.os == OperatingSystem::Windows {
+            return windows_restore(context, runtime, receipt);
+        }
         let restored = runtime.restore_transaction(&receipt.transaction_id)?;
         Ok(RestoreResult {
             restored: restored.verified,
@@ -411,6 +442,7 @@ enum ShellKind {
     Bash,
     Zsh,
     Fish,
+    WindowsRegistry,
 }
 
 impl ShellKind {
@@ -419,6 +451,7 @@ impl ShellKind {
             Self::Bash => "bash",
             Self::Zsh => "zsh",
             Self::Fish => "fish",
+            Self::WindowsRegistry => "Windows user environment",
         }
     }
 }
@@ -428,6 +461,36 @@ struct Layout {
     shell: ShellKind,
     profile: PathBuf,
     verification_depot: PathBuf,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct WindowsRecoveryState {
+    schema_version: u32,
+    original: Option<String>,
+    selected: String,
+}
+
+impl WindowsRecoveryState {
+    fn validate(&self) -> Result<(), AdapterError> {
+        if self.schema_version != 1
+            || normalized_pkg_server(&self.selected).as_deref() != Some(NJU_PKG_SERVER)
+        {
+            return Err(AdapterError::InvalidConfiguration(
+                "Julia Windows recovery state has an invalid selected Pkg server".into(),
+            ));
+        }
+        if self
+            .original
+            .as_deref()
+            .is_some_and(|value| !valid_registry_url(value))
+        {
+            return Err(AdapterError::InvalidConfiguration(
+                "Julia Windows recovery state has an invalid original Pkg server".into(),
+            ));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -453,18 +516,59 @@ struct ParsedProfile {
     dynamic: bool,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "Julia Pkg v0.1 supports Linux x86_64 and arm64 only".into(),
+            "Julia Pkg on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "Julia Pkg on Windows arm64 is unavailable because Julia has no reviewed native Windows arm64 runtime"
+                .into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "Julia Pkg requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
+}
+
+fn artifact_probe_context(context: &SystemContext) -> BTreeMap<String, String> {
+    let (tree, digest) = match (context.os, context.architecture) {
+        (OperatingSystem::Linux, Architecture::X86_64) => (
+            "c8aa41cab66118db2387696eba33856344935ce3",
+            "ba2e68bc72a3e6cadefb8ff892bc7c76289b06b7606cc4d1f2613ce917c5425f",
+        ),
+        (OperatingSystem::Linux, Architecture::Arm64) => (
+            "a2368a2caae8074bdda6e71d51acb43553fcd076",
+            "7b56d8aa960fe3e540f945126c942f4be1bcb1da66f4fd530450a70efcd76955",
+        ),
+        (OperatingSystem::Macos, Architecture::X86_64) => (
+            "3122acd9ac102f55d7aed639ebb869f4cc9c00eb",
+            "fb43e27e8052fbfa753d8052f7bf22ccba99acefeb6f6eb89b19e04d0dd4d035",
+        ),
+        (OperatingSystem::Macos, Architecture::Arm64) => (
+            "14e7b6ef22f415365b443e7c66bbb3cee64a8ebd",
+            "e4ff76831994b2d214892ab9877f8ca5ac63e18867e14913c1f8fa1ec1523e64",
+        ),
+        (OperatingSystem::Windows, Architecture::X86_64) => (
+            "6e1eb164b0651aa44621eac4dfa340d6e60295ef",
+            "1f10e46f7b073136f7f668de89096d631ae8bb8903547d588f6817f0b780b2fc",
+        ),
+        (OperatingSystem::Windows, Architecture::Arm64) => {
+            unreachable!("Windows arm64 is rejected before candidate selection")
+        }
+    };
+    BTreeMap::from([
+        ("julia_artifact_tree".into(), tree.into()),
+        ("julia_artifact_sha".into(), digest.into()),
+    ])
 }
 
 fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
@@ -490,6 +594,23 @@ fn config_layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layou
         .home_dir()
         .ok_or_else(|| AdapterError::Unsupported("Julia Pkg requires a user home".into()))?;
     validate_path(&home, "home")?;
+    if context.os == OperatingSystem::Windows {
+        let local_app_data = runtime
+            .environment_variable("LOCALAPPDATA")
+            .filter(|value| !value.trim().is_empty())
+            .map(PathBuf::from)
+            .ok_or_else(|| {
+                AdapterError::Unsupported(
+                    "Julia Pkg Windows persistence requires LOCALAPPDATA".into(),
+                )
+            })?;
+        validate_path(&local_app_data, "LOCALAPPDATA")?;
+        return Ok(Layout {
+            shell: ShellKind::WindowsRegistry,
+            profile: local_app_data.join("MirrorSwitch/julia/environment-recovery.json"),
+            verification_depot: home.join(".mirrorswitch/verification/julia/depot"),
+        });
+    }
     let shell = runtime
         .environment_variable("SHELL")
         .and_then(|value| Path::new(&value).file_name().map(|name| name.to_owned()))
@@ -504,6 +625,439 @@ fn config_layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layou
         shell,
         profile,
         verification_depot: home.join(".mirrorswitch/verification/julia/depot"),
+    })
+}
+
+fn windows_current(
+    runtime: &dyn Runtime,
+    layout: &Layout,
+    version: &str,
+    discovery: &Discovery,
+) -> Result<CurrentConfiguration, AdapterError> {
+    let observed = runtime.read(&layout.profile)?;
+    let recovery_exists = observed.is_some();
+    let recovery_contents = observed.unwrap_or_default();
+    let recovery = if recovery_exists {
+        let state: WindowsRecoveryState =
+            serde_json::from_slice(&recovery_contents).map_err(|error| {
+                AdapterError::InvalidConfiguration(format!(
+                    "Julia Windows recovery state is invalid: {error}"
+                ))
+            })?;
+        state.validate()?;
+        Some(state)
+    } else {
+        None
+    };
+    let registry = query_windows_variable(runtime)?;
+    let mut sources = vec![
+        snapshot_source("julia-version", version),
+        snapshot_source("pkg-version", &discovery.pkg_version),
+        snapshot_source("depot-count", &discovery.depot_count.to_string()),
+    ];
+    if discovery.non_general_registry_count > 0 {
+        sources.push(policy_source(
+            "non-general-registries-preserved",
+            Path::new(":julia-registry:"),
+            ShellKind::WindowsRegistry,
+        ));
+    }
+    if discovery.first_depot.is_some() {
+        sources.push(policy_source(
+            "authentication-directory-preserved",
+            Path::new(":julia-auth:"),
+            ShellKind::WindowsRegistry,
+        ));
+    }
+    if recovery.is_some() {
+        sources.push(policy_source(
+            "windows-recovery-active",
+            &layout.profile,
+            ShellKind::WindowsRegistry,
+        ));
+    }
+    if let Some(value) = &registry {
+        let kind = if recovery
+            .as_ref()
+            .is_some_and(|state| same_server(&state.selected, value))
+        {
+            "managed-shell-profile"
+        } else if is_public(value) {
+            "adoptable-shell-profile"
+        } else {
+            "private-shell-profile"
+        };
+        sources.push(configured_source(
+            value,
+            kind,
+            Path::new(r"HKCU\Environment"),
+            ShellKind::WindowsRegistry,
+        ));
+    }
+    if let Some(value) = runtime.environment_variable(PKG_VARIABLE) {
+        let stale_original = recovery
+            .as_ref()
+            .and_then(|state| state.original.as_deref())
+            .is_some_and(|original| same_server(original, &value));
+        if value.is_empty() {
+            sources.push(policy_source(
+                "package-server-disabled",
+                Path::new(":env:"),
+                ShellKind::WindowsRegistry,
+            ));
+        } else if !registry
+            .as_deref()
+            .is_some_and(|persistent| same_server(persistent, &value))
+            && !stale_original
+        {
+            sources.push(policy_source(
+                if is_public(&value) {
+                    "environment-override"
+                } else {
+                    "private-environment-override"
+                },
+                Path::new(":env:"),
+                ShellKind::WindowsRegistry,
+            ));
+        }
+    }
+    let mut files = recovery_exists
+        .then_some(layout.profile.clone())
+        .into_iter()
+        .collect::<Vec<_>>();
+    let mut documents = vec![
+        ConfigurationDocument {
+            path: layout.profile.clone(),
+            format: "julia-windows-recovery".into(),
+            contents: recovery_contents,
+        },
+        ConfigurationDocument {
+            path: PathBuf::from(r"HKCU\Environment\JULIA_PKG_SERVER"),
+            format: "julia-windows-registry-snapshot".into(),
+            contents: registry.as_deref().unwrap_or_default().as_bytes().to_vec(),
+        },
+    ];
+    add_project_documents(runtime, discovery, &mut files, &mut sources, &mut documents)?;
+    Ok(CurrentConfiguration {
+        tool_id: "julia".into(),
+        scope: ConfigurationScope::User,
+        sources,
+        files,
+        documents,
+    })
+}
+
+fn windows_plan(
+    context: &SystemContext,
+    current: &CurrentConfiguration,
+    endpoint: &str,
+) -> Result<ChangePlan, AdapterError> {
+    let recovery = current
+        .documents
+        .iter()
+        .find(|document| document.format == "julia-windows-recovery")
+        .ok_or_else(|| {
+            AdapterError::InvalidConfiguration("Julia Windows recovery document is missing".into())
+        })?;
+    if !recovery.contents.is_empty() {
+        let state: WindowsRecoveryState =
+            serde_json::from_slice(&recovery.contents).map_err(|error| {
+                AdapterError::InvalidConfiguration(format!(
+                    "Julia Windows recovery state is invalid: {error}"
+                ))
+            })?;
+        state.validate()?;
+        if !same_server(&state.selected, endpoint) {
+            return Err(AdapterError::Unsupported(
+                "a previous Julia Windows recovery state is active; restore it before selecting another Pkg server"
+                    .into(),
+            ));
+        }
+        return Ok(ChangePlan {
+            adapter_key: "julia".into(),
+            tool_id: "julia".into(),
+            scope: ConfigurationScope::User,
+            changes: Vec::new(),
+            requires_elevation: false,
+            service_impact: ServiceImpact::None,
+        });
+    }
+    let snapshot = current
+        .documents
+        .iter()
+        .find(|document| document.format == "julia-windows-registry-snapshot")
+        .ok_or_else(|| {
+            AdapterError::InvalidConfiguration("Julia Windows registry snapshot is missing".into())
+        })?;
+    let original = if snapshot.contents.is_empty() {
+        None
+    } else {
+        Some(String::from_utf8(snapshot.contents.clone()).map_err(|_| {
+            AdapterError::InvalidConfiguration(
+                "Julia Windows registry snapshot is not UTF-8".into(),
+            )
+        })?)
+    };
+    let state = WindowsRecoveryState {
+        schema_version: 1,
+        original,
+        selected: endpoint.into(),
+    };
+    state.validate()?;
+    let mut contents = serde_json::to_vec_pretty(&state).map_err(|error| {
+        AdapterError::Runtime(format!(
+            "could not serialize Julia Windows recovery state: {error}"
+        ))
+    })?;
+    contents.push(b'\n');
+    Ok(ChangePlan {
+        adapter_key: "julia".into(),
+        tool_id: "julia".into(),
+        scope: ConfigurationScope::User,
+        changes: vec![PlannedFileChange {
+            target: rooted(&context.root, &recovery.path),
+            old_contents: current
+                .files
+                .contains(&recovery.path)
+                .then(|| recovery.contents.clone()),
+            old_mode: None,
+            new_contents: contents,
+            new_mode: None,
+            summary: "record private Julia Windows user-environment recovery state before updating JULIA_PKG_SERVER".into(),
+        }],
+        requires_elevation: false,
+        service_impact: ServiceImpact::None,
+    })
+}
+
+fn windows_apply(
+    runtime: &mut dyn Runtime,
+    plan: &ChangePlan,
+) -> Result<ApplyOutcome, AdapterError> {
+    if plan.adapter_key != "julia" || plan.tool_id != "julia" {
+        return Err(AdapterError::InvalidConfiguration(
+            "Julia Windows apply received another tool's plan".into(),
+        ));
+    }
+    if plan.changes.is_empty() {
+        return runtime.apply_plan(plan);
+    }
+    let state: WindowsRecoveryState = serde_json::from_slice(&plan.changes[0].new_contents)
+        .map_err(|error| {
+            AdapterError::InvalidConfiguration(format!(
+                "Julia Windows recovery state is invalid: {error}"
+            ))
+        })?;
+    state.validate()?;
+    let outcome = runtime.apply_plan(plan)?;
+    let ApplyOutcome::Applied(receipt) = &outcome else {
+        return Ok(outcome);
+    };
+    if let Err(error) = set_windows_variable(runtime, &state.selected) {
+        let registry_restored =
+            restore_windows_variable(runtime, state.original.as_deref()).is_ok();
+        let state_restored =
+            registry_restored && runtime.restore_transaction(&receipt.transaction_id).is_ok();
+        return Err(AdapterError::Runtime(format!(
+            "Julia Windows environment update failed: {error}; registry restored: {registry_restored}; recovery file restored: {state_restored}"
+        )));
+    }
+    Ok(outcome)
+}
+
+fn windows_verify(
+    context: &SystemContext,
+    runtime: &mut dyn Runtime,
+    receipt: &TransactionReceipt,
+) -> Result<VerificationResult, AdapterError> {
+    let layout = config_layout(context, runtime)?;
+    let state = read_windows_recovery(runtime, &layout)?;
+    let target = rooted(&context.root, &layout.profile);
+    if !receipt.changed_targets.contains(&target) {
+        return Err(AdapterError::InvalidConfiguration(
+            "Julia Windows receipt does not contain the recovery state".into(),
+        ));
+    }
+    let result = (|| {
+        if query_windows_variable(runtime)?.as_deref() != Some(state.selected.as_str()) {
+            return Err(AdapterError::Verification(
+                "Julia Windows user environment did not retain JULIA_PKG_SERVER".into(),
+            ));
+        }
+        let output = run_verification(context, runtime, &layout, &state.selected)?;
+        for marker in [
+            "registry:General",
+            EXAMPLE_TREE,
+            HELLO_TREE,
+            "artifact:ready",
+        ] {
+            if !output.contains(marker) {
+                return Err(AdapterError::Verification(format!(
+                    "Julia Pkg verification output is missing {marker}"
+                )));
+            }
+        }
+        Ok(VerificationResult {
+            valid: true,
+            summary: format!(
+                "Julia Pkg resolved General, Example source, and a native Windows artifact through {} in an isolated depot",
+                state.selected
+            ),
+        })
+    })();
+    if let Err(error) = result {
+        let registry_restored =
+            restore_windows_variable(runtime, state.original.as_deref()).is_ok();
+        let state_restored =
+            registry_restored && runtime.restore_transaction(&receipt.transaction_id).is_ok();
+        return Err(AdapterError::Verification(format!(
+            "{error}; registry restored: {registry_restored}; recovery file restored: {state_restored}"
+        )));
+    }
+    result
+}
+
+fn windows_restore(
+    context: &SystemContext,
+    runtime: &mut dyn Runtime,
+    receipt: &TransactionReceipt,
+) -> Result<RestoreResult, AdapterError> {
+    let layout = config_layout(context, runtime)?;
+    let state = read_windows_recovery(runtime, &layout)?;
+    restore_windows_variable(runtime, state.original.as_deref())?;
+    let restored = runtime.restore_transaction(&receipt.transaction_id)?;
+    Ok(RestoreResult {
+        restored: restored.verified,
+        summary: "restored the previous Julia Windows user environment and recovery file".into(),
+    })
+}
+
+fn read_windows_recovery(
+    runtime: &dyn Runtime,
+    layout: &Layout,
+) -> Result<WindowsRecoveryState, AdapterError> {
+    let contents = runtime
+        .read(&layout.profile)?
+        .ok_or_else(|| AdapterError::Runtime("Julia Windows recovery state is missing".into()))?;
+    let state: WindowsRecoveryState = serde_json::from_slice(&contents).map_err(|error| {
+        AdapterError::InvalidConfiguration(format!(
+            "Julia Windows recovery state is invalid: {error}"
+        ))
+    })?;
+    state.validate()?;
+    Ok(state)
+}
+
+fn query_windows_variable(runtime: &dyn Runtime) -> Result<Option<String>, AdapterError> {
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "query".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            PKG_VARIABLE.into(),
+        ],
+    )?;
+    if output.status.code() == Some(1) {
+        return Ok(None);
+    }
+    if !output.status.success() {
+        return Err(AdapterError::Runtime(format!(
+            "reg.exe query {PKG_VARIABLE} failed with status {}",
+            output.status
+        )));
+    }
+    let text = String::from_utf8(output.stdout)
+        .map_err(|_| AdapterError::Runtime("reg.exe returned non-UTF-8 output".into()))?;
+    let line = text
+        .lines()
+        .map(str::trim)
+        .find(|line| line.starts_with(PKG_VARIABLE))
+        .ok_or_else(|| {
+            AdapterError::InvalidConfiguration(format!("reg.exe returned no {PKG_VARIABLE} value"))
+        })?;
+    let rest = line[PKG_VARIABLE.len()..].trim_start();
+    let split = rest.find(char::is_whitespace).ok_or_else(|| {
+        AdapterError::InvalidConfiguration(format!(
+            "reg.exe returned malformed {PKG_VARIABLE} state"
+        ))
+    })?;
+    let kind = &rest[..split];
+    let value = rest[split..].trim();
+    if kind != "REG_SZ" || !valid_registry_url(value) {
+        return Err(AdapterError::Unsupported(format!(
+            "Julia Windows {PKG_VARIABLE} must be a non-empty HTTPS REG_SZ URL"
+        )));
+    }
+    Ok(Some(value.into()))
+}
+
+fn set_windows_variable(runtime: &dyn Runtime, value: &str) -> Result<(), AdapterError> {
+    if !valid_registry_url(value) {
+        return Err(AdapterError::InvalidConfiguration(
+            "Julia Windows Pkg server is not a valid HTTPS URL".into(),
+        ));
+    }
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "add".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            PKG_VARIABLE.into(),
+            "/t".into(),
+            "REG_SZ".into(),
+            "/d".into(),
+            value.into(),
+            "/f".into(),
+        ],
+    )?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(AdapterError::Runtime(format!(
+            "reg.exe add {PKG_VARIABLE} failed with status {}",
+            output.status
+        )))
+    }
+}
+
+fn restore_windows_variable(
+    runtime: &dyn Runtime,
+    original: Option<&str>,
+) -> Result<(), AdapterError> {
+    match original {
+        Some(value) => set_windows_variable(runtime, value),
+        None => delete_windows_variable(runtime),
+    }
+}
+
+fn delete_windows_variable(runtime: &dyn Runtime) -> Result<(), AdapterError> {
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "delete".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            PKG_VARIABLE.into(),
+            "/f".into(),
+        ],
+    )?;
+    if output.status.success() || output.status.code() == Some(1) {
+        Ok(())
+    } else {
+        Err(AdapterError::Runtime(format!(
+            "reg.exe delete {PKG_VARIABLE} failed with status {}",
+            output.status
+        )))
+    }
+}
+
+fn valid_registry_url(value: &str) -> bool {
+    reqwest::Url::parse(value).is_ok_and(|url| {
+        url.scheme() == "https"
+            && url.host_str().is_some()
+            && !value.chars().any(char::is_whitespace)
     })
 }
 
@@ -559,6 +1113,9 @@ fn selected_profile(
             None => home.join(".zshrc"),
         },
         ShellKind::Fish => home.join(".config/fish/conf.d/mirrorswitch-julia.fish"),
+        ShellKind::WindowsRegistry => {
+            unreachable!("Windows layout returned before shell selection")
+        }
     };
     validate_user_path(&path, home, "shell profile")?;
     Ok(path)
@@ -802,6 +1359,11 @@ fn assignment(line: &str, shell: ShellKind) -> Result<Option<&str>, AdapterError
             }
             value
         }
+        ShellKind::WindowsRegistry => {
+            return Err(AdapterError::InvalidConfiguration(
+                "Julia Windows registry is not a shell profile".into(),
+            ));
+        }
     };
     literal_value(raw).map(Some)
 }
@@ -1026,6 +1588,9 @@ fn render_managed(endpoint: &str, newline: &str, shell: ShellKind) -> String {
             format!("export JULIA_PKG_SERVER='{endpoint}'")
         }
         ShellKind::Fish => format!("set -gx JULIA_PKG_SERVER '{endpoint}'"),
+        ShellKind::WindowsRegistry => {
+            unreachable!("Julia Windows persistence does not render a shell block")
+        }
     };
     format!("{MANAGED_BEGIN}{newline}{assignment}{newline}{MANAGED_END}{newline}")
 }
@@ -1115,6 +1680,7 @@ fn shell_from_format(format: &str) -> Result<ShellKind, AdapterError> {
 }
 
 fn run_verification(
+    context: &SystemContext,
     runtime: &dyn Runtime,
     layout: &Layout,
     endpoint: &str,
@@ -1122,19 +1688,36 @@ fn run_verification(
     let depot = layout.verification_depot.to_str().ok_or_else(|| {
         AdapterError::Verification("Julia verification depot path is not UTF-8".into())
     })?;
+    let depot_separator = if context.os == OperatingSystem::Windows {
+        ';'
+    } else {
+        ':'
+    };
+    let probe = artifact_probe_context(context);
+    let environment = BTreeMap::from([
+        (PKG_VARIABLE.into(), endpoint.into()),
+        (
+            "JULIA_DEPOT_PATH".into(),
+            format!("{depot}{depot_separator}"),
+        ),
+        ("JULIA_PKG_PRECOMPILE_AUTO".into(), "0".into()),
+        (
+            "JULIA_PKG_SERVER_REGISTRY_PREFERENCE".into(),
+            "conservative".into(),
+        ),
+        (
+            "MIRRORSWITCH_EXPECTED_ARTIFACT".into(),
+            probe["julia_artifact_tree"].clone(),
+        ),
+    ]);
     let arguments = vec![
-        format!("JULIA_PKG_SERVER={endpoint}"),
-        format!("JULIA_DEPOT_PATH={depot}:"),
-        "JULIA_PKG_PRECOMPILE_AUTO=0".into(),
-        "JULIA_PKG_SERVER_REGISTRY_PREFERENCE=conservative".into(),
-        "julia".into(),
         "--startup-file=no".into(),
         "--history-file=no".into(),
         "-e".into(),
         VERIFY_SCRIPT.into(),
     ];
     command_output(
-        runtime.run("env", &arguments)?,
+        runtime.run_with_environment("julia", &arguments, &environment, &[])?,
         "Julia Pkg registry, package, and artifact verification",
     )
 }
@@ -1226,7 +1809,7 @@ fn validate_path(path: &Path, kind: &str) -> Result<(), AdapterError> {
     if !path.is_absolute()
         || path
             .components()
-            .any(|component| component == Component::ParentDir)
+            .any(|component| matches!(component, Component::ParentDir | Component::CurDir))
     {
         return Err(AdapterError::InvalidConfiguration(format!(
             "Julia reported unsafe {kind} path {}",
@@ -1237,6 +1820,9 @@ fn validate_path(path: &Path, kind: &str) -> Result<(), AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "Julia configuration {} is not UTF-8",
