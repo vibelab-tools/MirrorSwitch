@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     cell::RefCell,
@@ -46,6 +46,16 @@ fn context(
             version_codename: Some("bookworm".into()),
             id_like: Vec::new(),
         }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
         root: root.to_path_buf(),
     }
 }
@@ -108,7 +118,9 @@ list_sources() {{
 }}
 case "$*" in
   "--version") printf '%s\n' '3.6.9' ;;
+  "environment home") printf '%s\n' '/home/developer/.local/share/gem/ruby/3.4.0' ;;
   "environment credentials") printf '%s\n' '/home/developer/.local/share/gem/credentials' ;;
+  "cert --list") printf '%s\n' '/CN=fixture-only' ;;
   "sources --list")
     printf '%s\n\n' '*** CURRENT SOURCES ***'
     list_sources
@@ -254,6 +266,97 @@ fn private_sources_are_preserved_and_plan_is_consistent_idempotent_and_reversibl
             .restored
     );
     assert_eq!(fs::read(gemrc).unwrap(), original);
+}
+
+#[test]
+fn synthetic_native_contexts_preserve_encoding_newlines_credentials_and_project_files() {
+    for (os, architecture, original) in [
+        (
+            OperatingSystem::Macos,
+            Architecture::X86_64,
+            b"# macOS user gemrc\n:sources:\n- https://rubygems.org/\n- https://build:credential@gems.corp.example/api/\n:http_proxy: https://proxy.corp.example/\n".as_slice(),
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::Arm64,
+            b"\xef\xbb\xbf# Windows user gemrc\r\n:sources:\r\n- https://rubygems.org/\r\n- https://build:credential@gems.corp.example/api/\r\n:http_proxy: https://proxy.corp.example/\r\n".as_slice(),
+        ),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        let gemrc = install_rubygems(root, Some(original), 0);
+        let credentials = write(
+            root,
+            "/home/developer/.local/share/gem/credentials",
+            b"\xffsynthetic unreadable credentials",
+        );
+        let gemfile = write(
+            root,
+            "/work/project/Gemfile",
+            b"source 'https://packages.corp.example/'\n",
+        );
+        let adapter = RubyGemsAdapter;
+        let context = native_context(root, os, architecture);
+        let mut runtime = runtime(root, BTreeMap::new());
+
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let chosen = [selection(ALIYUN)];
+        let cli = adapter.plan(&context, &current, &chosen).unwrap();
+        let config = adapter.plan(&context, &current, &chosen).unwrap();
+        let tui = adapter.plan(&context, &current, &chosen).unwrap();
+        assert_eq!(cli, config);
+        assert_eq!(config, tui);
+        assert!(!format!("{cli:?}").contains("build:credential@"));
+
+        let rendered = &cli.changes[0].new_contents;
+        assert_eq!(
+            rendered.starts_with(&[0xef, 0xbb, 0xbf]),
+            os == OperatingSystem::Windows
+        );
+        if os == OperatingSystem::Windows {
+            assert!(rendered.windows(2).any(|pair| pair == b"\r\n"));
+            assert!(rendered.iter().enumerate().all(|(index, byte)| {
+                *byte != b'\n' || index > 0 && rendered[index - 1] == b'\r'
+            }));
+        }
+
+        let ApplyOutcome::Applied(receipt) =
+            adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("gemrc should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &chosen)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(gemrc).unwrap(), original);
+        assert_eq!(fs::read(credentials).unwrap(), b"\xffsynthetic unreadable credentials");
+        assert_eq!(
+            fs::read(gemfile).unwrap(),
+            b"source 'https://packages.corp.example/'\n"
+        );
+    }
 }
 
 #[test]
@@ -445,6 +548,18 @@ fn catalog_filters_incomplete_providers_and_checks_artifact_digest_before_latenc
     assert_eq!(providers, ["aliyun", "nju", "tuna", "ustc"]);
     for candidate in actionable {
         assert_eq!(candidate.delivery_mode, DeliveryMode::Mirror);
+        assert_eq!(
+            candidate.compatibility.operating_systems,
+            [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows,
+            ]
+        );
+        assert_eq!(
+            candidate.compatibility.architectures,
+            [Architecture::X86_64, Architecture::Arm64]
+        );
         assert_eq!(candidate.endpoints.len(), 2);
         assert!(
             candidate
@@ -518,20 +633,22 @@ fn catalog_filters_incomplete_providers_and_checks_artifact_digest_before_latenc
 }
 
 #[test]
-fn unsupported_platform_or_version_and_missing_commands_are_inert() {
+fn non_native_macos_and_windows_contexts_and_missing_commands_are_inert() {
     let directory = tempdir().unwrap();
     let root = directory.path();
     install_rubygems(root, Some(b":sources:\n- https://rubygems.org/\n"), 0);
     let adapter = RubyGemsAdapter;
-    let mut windows = context(root, Architecture::X86_64, ExecutionEnvironment::Host);
-    windows.os = OperatingSystem::Windows;
+    let windows = SystemContext {
+        environment: ExecutionEnvironment::Container,
+        ..native_context(root, OperatingSystem::Windows, Architecture::Arm64)
+    };
     let installed_runtime = runtime(root, BTreeMap::new());
     assert!(
         adapter
             .detect(&windows, &installed_runtime)
             .unwrap_err()
             .to_string()
-            .contains("Linux")
+            .contains("native host")
     );
 
     let empty = tempdir().unwrap();

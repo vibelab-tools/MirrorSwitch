@@ -7,7 +7,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{Architecture, OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -67,9 +67,17 @@ impl Adapter for RubyGemsAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("ruby") || !runtime.command_exists("gem") {
             return Ok(None);
+        }
+        let user_home = runtime.home_dir().ok_or_else(|| {
+            AdapterError::Unsupported("RubyGems requires a detected user home".into())
+        })?;
+        validate_path(&user_home, "user home")?;
+        let project = runtime.project_dir();
+        if let Some(project) = &project {
+            validate_path(project, "project directory")?;
         }
         let snapshot = gem_snapshot(runtime)?;
         reviewed_versions(&snapshot.ruby_version, &snapshot.rubygems_version)?;
@@ -86,6 +94,19 @@ impl Adapter for RubyGemsAdapter {
                 format!("Ruby {}", snapshot.ruby_version),
                 format!("RubyGems {}", snapshot.rubygems_version),
                 format!(
+                    "native platform is {:?} {:?}",
+                    context.os, context.architecture
+                ),
+                format!("selected user home is {}", user_home.display()),
+                project.map_or_else(
+                    || {
+                        "no project directory was selected; project Gemfile remains read-only"
+                            .into()
+                    },
+                    |path| format!("project directory {} remains read-only", path.display()),
+                ),
+                format!("gem home is {}", snapshot.gem_home.display()),
+                format!(
                     "gem sources reports {} ordered source(s), including {public_count} recognized public source(s)",
                     snapshot.sources.len()
                 ),
@@ -93,6 +114,10 @@ impl Adapter for RubyGemsAdapter {
                 format!(
                     "credentials remain in {}",
                     snapshot.credentials_path.display()
+                ),
+                format!(
+                    "gem cert inventory was queried and remains read-only ({} non-empty output line(s))",
+                    snapshot.certificate_inventory_lines
                 ),
                 format!(
                     "GEMRC process override is {}",
@@ -113,7 +138,7 @@ impl Adapter for RubyGemsAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "rubygems" {
             return Err(AdapterError::InvalidConfiguration(
@@ -194,7 +219,7 @@ impl Adapter for RubyGemsAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         reviewed_rubygems_version(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("RubyGems version is missing".into())
@@ -229,7 +254,7 @@ impl Adapter for RubyGemsAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         let public_index = replaceable_public_index(current)?;
@@ -243,8 +268,11 @@ impl Adapter for RubyGemsAdapter {
             })?;
         let text = utf8(&document.path, &document.contents)?;
         let parsed = parse_gemrc_sources(text, &document.path)?;
-        let new_contents =
+        let mut new_contents =
             rewrite_sources(text, parsed.as_ref(), public_index, endpoint)?.into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            new_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let preserved = current
             .sources
             .iter()
@@ -376,8 +404,10 @@ impl Adapter for RubyGemsAdapter {
 struct GemSnapshot {
     ruby_version: String,
     rubygems_version: String,
+    gem_home: PathBuf,
     config_path: PathBuf,
     credentials_path: PathBuf,
+    certificate_inventory_lines: usize,
     sources: Vec<String>,
 }
 
@@ -406,6 +436,12 @@ fn gem_snapshot(runtime: &dyn Runtime) -> Result<GemSnapshot, AdapterError> {
     let ruby_version = ruby_version(&ruby)?;
     let rubygems_version = run_gem(runtime, &["--version"], "gem --version")?;
     reviewed_rubygems_version(&rubygems_version)?;
+    let gem_home = PathBuf::from(run_gem(
+        runtime,
+        &["environment", "home"],
+        "gem environment home",
+    )?);
+    validate_path(&gem_home, "gem home")?;
     let config_path = PathBuf::from(run_program(
         runtime,
         "ruby",
@@ -419,6 +455,10 @@ fn gem_snapshot(runtime: &dyn Runtime) -> Result<GemSnapshot, AdapterError> {
         "gem environment credentials",
     )?);
     validate_path(&credentials_path, "credentials")?;
+    let certificate_inventory_lines = run_gem(runtime, &["cert", "--list"], "gem cert --list")?
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .count();
     let sources = parse_gem_sources(&run_gem(
         runtime,
         &["sources", "--list"],
@@ -427,8 +467,10 @@ fn gem_snapshot(runtime: &dyn Runtime) -> Result<GemSnapshot, AdapterError> {
     Ok(GemSnapshot {
         ruby_version,
         rubygems_version,
+        gem_home,
         config_path,
         credentials_path,
+        certificate_inventory_lines,
         sources,
     })
 }
@@ -820,15 +862,18 @@ fn version_pair(value: &str) -> Option<(u64, u64)> {
     Some((major, minor))
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "RubyGems v0.1 supports Linux x86_64 and arm64 only".into(),
+            "RubyGems on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "RubyGems requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -837,7 +882,7 @@ fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
 fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
     if scope != ConfigurationScope::User {
         return Err(AdapterError::Unsupported(
-            "RubyGems v0.1 writes only the user gemrc and never a project Gemfile".into(),
+            "RubyGems writes only the user gemrc and never a project Gemfile".into(),
         ));
     }
     Ok(())
@@ -908,6 +953,9 @@ fn metadata<'a>(source: &'a ConfiguredSource, key: &str) -> Option<&'a str> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "RubyGems configuration {} is not UTF-8",
