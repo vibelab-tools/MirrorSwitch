@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "97"
+CATALOG_FORMAT_REVISION = "98"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -349,9 +349,6 @@ CPAN_TRY_TINY_SHA256 = (
 CRAN_RUNTIME_UPSTREAM = "cran--language-registry"
 CRAN_DIGEST_DESCRIPTION_SHA256 = (
     "07dcde79e44828236433e7de97be2e49b8f4e689b262160fff1a76b300a71043"
-)
-CRAN_DIGEST_ARCHIVE_SHA256 = (
-    "8bf048b49b2d17077138fae758bda56bbd53278d9437f2fdeaedf979c90a13c9"
 )
 PYENV_RUNTIME_UPSTREAM = "python-releases--release-artifacts"
 PYENV_ENDPOINTS = {
@@ -3168,7 +3165,7 @@ def runtime_properties(
             },
         ]
     elif tool_id == "cran" and upstream_key == CRAN_RUNTIME_UPSTREAM:
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []
@@ -3177,7 +3174,7 @@ def runtime_properties(
             {
                 "endpoint_role": "index",
                 "method": "head",
-                "path": "/src/contrib/PACKAGES.gz",
+                "path": "/{cran_index_path}",
                 "expected_status": [200],
             },
             {
@@ -3191,15 +3188,15 @@ def runtime_properties(
             {
                 "endpoint_role": "artifacts",
                 "method": "head",
-                "path": "/src/contrib/digest_0.6.39.tar.gz",
+                "path": "/{cran_archive_path}",
                 "expected_status": [200],
             },
             {
                 "endpoint_role": "artifacts",
                 "method": "get",
-                "path": "/src/contrib/digest_0.6.39.tar.gz",
+                "path": "/{cran_archive_path}",
                 "expected_status": [200],
-                "sha256": CRAN_DIGEST_ARCHIVE_SHA256,
+                "sha256": "{cran_archive_sha}",
             },
         ]
     elif (

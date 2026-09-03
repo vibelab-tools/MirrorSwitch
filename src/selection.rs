@@ -588,7 +588,10 @@ fn expand_probe_path(template: &str, values: &BTreeMap<String, String>) -> Resul
         let value = values
             .get(key)
             .ok_or_else(|| format!("probe path requires {{{key}}}"))?;
-        let safe_value = if key == "repository_path" {
+        let safe_value = if matches!(
+            key,
+            "repository_path" | "cran_index_path" | "cran_archive_path"
+        ) {
             value
                 .split('/')
                 .filter(|segment| !segment.is_empty())

@@ -67,7 +67,7 @@ content remain unchanged and are reported.
 | `stack` | user/project | Snapshot/Hackage/toolchain query; project scope explicit ([details](adapters/stack.md)) |
 | `ghcup` | user | Signed metadata and bindist checks; custom channels and keys preserved ([details](adapters/ghcup.md)) |
 | `cpan` | user | CPAN/CPANM index and distribution query; client-specific config preserved ([#67](https://github.com/vibelab-tools/MirrorSwitch/issues/67)) |
-| `cran` | user | Fixed R package query; named repositories and Bioconductor policy preserved ([#68](https://github.com/vibelab-tools/MirrorSwitch/issues/68)) |
+| `cran` | user | Linux source or macOS/Windows native binary query; Rprofile.site, named repositories, Bioconductor, renv, auth, BOM/newlines and permissions preserved ([details](adapters/cran.md)) |
 | `bioconductor` | user | Version-paired repository/package query; project/renv configuration stays read-only ([#64](https://github.com/vibelab-tools/MirrorSwitch/issues/64)) |
 | `tlmgr` | system/user | TeX Live remote query; release year and installation platform must match ([#65](https://github.com/vibelab-tools/MirrorSwitch/issues/65)) |
 | `dart-pub` | user | Linux/macOS shell profile or Windows HKCU environment plus isolated fixed-package resolution; token/project state preserved and Flutter SDK artifacts excluded ([details](adapters/dart-pub.md)) |

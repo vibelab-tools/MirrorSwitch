@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -49,6 +49,16 @@ fn test_context(
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -70,24 +80,29 @@ fn install_r(
     repositories: &[(&str, &str)],
     query_exit: i32,
 ) {
-    executable(
-        root,
-        "/usr/bin/env",
-        format!(
-            r#"#!/bin/sh
-while [ $# -gt 0 ]; do
-  case "$1" in
-    *=*) export "$1"; shift ;;
-    *) break ;;
-  esac
-done
-[ "$1" = Rscript ] || exit 90
-shift
-exec '{root}/usr/bin/Rscript' "$@"
-"#,
-            root = root.display(),
-        ),
-    );
+    let (archive_name, archive_digest, r_arch) = if platform.contains("apple") {
+        if platform.contains("aarch64") {
+            (
+                "digest_0.6.39.tgz",
+                "3a2a694c9d1ab8abf7829af29c851b5c82238e2f032b7d6c34a7c85a00c6a698",
+                "/aarch64",
+            )
+        } else {
+            (
+                "digest_0.6.39.tgz",
+                "302eafa4c89452ad1a5975624b66fa473cb0ac55c61e59f15556a21e00713956",
+                "",
+            )
+        }
+    } else if platform.contains("mingw") {
+        (
+            "digest_0.6.39.zip",
+            "87fb005dbe912caeab037ae0da169a614a2392673a518302b125537ef2bc36e0",
+            "/x64",
+        )
+    } else {
+        ("digest_0.6.39.tar.gz", ARCHIVE_SHA, "")
+    };
     let repository_lines = repositories
         .iter()
         .enumerate()
@@ -112,6 +127,7 @@ if [ "$1" = -e ]; then
   selected=$(sed -n 's/^[[:space:]]*repos\["CRAN"\] <- "\(.*\)"/\1/p' '{root}/home/developer/.Rprofile' 2>/dev/null | tail -n 1)
   printf 'R_VERSION\t{version}\n'
   printf 'R_PLATFORM\t{platform}\n'
+  printf 'R_ARCH\t{r_arch}\n'
   printf 'SITE_PROFILE\t/etc/R/Rprofile.site\tpresent\n'
   printf 'R_PROFILE_USER\t\n'
   printf 'R_REPOSITORIES\tset\n'
@@ -123,14 +139,24 @@ fi
 [ "$2" != "" ] || exit 63
 grep -F 'MirrorSwitch CRAN mirror' '{root}'"${{R_PROFILE_USER}}" >/dev/null || exit 64
 [ {query_exit} -eq 0 ] || exit {query_exit}
+rm -rf "$PWD/downloads"
+mkdir -p "$PWD/downloads"
+printf '%s' 'synthetic archive' > "$PWD/downloads/{archive_name}"
 printf 'CRAN\t%s\n' "$2"
-printf 'PACKAGE\tdigest\t0.6.39\t{archive_sha}\n'
+printf 'PACKAGE\tdigest\t0.6.39\t%s\n' "$3"
 "#,
             root = root.display(),
-            archive_sha = ARCHIVE_SHA,
+            archive_name = archive_name,
+            r_arch = r_arch,
         ),
     );
-    executable(root, "/usr/bin/sha256sum", "#!/bin/sh\nexit 0\n".into());
+    for command in ["sha256sum", "shasum", "certutil.exe"] {
+        executable(
+            root,
+            &format!("/usr/bin/{command}"),
+            format!("#!/bin/sh\nprintf '%s  fixture\\n' '{archive_digest}'\n"),
+        );
+    }
 }
 
 fn test_runtime(
@@ -194,6 +220,7 @@ fn user_plan_preserves_named_repositories_bioconductor_ide_and_is_reversible() {
   },
   "save_workspace": "never"
 }
+
 "#;
     let preferences_path = write(
         root,
@@ -268,6 +295,116 @@ fn user_plan_preserves_named_repositories_bioconductor_ide_and_is_reversible() {
     );
     assert_eq!(fs::read(profile).unwrap(), original);
     assert_eq!(fs::read(preferences_path).unwrap(), preferences);
+}
+
+#[test]
+fn macos_and_windows_use_native_binary_fixtures_and_preserve_profile_layout() {
+    for (os, architecture, platform, original, index) in [
+        (
+            OperatingSystem::Macos,
+            Architecture::X86_64,
+            "x86_64-apple-darwin20",
+            b"# macOS policy\noptions(width = 120)\n".as_slice(),
+            "bin/macosx/big-sur-x86_64/contrib/4.6/PACKAGES.gz",
+        ),
+        (
+            OperatingSystem::Macos,
+            Architecture::Arm64,
+            "aarch64-apple-darwin20",
+            b"\xef\xbb\xbf# macOS arm policy\noptions(width = 120)\n".as_slice(),
+            "bin/macosx/sonoma-arm64/contrib/4.6/PACKAGES.gz",
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::X86_64,
+            "x86_64-w64-mingw32",
+            b"\xef\xbb\xbf# Windows policy\r\noptions(width = 120)\r\n".as_slice(),
+            "bin/windows/contrib/4.6/PACKAGES.gz",
+        ),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_r(
+            root,
+            "4.6.0",
+            platform,
+            &[("CRAN", "https://cloud.r-project.org")],
+            0,
+        );
+        let profile = write(root, "/home/developer/.Rprofile", original);
+        let project_contents = b"{\"Repositories\": []}\n";
+        let project = write(root, "/work/project/renv.lock", project_contents);
+        let adapter = CranAdapter;
+        let context = native_context(root, os, architecture);
+        let mut runtime = test_runtime(root, BTreeMap::new(), Some("/work/project"));
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        assert!(
+            detected
+                .evidence
+                .iter()
+                .any(|line| line.contains(&format!("{os:?}")))
+        );
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let request = adapter
+            .selection_request(&context, &detected, &current)
+            .unwrap();
+        assert_eq!(
+            request.probe_contexts[UPSTREAM][0]["cran_index_path"],
+            index
+        );
+        let selected = selection("nju", NJU);
+        let cli = adapter.plan(&context, &current, &selected).unwrap();
+        let config = adapter.plan(&context, &current, &selected).unwrap();
+        let tui = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(cli, config);
+        assert_eq!(config, tui);
+        assert_eq!(
+            cli.changes[0].new_contents.starts_with(&[0xef, 0xbb, 0xbf]),
+            original.starts_with(&[0xef, 0xbb, 0xbf])
+        );
+        if os == OperatingSystem::Windows {
+            assert!(
+                cli.changes[0]
+                    .new_contents
+                    .iter()
+                    .enumerate()
+                    .all(|(position, byte)| {
+                        *byte != b'\n'
+                            || position > 0 && cli.changes[0].new_contents[position - 1] == b'\r'
+                    })
+            );
+        }
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("CRAN profile should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &selected)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(profile).unwrap(), original);
+        assert_eq!(fs::read(project).unwrap(), project_contents);
+    }
 }
 
 #[test]
@@ -488,6 +625,39 @@ fn failed_real_package_query_restores_profile_and_verification_script() {
 }
 
 #[test]
+fn non_native_platform_and_windows_arm_are_inert() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_r(
+        root,
+        "4.6.0",
+        "x86_64-w64-mingw32",
+        &[("CRAN", "https://cloud.r-project.org")],
+        0,
+    );
+    let adapter = CranAdapter;
+    let macos_container = SystemContext {
+        environment: ExecutionEnvironment::Container,
+        ..native_context(root, OperatingSystem::Macos, Architecture::Arm64)
+    };
+    assert!(
+        adapter
+            .detect(&macos_container, &test_runtime(root, BTreeMap::new(), None))
+            .unwrap_err()
+            .to_string()
+            .contains("native host")
+    );
+    let windows_arm = native_context(root, OperatingSystem::Windows, Architecture::Arm64);
+    assert!(
+        adapter
+            .detect(&windows_arm, &test_runtime(root, BTreeMap::new(), None))
+            .unwrap_err()
+            .to_string()
+            .contains("no reviewed native Windows arm64 runtime")
+    );
+}
+
+#[test]
 fn embedded_catalog_has_four_source_complete_cran_candidates() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -511,7 +681,11 @@ fn embedded_catalog_has_four_source_complete_cran_candidates() {
         assert_eq!(candidate.delivery_mode, DeliveryMode::Mirror);
         assert_eq!(
             candidate.compatibility.operating_systems,
-            [OperatingSystem::Linux]
+            [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows,
+            ]
         );
         assert_eq!(
             candidate.compatibility.architectures,
@@ -521,7 +695,12 @@ fn embedded_catalog_has_four_source_complete_cran_candidates() {
         assert_eq!(candidate.probes[0].method, HttpMethod::Head);
         assert_eq!(candidate.probes[1].sha256.as_deref(), Some(DESCRIPTION_SHA));
         assert_eq!(candidate.probes[2].method, HttpMethod::Head);
-        assert_eq!(candidate.probes[3].sha256.as_deref(), Some(ARCHIVE_SHA));
+        assert_eq!(candidate.probes[0].path, "/{cran_index_path}");
+        assert_eq!(candidate.probes[2].path, "/{cran_archive_path}");
+        assert_eq!(
+            candidate.probes[3].sha256.as_deref(),
+            Some("{cran_archive_sha}")
+        );
         for role in [
             EndpointRole::Index,
             EndpointRole::Metadata,

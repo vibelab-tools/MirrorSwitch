@@ -7,7 +7,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{Architecture, OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -35,6 +35,7 @@ const DIGEST_SHA256: &str = "8bf048b49b2d17077138fae758bda56bbd53278d9437f2fdeae
 const INSPECT_SCRIPT: &str = r#"
 cat("R_VERSION\t", as.character(getRversion()), "\n", sep = "")
 cat("R_PLATFORM\t", R.version$platform, "\n", sep = "")
+cat("R_ARCH\t", Sys.getenv("R_ARCH", unset = ""), "\n", sep = "")
 site_env <- Sys.getenv("R_PROFILE", unset = "")
 site <- if (nzchar(site_env)) path.expand(site_env) else file.path(R.home("etc"), "Rprofile.site")
 cat("SITE_PROFILE\t", site, "\t", if (file.exists(site)) "present" else "absent", "\n", sep = "")
@@ -76,20 +77,24 @@ impl Adapter for CranAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("Rscript") {
             return Ok(None);
         }
-        for command in ["env", "sha256sum"] {
-            if !runtime.command_exists(command) {
-                return Err(AdapterError::Unsupported(format!(
-                    "CRAN verification requires {command}"
-                )));
-            }
+        let digest_command = match context.os {
+            OperatingSystem::Linux => "sha256sum",
+            OperatingSystem::Macos => "shasum",
+            OperatingSystem::Windows => "certutil.exe",
+        };
+        if !runtime.command_exists(digest_command) {
+            return Err(AdapterError::Unsupported(format!(
+                "CRAN verification requires native {digest_command}"
+            )));
         }
         let snapshot = inspect_runtime(runtime)?;
         review_snapshot(&snapshot)?;
-        let layout = config_layout(runtime)?;
+        review_platform(context, &snapshot)?;
+        let layout = config_layout(context, runtime)?;
         let cran = effective_cran(&snapshot)?;
         Ok(Some(DetectedTool {
             tool_id: "cran".into(),
@@ -98,6 +103,18 @@ impl Adapter for CranAdapter {
             evidence: vec![
                 format!("R {}", snapshot.r_version),
                 format!("R platform is {}", snapshot.platform),
+                format!(
+                    "R_ARCH is {}",
+                    if snapshot.r_arch.is_empty() {
+                        "unset"
+                    } else {
+                        &snapshot.r_arch
+                    }
+                ),
+                format!(
+                    "native platform is {:?} {:?}",
+                    context.os, context.architecture
+                ),
                 format!(
                     "R reports {} effective repositories",
                     snapshot.repositories.len()
@@ -136,7 +153,7 @@ impl Adapter for CranAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "cran" {
             return Err(AdapterError::InvalidConfiguration(
@@ -145,12 +162,13 @@ impl Adapter for CranAdapter {
         }
         let snapshot = inspect_runtime(runtime)?;
         review_snapshot(&snapshot)?;
+        review_platform(context, &snapshot)?;
         if detected.version.as_deref() != Some(snapshot.r_version.as_str()) {
             return Err(AdapterError::Conflict(
                 "R version changed after CRAN detection".into(),
             ));
         }
-        let layout = config_layout(runtime)?;
+        let layout = config_layout(context, runtime)?;
         let profile = runtime.read(&layout.profile)?;
         let profile_exists = profile.is_some();
         let profile = profile.unwrap_or_default();
@@ -269,7 +287,7 @@ impl Adapter for CranAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         review_r_version(
             detected
@@ -284,7 +302,13 @@ impl Adapter for CranAdapter {
             tool_version: detected.version.clone(),
             required_upstreams: vec![UPSTREAM.into()],
             repository_versions: BTreeMap::new(),
-            probe_contexts: BTreeMap::new(),
+            probe_contexts: BTreeMap::from([(
+                UPSTREAM.into(),
+                vec![cran_probe_context(
+                    context,
+                    detected.version.as_deref().unwrap_or_default(),
+                )?],
+            )]),
             required_compatibility_evidence: vec![
                 CompatibilityDimension::OperatingSystem,
                 CompatibilityDimension::Architecture,
@@ -309,7 +333,7 @@ impl Adapter for CranAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         let endpoint = selected_endpoint(selections)?;
@@ -320,12 +344,15 @@ impl Adapter for CranAdapter {
             context,
             current,
             profile,
-            rewrite_profile(
-                utf8(&profile.path, &profile.contents)?,
-                &profile.path,
-                &endpoint,
-            )?
-            .into_bytes(),
+            preserve_bom(
+                &profile.contents,
+                rewrite_profile(
+                    utf8(&profile.path, &profile.contents)?,
+                    &profile.path,
+                    &endpoint,
+                )?
+                .into_bytes(),
+            ),
             "add or retarget one CRAN entry while preserving named R repositories and profile policy",
             &mut changes,
         );
@@ -334,7 +361,7 @@ impl Adapter for CranAdapter {
             current,
             script,
             render_verification_script().into_bytes(),
-            "create an isolated CRAN source repository verification script",
+            "create an isolated platform-specific CRAN repository verification script",
             &mut changes,
         );
         Ok(ChangePlan {
@@ -363,7 +390,7 @@ impl Adapter for CranAdapter {
         receipt: &TransactionReceipt,
     ) -> Result<VerificationResult, AdapterError> {
         let result = (|| {
-            let layout = config_layout(runtime)?;
+            let layout = config_layout(context, runtime)?;
             let known = [
                 rooted(&context.root, &layout.profile),
                 rooted(&context.root, &layout.verification_script),
@@ -399,12 +426,17 @@ impl Adapter for CranAdapter {
                     "CRAN verification script is not canonical".into(),
                 ));
             }
-            let output = run_verification(runtime, &layout, &endpoint)?;
-            validate_verification_output(&output, &endpoint)?;
+            let snapshot = inspect_runtime(runtime)?;
+            review_snapshot(&snapshot)?;
+            review_platform(context, &snapshot)?;
+            let fixture = cran_fixture(context, &snapshot.r_version)?;
+            let output = run_verification(runtime, &layout, &endpoint, fixture.package_type)?;
+            validate_verification_output(context, runtime, &layout, &output, &endpoint, &fixture)?;
             Ok(VerificationResult {
                 valid: true,
                 summary: format!(
-                    "R resolved digest {DIGEST_VERSION} source metadata and archive through {endpoint}"
+                    "R resolved digest {DIGEST_VERSION} {} metadata and archive through {endpoint}",
+                    fixture.package_type
                 ),
             })
         })();
@@ -438,12 +470,14 @@ struct Layout {
     verification_root: PathBuf,
     verification_script: PathBuf,
     verification_library: PathBuf,
+    verification_downloads: PathBuf,
 }
 
 #[derive(Debug)]
 struct Snapshot {
     r_version: String,
     platform: String,
+    r_arch: String,
     site_profile: PathBuf,
     site_state: String,
     profile_env: String,
@@ -463,15 +497,80 @@ struct ParsedProfile {
     managed: Option<String>,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+struct CranFixture {
+    package_type: &'static str,
+    index_path: &'static str,
+    archive_path: &'static str,
+    archive_sha256: &'static str,
+}
+
+fn cran_fixture(context: &SystemContext, r_version: &str) -> Result<CranFixture, AdapterError> {
+    if context.os != OperatingSystem::Linux && !r_version.starts_with("4.6.") {
+        return Err(AdapterError::Unsupported(format!(
+            "R {r_version} has no reviewed macOS/Windows 4.6 binary fixture"
+        )));
+    }
+    Ok(match (context.os, context.architecture) {
+        (OperatingSystem::Linux, _) => CranFixture {
+            package_type: "source",
+            index_path: "src/contrib/PACKAGES.gz",
+            archive_path: "src/contrib/digest_0.6.39.tar.gz",
+            archive_sha256: DIGEST_SHA256,
+        },
+        (OperatingSystem::Macos, Architecture::X86_64) => CranFixture {
+            package_type: "binary",
+            index_path: "bin/macosx/big-sur-x86_64/contrib/4.6/PACKAGES.gz",
+            archive_path: "bin/macosx/big-sur-x86_64/contrib/4.6/digest_0.6.39.tgz",
+            archive_sha256: "302eafa4c89452ad1a5975624b66fa473cb0ac55c61e59f15556a21e00713956",
+        },
+        (OperatingSystem::Macos, Architecture::Arm64) => CranFixture {
+            package_type: "binary",
+            index_path: "bin/macosx/sonoma-arm64/contrib/4.6/PACKAGES.gz",
+            archive_path: "bin/macosx/sonoma-arm64/contrib/4.6/digest_0.6.39.tgz",
+            archive_sha256: "3a2a694c9d1ab8abf7829af29c851b5c82238e2f032b7d6c34a7c85a00c6a698",
+        },
+        (OperatingSystem::Windows, Architecture::X86_64) => CranFixture {
+            package_type: "binary",
+            index_path: "bin/windows/contrib/4.6/PACKAGES.gz",
+            archive_path: "bin/windows/contrib/4.6/digest_0.6.39.zip",
+            archive_sha256: "87fb005dbe912caeab037ae0da169a614a2392673a518302b125537ef2bc36e0",
+        },
+        (OperatingSystem::Windows, Architecture::Arm64) => {
+            unreachable!("Windows arm64 is rejected before CRAN fixture selection")
+        }
+    })
+}
+
+fn cran_probe_context(
+    context: &SystemContext,
+    r_version: &str,
+) -> Result<BTreeMap<String, String>, AdapterError> {
+    let fixture = cran_fixture(context, r_version)?;
+    Ok(BTreeMap::from([
+        ("cran_index_path".into(), fixture.index_path.into()),
+        ("cran_archive_path".into(), fixture.archive_path.into()),
+        ("cran_archive_sha".into(), fixture.archive_sha256.into()),
+    ]))
+}
+
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "CRAN v0.1 supports Linux x86_64 and arm64 only".into(),
+            "CRAN on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "CRAN on Windows arm64 is unavailable because R has no reviewed native Windows arm64 runtime"
+                .into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "CRAN requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -495,7 +594,7 @@ fn require_current(current: &CurrentConfiguration) -> Result<(), AdapterError> {
     Ok(())
 }
 
-fn config_layout(runtime: &dyn Runtime) -> Result<Layout, AdapterError> {
+fn config_layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layout, AdapterError> {
     let home = runtime
         .home_dir()
         .ok_or_else(|| AdapterError::Unsupported("CRAN requires a user home".into()))?;
@@ -516,17 +615,24 @@ fn config_layout(runtime: &dyn Runtime) -> Result<Layout, AdapterError> {
         }
         None => home.join(".Rprofile"),
     };
-    let rstudio_root = runtime
+    let configured_rstudio = runtime
         .environment_variable("RSTUDIO_CONFIG_HOME")
         .filter(|value| !value.trim().is_empty())
-        .map(PathBuf::from)
-        .or_else(|| {
-            runtime
-                .environment_variable("XDG_CONFIG_HOME")
-                .filter(|value| !value.trim().is_empty())
-                .map(|value| PathBuf::from(value).join("rstudio"))
-        })
-        .unwrap_or_else(|| home.join(".config/rstudio"));
+        .map(PathBuf::from);
+    let rstudio_root = configured_rstudio.unwrap_or_else(|| match context.os {
+        OperatingSystem::Windows => runtime
+            .environment_variable("APPDATA")
+            .filter(|value| !value.trim().is_empty())
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home.join("AppData/Roaming"))
+            .join("RStudio"),
+        OperatingSystem::Linux | OperatingSystem::Macos => runtime
+            .environment_variable("XDG_CONFIG_HOME")
+            .filter(|value| !value.trim().is_empty())
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home.join(".config"))
+            .join("rstudio"),
+    });
     validate_path(&rstudio_root, "RStudio config directory")?;
     let verification_root = home.join(".mirrorswitch/verification/cran");
     Ok(Layout {
@@ -534,12 +640,16 @@ fn config_layout(runtime: &dyn Runtime) -> Result<Layout, AdapterError> {
         rstudio_preferences: rstudio_root.join("rstudio-prefs.json"),
         verification_script: verification_root.join("verify.R"),
         verification_library: verification_root.join("library"),
+        verification_downloads: verification_root.join("downloads"),
         verification_root,
     })
 }
 
 fn expand_user_path(value: &str, home: &Path) -> Result<PathBuf, AdapterError> {
-    if let Some(relative) = value.strip_prefix("~/") {
+    if let Some(relative) = value
+        .strip_prefix("~/")
+        .or_else(|| value.strip_prefix("~\\"))
+    {
         if relative.is_empty() {
             return Err(AdapterError::InvalidConfiguration(
                 "R_PROFILE_USER does not identify a file".into(),
@@ -657,6 +767,7 @@ fn parse_snapshot(output: &str) -> Result<Snapshot, AdapterError> {
     Ok(Snapshot {
         r_version: field("R_VERSION")?,
         platform: field("R_PLATFORM")?,
+        r_arch: field("R_ARCH")?,
         site_profile: PathBuf::from(field("SITE_PROFILE")?),
         site_state: field("SITE_PROFILE_STATE")?,
         profile_env: field("R_PROFILE_USER")?,
@@ -694,6 +805,26 @@ fn review_snapshot(snapshot: &Snapshot) -> Result<(), AdapterError> {
         ));
     }
     effective_cran(snapshot)?;
+    Ok(())
+}
+
+fn review_platform(context: &SystemContext, snapshot: &Snapshot) -> Result<(), AdapterError> {
+    let platform = snapshot.platform.to_ascii_lowercase();
+    let os_matches = match context.os {
+        OperatingSystem::Linux => platform.contains("linux"),
+        OperatingSystem::Macos => platform.contains("darwin") || platform.contains("apple"),
+        OperatingSystem::Windows => platform.contains("mingw") || platform.contains("windows"),
+    };
+    let architecture_matches = match context.architecture {
+        Architecture::X86_64 => platform.contains("x86_64") || snapshot.r_arch == "/x64",
+        Architecture::Arm64 => platform.contains("aarch64") || platform.contains("arm64"),
+    };
+    if !os_matches || !architecture_matches {
+        return Err(AdapterError::Unsupported(format!(
+            "R platform {} and R_ARCH {} do not match {:?} {:?}",
+            snapshot.platform, snapshot.r_arch, context.os, context.architecture
+        )));
+    }
     Ok(())
 }
 
@@ -854,21 +985,22 @@ fn render_verification_script() -> String {
     format!(
         r#"{VERIFY_MARKER}
 args <- commandArgs(trailingOnly = TRUE)
-stopifnot(length(args) == 1L)
+stopifnot(length(args) == 2L)
 endpoint <- sub("/+$", "", args[[1L]])
+package_type <- args[[2L]]
+stopifnot(package_type %in% c("source", "binary"))
 repos <- getOption("repos")
 stopifnot(sum(names(repos) == "CRAN") == 1L)
 stopifnot(sub("/+$", "", unname(repos[["CRAN"]])) == endpoint)
-available <- available.packages(contriburl = contrib.url(endpoint, type = "source"), filters = list())
+available <- available.packages(contriburl = contrib.url(endpoint, type = package_type), filters = list())
 stopifnot("digest" %in% rownames(available), available["digest", "Version"] == "{DIGEST_VERSION}")
 downloads <- file.path(getwd(), "downloads")
+unlink(downloads, recursive = TRUE, force = TRUE)
 dir.create(downloads, recursive = TRUE, showWarnings = FALSE)
-archive <- download.packages("digest", destdir = downloads, repos = endpoint, type = "source", quiet = TRUE)
-stopifnot(nrow(archive) == 1L, file.exists(archive[1L, 2L]), nzchar(Sys.which("sha256sum")))
-digest <- strsplit(system2("sha256sum", shQuote(archive[1L, 2L]), stdout = TRUE), "[[:space:]]+")[[1L]][[1L]]
-stopifnot(digest == "{DIGEST_SHA256}")
+archive <- download.packages("digest", destdir = downloads, repos = endpoint, type = package_type, quiet = TRUE)
+stopifnot(nrow(archive) == 1L, file.exists(archive[1L, 2L]))
 cat("CRAN\t", endpoint, "\n", sep = "")
-cat("PACKAGE\tdigest\t{DIGEST_VERSION}\t", digest, "\n", sep = "")
+cat("PACKAGE\tdigest\t{DIGEST_VERSION}\t", package_type, "\n", sep = "")
 "#
     )
 }
@@ -877,27 +1009,60 @@ fn run_verification(
     runtime: &dyn Runtime,
     layout: &Layout,
     endpoint: &str,
+    package_type: &str,
 ) -> Result<String, AdapterError> {
     let profile = path_text(&layout.profile, "R profile")?;
     let library = path_text(&layout.verification_library, "verification library")?;
     let script = path_text(&layout.verification_script, "verification script")?;
-    let arguments = vec![
-        format!("R_PROFILE_USER={profile}"),
-        "R_ENVIRON_USER=/dev/null".into(),
-        format!("R_LIBS_USER={library}"),
-        "R_HISTFILE=/dev/null".into(),
-        "Rscript".into(),
-        script.into(),
-        endpoint.into(),
-    ];
-    let output = runtime.run_in(&layout.verification_root, "env", &arguments)?;
+    let environment = BTreeMap::from([
+        ("R_PROFILE_USER".into(), profile.into()),
+        (
+            "R_PROFILE".into(),
+            path_text(
+                &layout.verification_root.join("disabled.Rprofile"),
+                "R site profile",
+            )?
+            .into(),
+        ),
+        (
+            "R_ENVIRON_USER".into(),
+            path_text(
+                &layout.verification_root.join("disabled.Renviron"),
+                "R environ",
+            )?
+            .into(),
+        ),
+        ("R_LIBS_USER".into(), library.into()),
+        (
+            "R_HISTFILE".into(),
+            path_text(&layout.verification_root.join("history"), "R history")?.into(),
+        ),
+    ]);
+    let arguments = vec![script.into(), endpoint.into(), package_type.into()];
+    let output = runtime.run_in_with_environment(
+        &layout.verification_root,
+        "Rscript",
+        &arguments,
+        &environment,
+        &["R_REPOSITORIES".into()],
+    )?;
     command_output(output, "CRAN source repository verification")
 }
 
-fn validate_verification_output(output: &str, endpoint: &str) -> Result<(), AdapterError> {
+fn validate_verification_output(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+    layout: &Layout,
+    output: &str,
+    endpoint: &str,
+    fixture: &CranFixture,
+) -> Result<(), AdapterError> {
     let required = [
         format!("CRAN\t{endpoint}"),
-        format!("PACKAGE\tdigest\t{DIGEST_VERSION}\t{DIGEST_SHA256}"),
+        format!(
+            "PACKAGE\tdigest\t{DIGEST_VERSION}\t{}",
+            fixture.package_type
+        ),
     ];
     for evidence in required {
         if !output.lines().any(|line| line == evidence) {
@@ -905,6 +1070,37 @@ fn validate_verification_output(output: &str, endpoint: &str) -> Result<(), Adap
                 "CRAN verification did not report {evidence}"
             )));
         }
+    }
+    let archives = runtime.list_files(&layout.verification_downloads)?;
+    if archives.len() != 1 {
+        return Err(AdapterError::Verification(
+            "CRAN verification did not produce exactly one package archive".into(),
+        ));
+    }
+    let archive = path_text(&archives[0], "verification archive")?;
+    let (program, arguments) = match context.os {
+        OperatingSystem::Linux => ("sha256sum", vec![archive.into()]),
+        OperatingSystem::Macos => ("shasum", vec!["-a".into(), "256".into(), archive.into()]),
+        OperatingSystem::Windows => (
+            "certutil.exe",
+            vec!["-hashfile".into(), archive.into(), "SHA256".into()],
+        ),
+    };
+    let output = command_output(
+        runtime.run(program, &arguments)?,
+        "CRAN package archive digest verification",
+    )?;
+    let digest = output
+        .split_whitespace()
+        .find(|value| value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit()))
+        .map(str::to_ascii_lowercase)
+        .ok_or_else(|| {
+            AdapterError::Verification("CRAN digest command returned no SHA-256".into())
+        })?;
+    if digest != fixture.archive_sha256 {
+        return Err(AdapterError::Verification(
+            "CRAN verification archive SHA-256 does not match the platform fixture".into(),
+        ));
     }
     Ok(())
 }
@@ -1226,12 +1422,22 @@ fn path_text<'a>(path: &'a Path, kind: &str) -> Result<&'a str, AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "CRAN configuration {} is not UTF-8",
             path.display()
         ))
     })
+}
+
+fn preserve_bom(original: &[u8], mut rendered: Vec<u8>) -> Vec<u8> {
+    if original.starts_with(&[0xef, 0xbb, 0xbf]) {
+        rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+    }
+    rendered
 }
 
 fn verification_failure<T>(
