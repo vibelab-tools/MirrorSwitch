@@ -590,7 +590,11 @@ fn expand_probe_path(template: &str, values: &BTreeMap<String, String>) -> Resul
             .ok_or_else(|| format!("probe path requires {{{key}}}"))?;
         let safe_value = if matches!(
             key,
-            "repository_path" | "cran_index_path" | "cran_archive_path"
+            "repository_path"
+                | "cran_index_path"
+                | "cran_archive_path"
+                | "bioc_soft_index_path"
+                | "bioc_soft_archive_path"
         ) {
             value
                 .split('/')

@@ -1,0 +1,108 @@
+name: Bioconductor macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "39 7 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: Bioconductor (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel }
+          - { name: macOS arm64, runner: macos-15 }
+          - { name: Windows x86_64, runner: windows-2025 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "4.6.1"
+          use-public-rspm: false
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          Rscript --version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic Bioconductor boundary
+        run: cargo test --locked --test bioconductor_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS repositories, binary/data packages, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-bioconductor-boundary"; export HOME="$boundary/home" R_LIBS_USER="$boundary/r-library"
+          unset R_PROFILE R_PROFILE_USER R_ENVIRON_USER R_REPOSITORIES R_ARCH
+          project="$HOME/project"; profile="$HOME/.Rprofile"; environ="$HOME/.Renviron"; mkdir -p "$project" "$R_LIBS_USER"
+          Rscript -e 'install.packages("BiocManager", repos="https://cloud.r-project.org", quiet=TRUE)'
+          printf '%s\n' '# native R policy' 'options(repos = c(CRAN = "https://cloud.r-project.org", Private = "https://packages.invalid.example/r"))' 'options(BioC_mirror = "https://bioconductor.org")' > "$profile"; chmod 0600 "$profile"
+          printf '%s\n' 'PRIVATE_TOKEN=fixture-only' > "$environ"; chmod 0600 "$environ"
+          printf '%s\n' '{"R":{"Version":"4.6.1"},"Bioconductor":{"Version":"3.23"},"Repositories":[]}' > "$project/renv.lock"; chmod 0400 "$project/renv.lock"
+          printf '{"version":1,"tools":[{"id":"bioconductor","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$profile"|awk '{print $1}'); environ_before=$(shasum -a 256 "$environ"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/renv.lock"|awk '{print $1}'); mode=$(stat -f '%Lp' "$profile")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool bioconductor --scope bioconductor=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - "$profile" <<'PY'
+          import json, sys
+          status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='bioconductor']; assert len(tools)==1
+          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and 'Macos' in evidence and 'Bioconductor 3.23' in evidence
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']; assert 'fixture-only' not in open('status.json').read()+open('plan-cli.json').read()+open('plan-config.json').read()
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool bioconductor --scope bioconductor=user > tui.txt; grep -E 'mirror=(nju|tuna)' tui.txt; ! grep -F 'fixture-only' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          Rscript -e 'stopifnot(grepl("^https://mirrors\\.(nju\\.edu\\.cn|tuna\\.tsinghua\\.edu\\.cn)/bioconductor/?$", getOption("BioC_mirror")))'
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='bioconductor' and r['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$profile"|awk '{print $1}')"; test "$environ_before" = "$(shasum -a 256 "$environ"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 renv.lock|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$profile")"; test ! -e "$HOME/.mirrorswitch/verification/bioconductor/verify.R"
+      - name: Exercise Windows repositories, binary/data packages, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-bioconductor-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; $env:R_LIBS_USER=Join-Path $boundary 'r-library'; Remove-Item Env:R_PROFILE,Env:R_PROFILE_USER,Env:R_ENVIRON_USER,Env:R_REPOSITORIES,Env:R_ARCH -ErrorAction SilentlyContinue
+          $launcher=(Get-Command Rscript -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -ne '.exe'){throw "native Rscript launcher is not an executable: $launcher"}
+          $project=Join-Path $env:USERPROFILE 'project'; $profile=Join-Path $env:USERPROFILE '.Rprofile'; $environ=Join-Path $env:USERPROFILE '.Renviron'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA,$env:R_LIBS_USER,$project|Out-Null
+          Rscript -e 'install.packages("BiocManager", repos="https://cloud.r-project.org", quiet=TRUE)'
+          [IO.File]::WriteAllText($profile,"# native R policy`r`noptions(repos = c(CRAN = `"https://cloud.r-project.org`", Private = `"https://packages.invalid.example/r`"))`r`noptions(BioC_mirror = `"https://bioconductor.org`")`r`n",[Text.UTF8Encoding]::new($true)); [IO.File]::WriteAllText($environ,'PRIVATE_TOKEN=fixture-only',[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project 'renv.lock'),'{"R":{"Version":"4.6.1"},"Bioconductor":{"Version":"3.23"},"Repositories":[]}',[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'renv.lock') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"bioconductor","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+          $before=(Get-FileHash $profile -Algorithm SHA256).Hash; $environBefore=(Get-FileHash $environ -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'renv.lock') -Algorithm SHA256).Hash; $acl=(Get-Acl $profile).Sddl
+          Push-Location $project
+          try{
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool bioconductor --scope bioconductor=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'bioconductor'); if($tools.Count -ne 1){throw 'Bioconductor not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains($profile) -or -not $evidence.Contains('Windows') -or -not $evidence.Contains('Bioconductor 3.23')){throw 'native path/platform evidence missing'}
+            $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -or (Get-Content status.json,plan-cli.json,plan-config.json -Raw)-match 'fixture-only'){throw 'frontend plans differ or credential leaked'}
+            @('','n')|& $binary tui --offline --tool bioconductor --scope bioconductor=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(nju|tuna)') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Bioconductor apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            Rscript -e 'stopifnot(grepl("^https://mirrors\\.(nju\\.edu\\.cn|tuna\\.tsinghua\\.edu\\.cn)/bioconductor/?$", getOption("BioC_mirror")))'
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'bioconductor'){throw 'restore failed'}
+          }finally{Pop-Location}
+          $script=Join-Path $env:USERPROFILE '.mirrorswitch/verification/bioconductor/verify.R'; if($before -ne (Get-FileHash $profile -Algorithm SHA256).Hash -or $environBefore -ne (Get-FileHash $environ -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'renv.lock') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $profile).Sddl -or (Test-Path $script)){throw 'Bioconductor state not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: bioconductor-native-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-bioconductor-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

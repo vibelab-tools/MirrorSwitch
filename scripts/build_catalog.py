@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "98"
+CATALOG_FORMAT_REVISION = "100"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -609,6 +609,18 @@ BIOCONDUCTOR_PACKAGES = [
         "adductData",
         "1.28.0",
         "d61d9759ccb6d48798484a178e8bbc3c02c4bcd70e0c9cfb11b0354566aa3654",
+    ),
+    (
+        "workflows",
+        "annotation",
+        "1.36.0",
+        "5080e8a12ebe6870f1ca610078c71b8be548d8119f0aff07eb69a91bb7c0a515",
+    ),
+    (
+        "books",
+        "BiocBookDemo",
+        "1.10.0",
+        "b828a9c927a5c4df6cff572f1159322e36e891ac4db932f78453354407b023dc",
     ),
 ]
 TLMGR_RUNTIME_UPSTREAM = "ctan--language-registry"
@@ -1860,7 +1872,7 @@ def runtime_properties(
         and entry["raw_name"] == "bioconductor"
         and entry["provider_id"] in BIOCONDUCTOR_ENDPOINTS
     ):
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []
@@ -1870,11 +1882,21 @@ def runtime_properties(
         for index, (repository, package, version, sha256) in enumerate(
             BIOCONDUCTOR_PACKAGES
         ):
+            index_path = (
+                "/{bioc_soft_index_path}"
+                if index == 0
+                else f"/packages/3.23/{repository}/src/contrib/PACKAGES"
+            )
+            archive_path = (
+                "/{bioc_soft_archive_path}"
+                if index == 0
+                else f"/packages/3.23/{repository}/src/contrib/{package}_{version}.tar.gz"
+            )
             probes.append(
                 {
                     "endpoint_role": "index" if index == 0 else "metadata",
                     "method": "get",
-                    "path": f"/packages/3.23/{repository}/src/contrib/PACKAGES",
+                    "path": index_path,
                     "expected_status": [200],
                     "expected_content_type": "application/octet-stream",
                     "contains": f"Package: {package}",
@@ -1884,13 +1906,10 @@ def runtime_properties(
                 {
                     "endpoint_role": "artifacts",
                     "method": "get",
-                    "path": (
-                        f"/packages/3.23/{repository}/src/contrib/"
-                        f"{package}_{version}.tar.gz"
-                    ),
+                    "path": archive_path,
                     "expected_status": [200],
                     "expected_content_type": "application/octet-stream",
-                    "sha256": sha256,
+                    "sha256": "{bioc_soft_archive_sha}" if index == 0 else sha256,
                 }
             )
     elif (

@@ -25,6 +25,8 @@ const TUNA: &str = "https://mirrors.tuna.tsinghua.edu.cn/bioconductor";
 const BIOC_VERSION_SHA: &str = "7a9fdd2f50e69facc752a8d8aede12cdc872d1fb59fea2355f3b499ace6864f4";
 const ANNOTATION_SHA: &str = "7bb5a06b5a8c0c2024f317ed0c58b048550ba9ed6cc64266c4afc03a24ec7d6b";
 const EXPERIMENT_SHA: &str = "d61d9759ccb6d48798484a178e8bbc3c02c4bcd70e0c9cfb11b0354566aa3654";
+const WORKFLOW_SHA: &str = "5080e8a12ebe6870f1ca610078c71b8be548d8119f0aff07eb69a91bb7c0a515";
+const BOOK_SHA: &str = "b828a9c927a5c4df6cff572f1159322e36e891ac4db932f78453354407b023dc";
 
 fn context(root: &Path, architecture: Architecture) -> SystemContext {
     SystemContext {
@@ -37,6 +39,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
             version_codename: Some("trixie".into()),
             id_like: Vec::new(),
         }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
         root: root.to_path_buf(),
     }
 }
@@ -63,60 +75,103 @@ fn install_r(
     mirror: &str,
     verification_exit: i32,
 ) {
-    executable(
+    install_r_for_platform(
         root,
-        "/usr/bin/env",
-        format!(
-            r#"#!/bin/sh
-while [ $# -gt 0 ]; do
-  case "$1" in
-    *=*) export "$1"; shift ;;
-    *) break ;;
-  esac
-done
-[ "$1" = Rscript ] || exit 90
-shift
-exec '{root}/usr/bin/Rscript' "$@"
+        r_version,
+        biocmanager_version,
+        bioc_version,
+        mirror,
+        verification_exit,
+        "x86_64-pc-linux-gnu",
+        "",
+        BIOC_VERSION_SHA,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn install_r_for_platform(
+    root: &Path,
+    r_version: &str,
+    biocmanager_version: &str,
+    bioc_version: &str,
+    mirror: &str,
+    verification_exit: i32,
+    platform: &str,
+    r_arch: &str,
+    soft_digest: &str,
+) {
+    for command in ["sha256sum", "shasum", "certutil.exe"] {
+        executable(
+            root,
+            &format!("/usr/bin/{command}"),
+            format!(
+                r#"#!/bin/sh
+case "$*" in
+  *BiocVersion*) digest='{soft_digest}' ;;
+  *AHCytoBands*) digest='{ANNOTATION_SHA}' ;;
+  *adductData*) digest='{EXPERIMENT_SHA}' ;;
+  *annotation_1.36.0*) digest='{WORKFLOW_SHA}' ;;
+  *BiocBookDemo*) digest='{BOOK_SHA}' ;;
+  *) exit 80 ;;
+esac
+printf '%s  fixture\n' "$digest"
 "#,
-            root = root.display(),
-        ),
-    );
-    executable(
-        root,
-        "/usr/bin/sha256sum",
-        "#!/bin/sh\nprintf '%064d  %s\\n' 0 \"$1\"\n".into(),
-    );
+            ),
+        );
+    }
     executable(
         root,
         "/usr/bin/Rscript",
         format!(
             r#"#!/bin/sh
 if [ "$1" = -e ]; then
-  printf '%s\n' \
-    'R_VERSION	{r_version}' \
+	printf '%s\n' \
+	    'R_VERSION	{r_version}' \
+	    'R_PLATFORM	{platform}' \
+	    'R_ARCH	{r_arch}' \
+	    'BIOCMANAGER_LIBRARY	/home/developer/R/library' \
     'BIOCMANAGER_VERSION	{biocmanager_version}' \
     'BIOC_VERSION	{bioc_version}' \
     'BIOC_MIRROR	{mirror}' \
     'REPOSITORY	BioCsoft	{mirror}/packages/{bioc_version}/bioc' \
     'REPOSITORY	BioCann	{mirror}/packages/{bioc_version}/data/annotation' \
-    'REPOSITORY	BioCexp	{mirror}/packages/{bioc_version}/data/experiment' \
+	    'REPOSITORY	BioCexp	{mirror}/packages/{bioc_version}/data/experiment' \
+	    'REPOSITORY	BioCworkflows	{mirror}/packages/{bioc_version}/workflows' \
+	    'REPOSITORY	BioCbooks	{mirror}/packages/{bioc_version}/books' \
     'REPOSITORY	CRAN	https://cran.example/public'
   exit 0
 fi
 [ -n "${{R_PROFILE_USER:-}}" ] || exit 61
-[ "${{R_ENVIRON_USER:-}}" = /dev/null ] || exit 62
+	[ -n "${{R_ENVIRON_USER:-}}" ] || exit 62
 [ -n "${{R_LIBS_USER:-}}" ] || exit 63
 grep -F 'MirrorSwitch Bioconductor mirror' '{root}'"${{R_PROFILE_USER}}" >/dev/null || exit 64
 grep -F 'Managed by MirrorSwitch: Bioconductor verification script' '{root}'"$1" >/dev/null || exit 65
 [ {verification_exit} -eq 0 ] || exit {verification_exit}
-endpoint=$2
-printf '%s\n' \
+	endpoint=$2
+	software_type=$3
+	rm -rf "$PWD/downloads"
+	mkdir -p "$PWD/downloads"
+	if [ "$software_type" = binary ]; then
+	  case '{platform}' in *mingw*) soft='BiocVersion_3.23.1.zip' ;; *) soft='BiocVersion_3.23.1.tgz' ;; esac
+	else
+	  soft='BiocVersion_3.23.1.tar.gz'
+	fi
+	printf x > "$PWD/downloads/$soft"
+	printf x > "$PWD/downloads/AHCytoBands_0.99.1.tar.gz"
+	printf x > "$PWD/downloads/adductData_1.28.0.tar.gz"
+	printf x > "$PWD/downloads/annotation_1.36.0.tar.gz"
+	printf x > "$PWD/downloads/BiocBookDemo_1.10.0.tar.gz"
+	printf '%s\n' \
   "REPOSITORY	BioCsoft	${{endpoint}}/packages/3.23/bioc" \
   "REPOSITORY	BioCann	${{endpoint}}/packages/3.23/data/annotation" \
-  "REPOSITORY	BioCexp	${{endpoint}}/packages/3.23/data/experiment" \
-  'PACKAGE	BiocVersion	3.23.1	{BIOC_VERSION_SHA}' \
-  'PACKAGE	AHCytoBands	0.99.1	{ANNOTATION_SHA}' \
-  'PACKAGE	adductData	1.28.0	{EXPERIMENT_SHA}' \
+	  "REPOSITORY	BioCexp	${{endpoint}}/packages/3.23/data/experiment" \
+	  "REPOSITORY	BioCworkflows	${{endpoint}}/packages/3.23/workflows" \
+	  "REPOSITORY	BioCbooks	${{endpoint}}/packages/3.23/books" \
+	  "PACKAGE	BiocVersion	3.23.1	${{software_type}}" \
+	  'PACKAGE	AHCytoBands	0.99.1	source' \
+	  'PACKAGE	adductData	1.28.0	source' \
+	  'PACKAGE	annotation	1.36.0	source' \
+	  'PACKAGE	BiocBookDemo	1.10.0	source' \
   'BIOC_VERSION	3.23'
 "#,
             root = root.display(),
@@ -237,16 +292,101 @@ options(BioC_mirror = "https://bioconductor.org")
 }
 
 #[test]
+fn macos_and_windows_use_native_software_binary_and_data_source_fixtures() {
+    for (os, architecture, platform, r_arch, soft_digest, index, original) in [
+        (
+            OperatingSystem::Macos,
+            Architecture::X86_64,
+            "x86_64-apple-darwin20",
+            "",
+            "be92ad13d620fb7e0671c552f3fe5b481b92a0cd08ff3a0b7994c29c35056b7e",
+            "packages/3.23/bioc/bin/macosx/big-sur-x86_64/contrib/4.6/PACKAGES",
+            b"# macOS policy\noptions(BioC_mirror = 'https://bioconductor.org')\n".as_slice(),
+        ),
+        (
+            OperatingSystem::Macos,
+            Architecture::Arm64,
+            "aarch64-apple-darwin20",
+            "/aarch64",
+            "cea69c8e00240f6f6c0aeb8f7123c39f21132df8487d96d98018b6e0ef5f9805",
+            "packages/3.23/bioc/bin/macosx/sonoma-arm64/contrib/4.6/PACKAGES",
+            b"\xef\xbb\xbf# macOS arm policy\noptions(BioC_mirror = 'https://bioconductor.org')\n".as_slice(),
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::X86_64,
+            "x86_64-w64-mingw32",
+            "/x64",
+            "e5e5fc60309103fc40dfebf08842c357860ad09139ffcb58b54e3d0ff1e58e0f",
+            "packages/3.23/bioc/bin/windows/contrib/4.6/PACKAGES",
+            b"\xef\xbb\xbf# Windows policy\r\noptions(BioC_mirror = 'https://bioconductor.org')\r\n".as_slice(),
+        ),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_r_for_platform(
+            root,
+            "4.6.1",
+            "1.30.27",
+            "3.23",
+            "https://bioconductor.org",
+            0,
+            platform,
+            r_arch,
+            soft_digest,
+        );
+        let profile = write(root, "/home/developer/.Rprofile", original);
+        let project_contents = b"{\"Bioconductor\": {\"Version\": \"3.23\"}}\n";
+        let project = write(root, "/work/project/renv.lock", project_contents);
+        let adapter = BioconductorAdapter;
+        let context = native_context(root, os, architecture);
+        let mut runtime = runtime(root, BTreeMap::new(), Some("/work/project"));
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        assert!(detected.evidence.iter().any(|line| line.contains(&format!("{os:?}"))));
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let request = adapter.selection_request(&context, &detected, &current).unwrap();
+        assert_eq!(request.probe_contexts[UPSTREAM][0]["bioc_soft_index_path"], index);
+        let selected = [selection("nju", NJU)];
+        let cli = adapter.plan(&context, &current, &selected).unwrap();
+        let config = adapter.plan(&context, &current, &selected).unwrap();
+        let tui = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(cli, config);
+        assert_eq!(config, tui);
+        assert_eq!(
+            cli.changes[0].new_contents.starts_with(&[0xef, 0xbb, 0xbf]),
+            original.starts_with(&[0xef, 0xbb, 0xbf])
+        );
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("Bioconductor profile should change")
+        };
+        assert!(adapter.verify(&context, &mut runtime, &receipt).unwrap().valid);
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(adapter.plan(&context, &updated, &selected).unwrap().changes.is_empty());
+        assert!(adapter.restore(&context, &mut runtime, &receipt).unwrap().restored);
+        assert_eq!(fs::read(profile).unwrap(), original);
+        assert_eq!(fs::read(project).unwrap(), project_contents);
+    }
+}
+
+#[test]
 fn arm64_explicit_user_profile_produces_stable_nju_plan() {
     let directory = tempdir().unwrap();
     let root = directory.path();
-    install_r(
+    install_r_for_platform(
         root,
         "4.6.0",
         "1.30.12",
         "3.23",
         "https://bioconductor.org",
         0,
+        "aarch64-unknown-linux-gnu",
+        "",
+        BIOC_VERSION_SHA,
     );
     let adapter = BioconductorAdapter;
     let context = context(root, Architecture::Arm64);
@@ -374,13 +514,16 @@ fn incompatible_versions_private_dynamic_project_precedence_and_mismatch_are_rej
 fn failed_real_repository_query_restores_profile_and_script() {
     let directory = tempdir().unwrap();
     let root = directory.path();
-    install_r(
+    install_r_for_platform(
         root,
         "4.6.1",
         "1.30.27",
         "3.23",
         "https://bioconductor.org",
         9,
+        "aarch64-unknown-linux-gnu",
+        "",
+        BIOC_VERSION_SHA,
     );
     let original = b"options(warn = 1)\n";
     let profile = write(root, "/home/developer/.Rprofile", original);
@@ -405,6 +548,43 @@ fn failed_real_repository_query_restores_profile_and_script() {
         !root
             .join("home/developer/.mirrorswitch/verification/bioconductor/verify.R")
             .exists()
+    );
+}
+
+#[test]
+fn non_native_platform_and_windows_arm_are_inert() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_r_for_platform(
+        root,
+        "4.6.1",
+        "1.30.27",
+        "3.23",
+        "https://bioconductor.org",
+        0,
+        "x86_64-w64-mingw32",
+        "/x64",
+        "e5e5fc60309103fc40dfebf08842c357860ad09139ffcb58b54e3d0ff1e58e0f",
+    );
+    let adapter = BioconductorAdapter;
+    let macos_container = SystemContext {
+        environment: ExecutionEnvironment::Container,
+        ..native_context(root, OperatingSystem::Macos, Architecture::Arm64)
+    };
+    assert!(
+        adapter
+            .detect(&macos_container, &runtime(root, BTreeMap::new(), None))
+            .unwrap_err()
+            .to_string()
+            .contains("native host")
+    );
+    let windows_arm = native_context(root, OperatingSystem::Windows, Architecture::Arm64);
+    assert!(
+        adapter
+            .detect(&windows_arm, &runtime(root, BTreeMap::new(), None))
+            .unwrap_err()
+            .to_string()
+            .contains("no reviewed native Windows arm64 runtime")
     );
 }
 
@@ -434,21 +614,29 @@ fn embedded_catalog_has_two_complete_and_one_inert_inventory_candidates() {
         assert_eq!(candidate.delivery_mode, DeliveryMode::Mirror);
         assert_eq!(
             candidate.compatibility.operating_systems,
-            [OperatingSystem::Linux]
+            [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows,
+            ]
         );
         assert_eq!(
             candidate.compatibility.architectures,
             [Architecture::X86_64, Architecture::Arm64]
         );
         assert_eq!(candidate.compatibility.repository_versions, ["3.23"]);
-        assert_eq!(candidate.probes.len(), 6);
+        assert_eq!(candidate.probes.len(), 10);
         assert_eq!(candidate.probes[0].method, HttpMethod::Get);
         assert_eq!(
             candidate.probes[1].sha256.as_deref(),
-            Some(BIOC_VERSION_SHA)
+            Some("{bioc_soft_archive_sha}")
         );
+        assert_eq!(candidate.probes[0].path, "/{bioc_soft_index_path}");
+        assert_eq!(candidate.probes[1].path, "/{bioc_soft_archive_path}");
         assert_eq!(candidate.probes[3].sha256.as_deref(), Some(ANNOTATION_SHA));
         assert_eq!(candidate.probes[5].sha256.as_deref(), Some(EXPERIMENT_SHA));
+        assert_eq!(candidate.probes[7].sha256.as_deref(), Some(WORKFLOW_SHA));
+        assert_eq!(candidate.probes[9].sha256.as_deref(), Some(BOOK_SHA));
         for role in [
             EndpointRole::Index,
             EndpointRole::Metadata,

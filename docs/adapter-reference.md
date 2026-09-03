@@ -68,7 +68,7 @@ content remain unchanged and are reported.
 | `ghcup` | user | Signed metadata and bindist checks; custom channels and keys preserved ([details](adapters/ghcup.md)) |
 | `cpan` | user | CPAN/CPANM index and distribution query; client-specific config preserved ([#67](https://github.com/vibelab-tools/MirrorSwitch/issues/67)) |
 | `cran` | user | Linux source or macOS/Windows native binary query; Rprofile.site, named repositories, Bioconductor, renv, auth, BOM/newlines and permissions preserved ([details](adapters/cran.md)) |
-| `bioconductor` | user | Version-paired repository/package query; project/renv configuration stays read-only ([#64](https://github.com/vibelab-tools/MirrorSwitch/issues/64)) |
+| `bioconductor` | user | R/Bioc release pairing plus Linux sources or native macOS/Windows BioCsoft binaries; all repository classes and CRAN/project/auth state preserved ([details](adapters/bioconductor.md)) |
 | `tlmgr` | system/user | TeX Live remote query; release year and installation platform must match ([#65](https://github.com/vibelab-tools/MirrorSwitch/issues/65)) |
 | `dart-pub` | user | Linux/macOS shell profile or Windows HKCU environment plus isolated fixed-package resolution; token/project state preserved and Flutter SDK artifacts excluded ([details](adapters/dart-pub.md)) |
 | `flutter` | user | Linux/macOS profile or Windows HKCU pair; platform-specific Flutter storage and Pub chains must both validate before native precache/doctor/query ([details](adapters/flutter.md)) |

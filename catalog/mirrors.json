@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+a50268df98f3",
-  "content_revision": 20260903044430,
-  "generated_at": "2026-09-03T04:44:30Z",
+  "content_version": "2026.08.28+7ff8c369e311",
+  "content_revision": 20260903050954,
+  "generated_at": "2026-09-03T05:09:54Z",
   "providers": [
     {
       "id": "aliyun",
@@ -9370,6 +9370,159 @@
             206
           ],
           "sha256": "5e4b39da395656a59827b0280508aafdc70335798b50e5d6fd52596026251825"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "309315bc01bb9a7138a90da2",
+      "provider_id": "tuna",
+      "upstream_id": "bioconductor--language-registry",
+      "tool_id": "bioconductor",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "bioconductor"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/bioconductor/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/bioconductor/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/bioconductor/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "3.23"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/{bioc_soft_index_path}",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: BiocVersion"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{bioc_soft_archive_path}",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{bioc_soft_archive_sha}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/packages/3.23/data/annotation/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: AHCytoBands"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/data/annotation/src/contrib/AHCytoBands_0.99.1.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "7bb5a06b5a8c0c2024f317ed0c58b048550ba9ed6cc64266c4afc03a24ec7d6b"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/packages/3.23/data/experiment/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: adductData"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/data/experiment/src/contrib/adductData_1.28.0.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "d61d9759ccb6d48798484a178e8bbc3c02c4bcd70e0c9cfb11b0354566aa3654"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/packages/3.23/workflows/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: annotation"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/workflows/src/contrib/annotation_1.36.0.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "5080e8a12ebe6870f1ca610078c71b8be548d8119f0aff07eb69a91bb7c0a515"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/packages/3.23/books/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: BiocBookDemo"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/books/src/contrib/BiocBookDemo_1.10.0.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "b828a9c927a5c4df6cff572f1159322e36e891ac4db932f78453354407b023dc"
         }
       ],
       "source_urls": [
@@ -22678,117 +22831,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "a399da128e3e154531d9f874",
-      "provider_id": "nju",
-      "upstream_id": "bioconductor--language-registry",
-      "tool_id": "bioconductor",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "bioconductor"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/bioconductor/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/bioconductor/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/bioconductor/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": [
-          "3.23"
-        ]
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/packages/3.23/bioc/src/contrib/PACKAGES",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "contains": "Package: BiocVersion"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/packages/3.23/bioc/src/contrib/BiocVersion_3.23.1.tar.gz",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "sha256": "7a9fdd2f50e69facc752a8d8aede12cdc872d1fb59fea2355f3b499ace6864f4"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/packages/3.23/data/annotation/src/contrib/PACKAGES",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "contains": "Package: AHCytoBands"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/packages/3.23/data/annotation/src/contrib/AHCytoBands_0.99.1.tar.gz",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "sha256": "7bb5a06b5a8c0c2024f317ed0c58b048550ba9ed6cc64266c4afc03a24ec7d6b"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/packages/3.23/data/experiment/src/contrib/PACKAGES",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "contains": "Package: adductData"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/packages/3.23/data/experiment/src/contrib/adductData_1.28.0.tar.gz",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "sha256": "d61d9759ccb6d48798484a178e8bbc3c02c4bcd70e0c9cfb11b0354566aa3654"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "a45ca8c8ec598991ac511fed",
       "provider_id": "huaweicloud",
       "upstream_id": "npm--language-registry",
@@ -26772,6 +26814,159 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "beb929ce85c93e4ca757f292",
+      "provider_id": "nju",
+      "upstream_id": "bioconductor--language-registry",
+      "tool_id": "bioconductor",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "bioconductor"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/bioconductor/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/bioconductor/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/bioconductor/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "3.23"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/{bioc_soft_index_path}",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: BiocVersion"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/{bioc_soft_archive_path}",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "{bioc_soft_archive_sha}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/packages/3.23/data/annotation/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: AHCytoBands"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/data/annotation/src/contrib/AHCytoBands_0.99.1.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "7bb5a06b5a8c0c2024f317ed0c58b048550ba9ed6cc64266c4afc03a24ec7d6b"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/packages/3.23/data/experiment/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: adductData"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/data/experiment/src/contrib/adductData_1.28.0.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "d61d9759ccb6d48798484a178e8bbc3c02c4bcd70e0c9cfb11b0354566aa3654"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/packages/3.23/workflows/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: annotation"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/workflows/src/contrib/annotation_1.36.0.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "5080e8a12ebe6870f1ca610078c71b8be548d8119f0aff07eb69a91bb7c0a515"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/packages/3.23/books/src/contrib/PACKAGES",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "contains": "Package: BiocBookDemo"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/packages/3.23/books/src/contrib/BiocBookDemo_1.10.0.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "expected_content_type": "application/octet-stream",
+          "sha256": "b828a9c927a5c4df6cff572f1159322e36e891ac4db932f78453354407b023dc"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "bed6285b69de111715a6e6bb",
       "provider_id": "sjtug",
       "upstream_id": "pypi--language-registry",
@@ -27316,117 +27511,6 @@
             200
           ],
           "contains": "P pack-"
-        }
-      ],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "c3928d6f23dac03c6a641429",
-      "provider_id": "tuna",
-      "upstream_id": "bioconductor--language-registry",
-      "tool_id": "bioconductor",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "bioconductor"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/bioconductor/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/bioconductor/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/bioconductor/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": [
-          "3.23"
-        ]
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/packages/3.23/bioc/src/contrib/PACKAGES",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "contains": "Package: BiocVersion"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/packages/3.23/bioc/src/contrib/BiocVersion_3.23.1.tar.gz",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "sha256": "7a9fdd2f50e69facc752a8d8aede12cdc872d1fb59fea2355f3b499ace6864f4"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/packages/3.23/data/annotation/src/contrib/PACKAGES",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "contains": "Package: AHCytoBands"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/packages/3.23/data/annotation/src/contrib/AHCytoBands_0.99.1.tar.gz",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "sha256": "7bb5a06b5a8c0c2024f317ed0c58b048550ba9ed6cc64266c4afc03a24ec7d6b"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/packages/3.23/data/experiment/src/contrib/PACKAGES",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "contains": "Package: adductData"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/packages/3.23/data/experiment/src/contrib/adductData_1.28.0.tar.gz",
-          "expected_status": [
-            200
-          ],
-          "expected_content_type": "application/octet-stream",
-          "sha256": "d61d9759ccb6d48798484a178e8bbc3c02c4bcd70e0c9cfb11b0354566aa3654"
         }
       ],
       "source_urls": [

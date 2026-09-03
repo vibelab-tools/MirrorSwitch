@@ -7,7 +7,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{Architecture, OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -28,11 +28,16 @@ const VERIFY_MARKER: &str = "# Managed by MirrorSwitch: Bioconductor verificatio
 const BIOC_VERSION_SHA: &str = "7a9fdd2f50e69facc752a8d8aede12cdc872d1fb59fea2355f3b499ace6864f4";
 const ANNOTATION_SHA: &str = "7bb5a06b5a8c0c2024f317ed0c58b048550ba9ed6cc64266c4afc03a24ec7d6b";
 const EXPERIMENT_SHA: &str = "d61d9759ccb6d48798484a178e8bbc3c02c4bcd70e0c9cfb11b0354566aa3654";
+const WORKFLOW_SHA: &str = "5080e8a12ebe6870f1ca610078c71b8be548d8119f0aff07eb69a91bb7c0a515";
+const BOOK_SHA: &str = "b828a9c927a5c4df6cff572f1159322e36e891ac4db932f78453354407b023dc";
 
 const INSPECT_SCRIPT: &str = r#"
 if (!requireNamespace("BiocManager", quietly = TRUE)) quit(status = 42L)
 cat("R_VERSION\t", as.character(getRversion()), "\n", sep = "")
+cat("R_PLATFORM\t", R.version$platform, "\n", sep = "")
+cat("R_ARCH\t", Sys.getenv("R_ARCH", unset = ""), "\n", sep = "")
 cat("BIOCMANAGER_VERSION\t", as.character(packageVersion("BiocManager")), "\n", sep = "")
+cat("BIOCMANAGER_LIBRARY\t", dirname(find.package("BiocManager")), "\n", sep = "")
 cat("BIOC_VERSION\t", as.character(BiocManager::version()), "\n", sep = "")
 mirror <- getOption("BioC_mirror", "https://bioconductor.org")
 cat("BIOC_MIRROR\t", as.character(mirror[[1L]]), "\n", sep = "")
@@ -70,19 +75,19 @@ impl Adapter for BioconductorAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("Rscript") {
             return Ok(None);
         }
-        for command in ["env", "sha256sum"] {
-            if !runtime.command_exists(command) {
-                return Err(AdapterError::Unsupported(format!(
-                    "Bioconductor verification requires {command}"
-                )));
-            }
+        let digest_command = native_digest_command(context);
+        if !runtime.command_exists(digest_command) {
+            return Err(AdapterError::Unsupported(format!(
+                "Bioconductor verification requires native {digest_command}"
+            )));
         }
         let snapshot = inspect_runtime(runtime)?;
         review_snapshot(&snapshot)?;
+        review_platform(context, &snapshot)?;
         let layout = config_layout(runtime)?;
         Ok(Some(DetectedTool {
             tool_id: "bioconductor".into(),
@@ -90,6 +95,19 @@ impl Adapter for BioconductorAdapter {
             version: Some(snapshot.biocmanager_version.clone()),
             evidence: vec![
                 format!("R {}", snapshot.r_version),
+                format!("R platform is {}", snapshot.platform),
+                format!(
+                    "R_ARCH is {}",
+                    if snapshot.r_arch.is_empty() {
+                        "unset"
+                    } else {
+                        &snapshot.r_arch
+                    }
+                ),
+                format!(
+                    "native platform is {:?} {:?}",
+                    context.os, context.architecture
+                ),
                 format!("BiocManager {}", snapshot.biocmanager_version),
                 format!("Bioconductor {}", snapshot.bioc_version),
                 format!(
@@ -112,7 +130,7 @@ impl Adapter for BioconductorAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "bioconductor" {
             return Err(AdapterError::InvalidConfiguration(
@@ -121,6 +139,7 @@ impl Adapter for BioconductorAdapter {
         }
         let snapshot = inspect_runtime(runtime)?;
         review_snapshot(&snapshot)?;
+        review_platform(context, &snapshot)?;
         if detected.version.as_deref() != Some(snapshot.biocmanager_version.as_str()) {
             return Err(AdapterError::Conflict(
                 "BiocManager version changed after detection".into(),
@@ -205,7 +224,7 @@ impl Adapter for BioconductorAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         review_biocmanager_version(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("BiocManager version is missing".into())
@@ -217,7 +236,7 @@ impl Adapter for BioconductorAdapter {
             tool_version: detected.version.clone(),
             required_upstreams: vec![UPSTREAM.into()],
             repository_versions: BTreeMap::from([(UPSTREAM.into(), BIOC_VERSION.into())]),
-            probe_contexts: BTreeMap::new(),
+            probe_contexts: BTreeMap::from([(UPSTREAM.into(), vec![bioc_probe_context(context)])]),
             required_compatibility_evidence: vec![
                 CompatibilityDimension::OperatingSystem,
                 CompatibilityDimension::Architecture,
@@ -242,13 +261,16 @@ impl Adapter for BioconductorAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         let endpoint = selected_endpoint(selections)?;
         let profile = find_document(current, "bioconductor-user-rprofile")?;
         let profile_text = utf8(&profile.path, &profile.contents)?;
-        let rendered = rewrite_profile(profile_text, &profile.path, &endpoint)?.into_bytes();
+        let rendered = preserve_bom(
+            &profile.contents,
+            rewrite_profile(profile_text, &profile.path, &endpoint)?.into_bytes(),
+        );
         let script = find_document(current, "bioconductor-verification-script")?;
         let mut changes = Vec::new();
         add_change(
@@ -334,8 +356,18 @@ impl Adapter for BioconductorAdapter {
                     "Bioconductor verification script is not canonical".into(),
                 ));
             }
-            let output = run_verification(runtime, &layout, &endpoint)?;
-            validate_verification_output(&output, &endpoint)?;
+            let snapshot = inspect_runtime(runtime)?;
+            review_snapshot(&snapshot)?;
+            review_platform(context, &snapshot)?;
+            let fixtures = bioc_fixtures(context);
+            let output = run_verification(
+                context,
+                runtime,
+                &layout,
+                &endpoint,
+                fixtures[0].package_type,
+            )?;
+            validate_verification_output(context, runtime, &layout, &output, &endpoint, &fixtures)?;
             Ok(VerificationResult {
                 valid: true,
                 summary: format!(
@@ -372,12 +404,16 @@ struct Layout {
     verification_root: PathBuf,
     verification_script: PathBuf,
     verification_library: PathBuf,
+    verification_downloads: PathBuf,
 }
 
 #[derive(Debug)]
 struct Snapshot {
     r_version: String,
+    platform: String,
+    r_arch: String,
     biocmanager_version: String,
+    biocmanager_library: PathBuf,
     bioc_version: String,
     mirror: String,
     repositories: Vec<(String, String)>,
@@ -396,18 +432,143 @@ struct ParsedProfile {
     dynamic: bool,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+struct BiocFixture {
+    repository: &'static str,
+    package: &'static str,
+    version: &'static str,
+    package_type: &'static str,
+    index_path: &'static str,
+    archive_path: &'static str,
+    archive_sha256: &'static str,
+}
+
+fn bioc_fixtures(context: &SystemContext) -> [BiocFixture; 5] {
+    let soft = match (context.os, context.architecture) {
+        (OperatingSystem::Linux, _) => BiocFixture {
+            repository: "BioCsoft",
+            package: "BiocVersion",
+            version: "3.23.1",
+            package_type: "source",
+            index_path: "packages/3.23/bioc/src/contrib/PACKAGES",
+            archive_path: "packages/3.23/bioc/src/contrib/BiocVersion_3.23.1.tar.gz",
+            archive_sha256: BIOC_VERSION_SHA,
+        },
+        (OperatingSystem::Macos, Architecture::X86_64) => BiocFixture {
+            repository: "BioCsoft",
+            package: "BiocVersion",
+            version: "3.23.1",
+            package_type: "binary",
+            index_path: "packages/3.23/bioc/bin/macosx/big-sur-x86_64/contrib/4.6/PACKAGES",
+            archive_path: "packages/3.23/bioc/bin/macosx/big-sur-x86_64/contrib/4.6/BiocVersion_3.23.1.tgz",
+            archive_sha256: "be92ad13d620fb7e0671c552f3fe5b481b92a0cd08ff3a0b7994c29c35056b7e",
+        },
+        (OperatingSystem::Macos, Architecture::Arm64) => BiocFixture {
+            repository: "BioCsoft",
+            package: "BiocVersion",
+            version: "3.23.1",
+            package_type: "binary",
+            index_path: "packages/3.23/bioc/bin/macosx/sonoma-arm64/contrib/4.6/PACKAGES",
+            archive_path: "packages/3.23/bioc/bin/macosx/sonoma-arm64/contrib/4.6/BiocVersion_3.23.1.tgz",
+            archive_sha256: "cea69c8e00240f6f6c0aeb8f7123c39f21132df8487d96d98018b6e0ef5f9805",
+        },
+        (OperatingSystem::Windows, Architecture::X86_64) => BiocFixture {
+            repository: "BioCsoft",
+            package: "BiocVersion",
+            version: "3.23.1",
+            package_type: "binary",
+            index_path: "packages/3.23/bioc/bin/windows/contrib/4.6/PACKAGES",
+            archive_path: "packages/3.23/bioc/bin/windows/contrib/4.6/BiocVersion_3.23.1.zip",
+            archive_sha256: "e5e5fc60309103fc40dfebf08842c357860ad09139ffcb58b54e3d0ff1e58e0f",
+        },
+        (OperatingSystem::Windows, Architecture::Arm64) => {
+            unreachable!("Windows arm64 is rejected before Bioconductor fixture selection")
+        }
+    };
+    [
+        soft,
+        BiocFixture {
+            repository: "BioCann",
+            package: "AHCytoBands",
+            version: "0.99.1",
+            package_type: "source",
+            index_path: "packages/3.23/data/annotation/src/contrib/PACKAGES",
+            archive_path: "packages/3.23/data/annotation/src/contrib/AHCytoBands_0.99.1.tar.gz",
+            archive_sha256: ANNOTATION_SHA,
+        },
+        BiocFixture {
+            repository: "BioCexp",
+            package: "adductData",
+            version: "1.28.0",
+            package_type: "source",
+            index_path: "packages/3.23/data/experiment/src/contrib/PACKAGES",
+            archive_path: "packages/3.23/data/experiment/src/contrib/adductData_1.28.0.tar.gz",
+            archive_sha256: EXPERIMENT_SHA,
+        },
+        BiocFixture {
+            repository: "BioCworkflows",
+            package: "annotation",
+            version: "1.36.0",
+            package_type: "source",
+            index_path: "packages/3.23/workflows/src/contrib/PACKAGES",
+            archive_path: "packages/3.23/workflows/src/contrib/annotation_1.36.0.tar.gz",
+            archive_sha256: WORKFLOW_SHA,
+        },
+        BiocFixture {
+            repository: "BioCbooks",
+            package: "BiocBookDemo",
+            version: "1.10.0",
+            package_type: "source",
+            index_path: "packages/3.23/books/src/contrib/PACKAGES",
+            archive_path: "packages/3.23/books/src/contrib/BiocBookDemo_1.10.0.tar.gz",
+            archive_sha256: BOOK_SHA,
+        },
+    ]
+}
+
+fn bioc_probe_context(context: &SystemContext) -> BTreeMap<String, String> {
+    let fixture = bioc_fixtures(context);
+    BTreeMap::from([
+        ("bioc_soft_index_path".into(), fixture[0].index_path.into()),
+        (
+            "bioc_soft_archive_path".into(),
+            fixture[0].archive_path.into(),
+        ),
+        (
+            "bioc_soft_archive_sha".into(),
+            fixture[0].archive_sha256.into(),
+        ),
+    ])
+}
+
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "Bioconductor v0.1 supports Linux x86_64 and arm64 only".into(),
+            "Bioconductor on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "Bioconductor on Windows arm64 is unavailable because R has no reviewed native Windows arm64 runtime"
+                .into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "Bioconductor requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
+}
+
+fn native_digest_command(context: &SystemContext) -> &'static str {
+    match context.os {
+        OperatingSystem::Linux => "sha256sum",
+        OperatingSystem::Macos => "shasum",
+        OperatingSystem::Windows => "certutil.exe",
+    }
 }
 
 fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
@@ -455,6 +616,7 @@ fn config_layout(runtime: &dyn Runtime) -> Result<Layout, AdapterError> {
         profile,
         verification_script: verification_root.join("verify.R"),
         verification_library: verification_root.join("library"),
+        verification_downloads: verification_root.join("downloads"),
         verification_root,
     })
 }
@@ -524,7 +686,10 @@ fn parse_snapshot(output: &str) -> Result<Snapshot, AdapterError> {
     };
     Ok(Snapshot {
         r_version: field("R_VERSION")?,
+        platform: field("R_PLATFORM")?,
+        r_arch: scalars.get("R_ARCH").map_or("", |value| *value).to_owned(),
         biocmanager_version: field("BIOCMANAGER_VERSION")?,
+        biocmanager_library: PathBuf::from(field("BIOCMANAGER_LIBRARY")?),
         bioc_version: field("BIOC_VERSION")?,
         mirror: field("BIOC_MIRROR")?,
         repositories,
@@ -540,6 +705,7 @@ fn review_snapshot(snapshot: &Snapshot) -> Result<(), AdapterError> {
         )));
     }
     review_biocmanager_version(&snapshot.biocmanager_version)?;
+    validate_path(&snapshot.biocmanager_library, "BiocManager library")?;
     if snapshot.bioc_version != BIOC_VERSION {
         return Err(AdapterError::Unsupported(format!(
             "Bioconductor {} is not the reviewed release {BIOC_VERSION}",
@@ -550,6 +716,8 @@ fn review_snapshot(snapshot: &Snapshot) -> Result<(), AdapterError> {
         ("BioCsoft", "/packages/3.23/bioc"),
         ("BioCann", "/packages/3.23/data/annotation"),
         ("BioCexp", "/packages/3.23/data/experiment"),
+        ("BioCworkflows", "/packages/3.23/workflows"),
+        ("BioCbooks", "/packages/3.23/books"),
     ] {
         let matching = snapshot
             .repositories
@@ -563,6 +731,26 @@ fn review_snapshot(snapshot: &Snapshot) -> Result<(), AdapterError> {
                 "BiocManager repositories do not expose one {name} path for release {BIOC_VERSION}"
             )));
         }
+    }
+    Ok(())
+}
+
+fn review_platform(context: &SystemContext, snapshot: &Snapshot) -> Result<(), AdapterError> {
+    let platform = snapshot.platform.to_ascii_lowercase();
+    let os_matches = match context.os {
+        OperatingSystem::Linux => platform.contains("linux"),
+        OperatingSystem::Macos => platform.contains("darwin") || platform.contains("apple"),
+        OperatingSystem::Windows => platform.contains("mingw") || platform.contains("windows"),
+    };
+    let architecture_matches = match context.architecture {
+        Architecture::X86_64 => platform.contains("x86_64") || snapshot.r_arch == "/x64",
+        Architecture::Arm64 => platform.contains("aarch64") || platform.contains("arm64"),
+    };
+    if !os_matches || !architecture_matches {
+        return Err(AdapterError::Unsupported(format!(
+            "R platform {} and R_ARCH {} do not match {:?} {:?}",
+            snapshot.platform, snapshot.r_arch, context.os, context.architecture
+        )));
     }
     Ok(())
 }
@@ -840,14 +1028,18 @@ fn render_verification_script() -> String {
     format!(
         r#"{VERIFY_MARKER}
 args <- commandArgs(trailingOnly = TRUE)
-stopifnot(length(args) == 1L, requireNamespace("BiocManager", quietly = TRUE))
+stopifnot(length(args) == 2L, requireNamespace("BiocManager", quietly = TRUE))
 base <- sub("/+$", "", args[[1L]])
+software_type <- args[[2L]]
+stopifnot(software_type %in% c("source", "binary"))
 stopifnot(getRversion() >= "4.6", getRversion() < "4.7", as.character(BiocManager::version()) == "3.23")
 repos <- suppressWarnings(BiocManager::repositories())
 expected <- c(
     BioCsoft = paste0(base, "/packages/3.23/bioc"),
     BioCann = paste0(base, "/packages/3.23/data/annotation"),
-    BioCexp = paste0(base, "/packages/3.23/data/experiment")
+    BioCexp = paste0(base, "/packages/3.23/data/experiment"),
+    BioCworkflows = paste0(base, "/packages/3.23/workflows"),
+    BioCbooks = paste0(base, "/packages/3.23/books")
 )
 for (name in names(expected)) {{
     stopifnot(name %in% names(repos))
@@ -855,23 +1047,23 @@ for (name in names(expected)) {{
     cat("REPOSITORY\t", name, "\t", expected[[name]], "\n", sep = "")
 }}
 checks <- list(
-    c("BioCsoft", "BiocVersion", "3.23.1", "{BIOC_VERSION_SHA}"),
-    c("BioCann", "AHCytoBands", "0.99.1", "{ANNOTATION_SHA}"),
-    c("BioCexp", "adductData", "1.28.0", "{EXPERIMENT_SHA}")
+    c("BioCsoft", "BiocVersion", "3.23.1", software_type),
+    c("BioCann", "AHCytoBands", "0.99.1", "source"),
+    c("BioCexp", "adductData", "1.28.0", "source"),
+    c("BioCworkflows", "annotation", "1.36.0", "source"),
+    c("BioCbooks", "BiocBookDemo", "1.10.0", "source")
 )
 downloads <- file.path(getwd(), "downloads")
+unlink(downloads, recursive = TRUE, force = TRUE)
 dir.create(downloads, recursive = TRUE, showWarnings = FALSE)
-stopifnot(nzchar(Sys.which("sha256sum")))
 options(timeout = 30L)
 for (check in checks) {{
     repository <- unname(repos[[check[[1L]]]])
-    available <- available.packages(contriburl = contrib.url(repository, type = "source"), filters = list())
+    available <- available.packages(contriburl = contrib.url(repository, type = check[[4L]]), filters = list())
     stopifnot(check[[2L]] %in% rownames(available), available[check[[2L]], "Version"] == check[[3L]])
-    archive <- download.packages(check[[2L]], destdir = downloads, repos = repository, type = "source", quiet = TRUE)
+    archive <- download.packages(check[[2L]], destdir = downloads, repos = repository, type = check[[4L]], quiet = TRUE)
     stopifnot(nrow(archive) == 1L, file.exists(archive[1L, 2L]))
-    digest <- strsplit(system2("sha256sum", shQuote(archive[1L, 2L]), stdout = TRUE), "[[:space:]]+")[[1L]][[1L]]
-    stopifnot(digest == check[[4L]])
-    cat("PACKAGE\t", check[[2L]], "\t", check[[3L]], "\t", digest, "\n", sep = "")
+    cat("PACKAGE\t", check[[2L]], "\t", check[[3L]], "\t", check[[4L]], "\n", sep = "")
 }}
 cat("BIOC_VERSION\t", as.character(BiocManager::version()), "\n", sep = "")
 "#
@@ -936,36 +1128,80 @@ fn selected_endpoint(selections: &[MirrorSelection]) -> Result<String, AdapterEr
 }
 
 fn run_verification(
+    context: &SystemContext,
     runtime: &dyn Runtime,
     layout: &Layout,
     endpoint: &str,
+    software_type: &str,
 ) -> Result<String, AdapterError> {
     let profile = path_text(&layout.profile, "R profile")?;
-    let library = path_text(&layout.verification_library, "verification library")?;
+    let verification_library = path_text(&layout.verification_library, "verification library")?;
+    let snapshot = inspect_runtime(runtime)?;
+    let biocmanager_library = path_text(&snapshot.biocmanager_library, "BiocManager library")?;
+    let separator = if context.os == OperatingSystem::Windows {
+        ';'
+    } else {
+        ':'
+    };
+    let library = format!("{verification_library}{separator}{biocmanager_library}");
     let script = path_text(&layout.verification_script, "verification script")?;
-    let arguments = vec![
-        format!("R_PROFILE_USER={profile}"),
-        "R_ENVIRON_USER=/dev/null".into(),
-        format!("R_LIBS_USER={library}"),
-        "R_HISTFILE=/dev/null".into(),
-        "Rscript".into(),
-        script.into(),
-        endpoint.into(),
-    ];
-    let output = runtime.run_in(&layout.verification_root, "env", &arguments)?;
+    let environment = BTreeMap::from([
+        ("R_PROFILE_USER".into(), profile.into()),
+        (
+            "R_PROFILE".into(),
+            path_text(
+                &layout.verification_root.join("disabled.Rprofile"),
+                "R site profile",
+            )?
+            .into(),
+        ),
+        (
+            "R_ENVIRON_USER".into(),
+            path_text(
+                &layout.verification_root.join("disabled.Renviron"),
+                "R environ",
+            )?
+            .into(),
+        ),
+        ("R_LIBS_USER".into(), library),
+        (
+            "R_HISTFILE".into(),
+            path_text(&layout.verification_root.join("history"), "R history")?.into(),
+        ),
+    ]);
+    let arguments = vec![script.into(), endpoint.into(), software_type.into()];
+    let output = runtime.run_in_with_environment(
+        &layout.verification_root,
+        "Rscript",
+        &arguments,
+        &environment,
+        &["R_REPOSITORIES".into()],
+    )?;
     command_output(output, "Bioconductor repository verification")
 }
 
-fn validate_verification_output(output: &str, endpoint: &str) -> Result<(), AdapterError> {
-    let required = [
+fn validate_verification_output(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+    layout: &Layout,
+    output: &str,
+    endpoint: &str,
+    fixtures: &[BiocFixture; 5],
+) -> Result<(), AdapterError> {
+    let mut required = vec![
         format!("BIOC_VERSION\t{BIOC_VERSION}"),
         format!("REPOSITORY\tBioCsoft\t{endpoint}/packages/3.23/bioc"),
         format!("REPOSITORY\tBioCann\t{endpoint}/packages/3.23/data/annotation"),
         format!("REPOSITORY\tBioCexp\t{endpoint}/packages/3.23/data/experiment"),
-        format!("PACKAGE\tBiocVersion\t3.23.1\t{BIOC_VERSION_SHA}"),
-        format!("PACKAGE\tAHCytoBands\t0.99.1\t{ANNOTATION_SHA}"),
-        format!("PACKAGE\tadductData\t1.28.0\t{EXPERIMENT_SHA}"),
+        format!("REPOSITORY\tBioCworkflows\t{endpoint}/packages/3.23/workflows"),
+        format!("REPOSITORY\tBioCbooks\t{endpoint}/packages/3.23/books"),
     ];
+    required.extend(fixtures.iter().map(|fixture| {
+        format!(
+            "PACKAGE\t{}\t{}\t{}",
+            fixture.package, fixture.version, fixture.package_type
+        )
+    }));
     for evidence in required {
         if !output.lines().any(|line| line == evidence) {
             return Err(AdapterError::Verification(format!(
@@ -973,7 +1209,60 @@ fn validate_verification_output(output: &str, endpoint: &str) -> Result<(), Adap
             )));
         }
     }
+    let archives = runtime.list_files(&layout.verification_downloads)?;
+    if archives.len() != fixtures.len() {
+        return Err(AdapterError::Verification(
+            "Bioconductor verification did not produce all package archives".into(),
+        ));
+    }
+    for fixture in fixtures {
+        let expected_name = Path::new(fixture.archive_path)
+            .file_name()
+            .ok_or_else(|| AdapterError::Verification("invalid fixture archive path".into()))?;
+        let archive = archives
+            .iter()
+            .find(|path| path.file_name() == Some(expected_name))
+            .ok_or_else(|| {
+                AdapterError::Verification(format!(
+                    "Bioconductor verification did not download {} from {}",
+                    fixture.package, fixture.repository
+                ))
+            })?;
+        let digest = native_archive_digest(context, runtime, archive)?;
+        if digest != fixture.archive_sha256 {
+            return Err(AdapterError::Verification(format!(
+                "Bioconductor {} archive SHA-256 does not match the platform fixture",
+                fixture.package
+            )));
+        }
+    }
     Ok(())
+}
+
+fn native_archive_digest(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+    archive: &Path,
+) -> Result<String, AdapterError> {
+    let archive = path_text(archive, "verification archive")?;
+    let (program, arguments) = match context.os {
+        OperatingSystem::Linux => ("sha256sum", vec![archive.into()]),
+        OperatingSystem::Macos => ("shasum", vec!["-a".into(), "256".into(), archive.into()]),
+        OperatingSystem::Windows => (
+            "certutil.exe",
+            vec!["-hashfile".into(), archive.into(), "SHA256".into()],
+        ),
+    };
+    command_output(
+        runtime.run(program, &arguments)?,
+        "Bioconductor archive digest verification",
+    )?
+    .split_whitespace()
+    .find(|value| value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit()))
+    .map(str::to_ascii_lowercase)
+    .ok_or_else(|| {
+        AdapterError::Verification("Bioconductor digest command returned no SHA-256".into())
+    })
 }
 
 fn command_output(output: std::process::Output, label: &str) -> Result<String, AdapterError> {
@@ -1162,7 +1451,7 @@ fn validate_path(path: &Path, kind: &str) -> Result<(), AdapterError> {
     if !path.is_absolute()
         || path
             .components()
-            .any(|component| component == Component::ParentDir)
+            .any(|component| matches!(component, Component::ParentDir | Component::CurDir))
     {
         return Err(AdapterError::InvalidConfiguration(format!(
             "Bioconductor reported unsafe {kind} path {}",
@@ -1178,12 +1467,22 @@ fn path_text<'a>(path: &'a Path, kind: &str) -> Result<&'a str, AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "Bioconductor configuration {} is not UTF-8",
             path.display()
         ))
     })
+}
+
+fn preserve_bom(original: &[u8], mut rendered: Vec<u8>) -> Vec<u8> {
+    if original.starts_with(&[0xef, 0xbb, 0xbf]) {
+        rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+    }
+    rendered
 }
 
 fn verification_failure<T>(
