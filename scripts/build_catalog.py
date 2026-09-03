@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "100"
+CATALOG_FORMAT_REVISION = "102"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -392,7 +392,7 @@ OPAM_REPOSITORY_UPSTREAM = "opam-repository--git-mirror"
 OPAM_CACHE_UPSTREAM = "opam-cache--binary-cache"
 OPAM_REPOSITORY_ENDPOINT = "https://mirrors.nju.edu.cn/git/opam-repository.git"
 OPAM_CACHE_ENDPOINT = "https://mirror.sjtu.edu.cn/opam-cache/"
-OPAM_REPOSITORY_REVISION = "3884cbee403b0a4e2211b428d54928e6e69434cc"
+OPAM_REPOSITORY_REVISION = "da8b7e6fa7491ffc5dc8eee7f8f60452a1b26ce7"
 OPAM_CACHE_SHA256 = (
     "61f0b75950614ac5378c6ec0d822cce6463402d919d5810b736fc46522b3a73e"
 )
@@ -3358,7 +3358,7 @@ def runtime_properties(
         and entry["public_endpoints"][0]["url"].rstrip("/")
         == OPAM_REPOSITORY_ENDPOINT
     ):
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []
@@ -3388,7 +3388,7 @@ def runtime_properties(
             },
         ]
     elif tool_id == "opam" and upstream_key == OPAM_CACHE_UPSTREAM:
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []

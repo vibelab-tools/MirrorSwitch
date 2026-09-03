@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -24,7 +24,7 @@ const CACHE_UPSTREAM: &str = "opam-cache--binary-cache";
 const NJU: &str = "https://mirrors.nju.edu.cn/git/opam-repository.git";
 const NJU_CONFIG: &str = "git+https://mirrors.nju.edu.cn/git/opam-repository.git";
 const SJTUG: &str = "https://mirror.sjtu.edu.cn/opam-cache";
-const REVISION: &str = "3884cbee403b0a4e2211b428d54928e6e69434cc";
+const REVISION: &str = "da8b7e6fa7491ffc5dc8eee7f8f60452a1b26ce7";
 const CACHE_SHA: &str = "61f0b75950614ac5378c6ec0d822cce6463402d919d5810b736fc46522b3a73e";
 
 fn context(root: &Path, architecture: Architecture) -> SystemContext {
@@ -38,6 +38,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
             version_codename: Some("trixie".into()),
             id_like: Vec::new(),
         }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
         root: root.to_path_buf(),
     }
 }
@@ -59,17 +69,9 @@ fn executable(root: &Path, path: &str, contents: String) {
 fn install_opam(root: &Path, version: &str, query_exit: i32) {
     executable(
         root,
-        "/usr/bin/env",
-        format!(
-            "#!/bin/sh\nwhile [ $# -gt 0 ]; do\n  case \"$1\" in\n    *=*) export \"$1\"; shift ;;\n    *) break ;;\n  esac\ndone\nprogram=$1\nshift\nexec '{root}/usr/bin/'\"$program\" \"$@\"\n",
-            root = root.display()
-        ),
-    );
-    executable(
-        root,
         "/usr/bin/opam",
         format!(
-            "#!/bin/sh\nif [ \"$1\" = --version ]; then echo '{version}'; exit 0; fi\nif [ \"$1 $2 $3\" = 'switch show --safe' ]; then echo 'default-switch'; exit 0; fi\nif [ \"$1 $2 $3\" = 'var ocaml-version --safe' ]; then echo '5.4.0'; exit 0; fi\nif [ \"$1 $2 $3 $4\" = 'repository list --all --short' ]; then printf '%s\\n' default private; exit 0; fi\nif [ \"$1 $2\" = 'update default' ]; then\n  grep -F '{nju_config}' '{root}/home/developer/.opam/repo/repos-config' >/dev/null || exit 71\n  grep -F '{sjtug}' '{root}/home/developer/.opam/config' >/dev/null || exit 72\n  [ {query_exit} -eq 0 ] || exit {query_exit}\n  echo '[default] synchronised from mirror'\n  exit 0\nfi\nif [ \"$1 $2\" = 'source stdio.v0.16.0' ]; then [ {query_exit} -eq 0 ] || exit {query_exit}; echo 'stdio source extracted'; exit 0; fi\nexit 70\n",
+            "#!/bin/sh\nif [ \"$1\" = --version ]; then echo '{version}'; exit 0; fi\nif [ \"$1 $2 $3\" = 'var root --safe' ]; then echo '/home/developer/.opam'; exit 0; fi\nif [ \"$1 $2 $3\" = 'switch show --safe' ]; then echo 'default-switch'; exit 0; fi\nif [ \"$1 $2 $3\" = 'var ocaml-version --safe' ]; then echo '5.4.0'; exit 0; fi\nif [ \"$1 $2 $3 $4\" = 'repository list --all --short' ]; then printf '%s\\n' default private; exit 0; fi\nif [ \"$1 $2\" = 'update default' ]; then\n  grep -F '{nju_config}' '{root}/home/developer/.opam/repo/repos-config' >/dev/null || exit 71\n  grep -F '{sjtug}' '{root}/home/developer/.opam/config' >/dev/null || exit 72\n  [ {query_exit} -eq 0 ] || exit {query_exit}\n  echo '[default] synchronised from mirror'\n  exit 0\nfi\nif [ \"$1 $2\" = 'source stdio.v0.16.0' ]; then [ {query_exit} -eq 0 ] || exit {query_exit}; echo 'stdio source extracted'; exit 0; fi\nexit 70\n",
             root = root.display(),
             nju_config = NJU_CONFIG,
             sjtug = SJTUG,
@@ -91,6 +93,13 @@ fn install_opam(root: &Path, version: &str, query_exit: i32) {
         "/usr/bin/sha256sum",
         format!("#!/bin/sh\nprintf '%s  %s\\n' '{CACHE_SHA}' \"$1\"\n"),
     );
+    for command in ["shasum", "certutil.exe"] {
+        executable(
+            root,
+            &format!("/usr/bin/{command}"),
+            format!("#!/bin/sh\nprintf '%s  fixture\\n' '{CACHE_SHA}'\n"),
+        );
+    }
 }
 
 fn config(archive_field: &str, custom_download: bool) -> String {
@@ -249,6 +258,104 @@ fn user_plan_preserves_repository_order_anchors_project_and_is_reversible() {
 }
 
 #[test]
+fn macos_and_windows_use_reported_native_root_and_preserve_text_layout() {
+    for (os, architecture, bom, newline) in [
+        (OperatingSystem::Macos, Architecture::X86_64, false, "\n"),
+        (OperatingSystem::Macos, Architecture::Arm64, true, "\n"),
+        (OperatingSystem::Windows, Architecture::X86_64, true, "\r\n"),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_opam(root, "2.5.2", 0);
+        let mut config_contents = config("", false).replace('\n', newline).into_bytes();
+        let mut repository_contents = repositories("https://opam.ocaml.org")
+            .replace('\n', newline)
+            .into_bytes();
+        if bom {
+            config_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+            repository_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
+        let config_path = write(root, "/home/developer/.opam/config", &config_contents);
+        let repos_path = write(
+            root,
+            "/home/developer/.opam/repo/repos-config",
+            &repository_contents,
+        );
+        let project_contents = b"opam-version: \"2.0\"\n";
+        let project = write(root, "/work/project/opam.locked", project_contents);
+        let adapter = OpamAdapter;
+        let context = native_context(root, os, architecture);
+        let mut runtime = test_runtime(root, BTreeMap::new(), Some("/work/project"));
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        assert!(
+            detected
+                .evidence
+                .iter()
+                .any(|line| line.contains(&format!("{os:?}")))
+        );
+        assert!(
+            detected
+                .evidence
+                .iter()
+                .any(|line| line.contains("/home/developer/.opam"))
+        );
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let selected = selections();
+        let cli = adapter.plan(&context, &current, &selected).unwrap();
+        let config_plan = adapter.plan(&context, &current, &selected).unwrap();
+        let tui = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(cli, config_plan);
+        assert_eq!(config_plan, tui);
+        for change in cli.changes.iter().take(2) {
+            assert_eq!(change.new_contents.starts_with(&[0xef, 0xbb, 0xbf]), bom);
+            if os == OperatingSystem::Windows {
+                assert!(
+                    change
+                        .new_contents
+                        .iter()
+                        .enumerate()
+                        .all(|(position, byte)| {
+                            *byte != b'\n'
+                                || position > 0 && change.new_contents[position - 1] == b'\r'
+                        })
+                );
+            }
+        }
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("opam configuration should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let updated = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &updated, &selected)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(config_path).unwrap(), config_contents);
+        assert_eq!(fs::read(repos_path).unwrap(), repository_contents);
+        assert_eq!(fs::read(project).unwrap(), project_contents);
+    }
+}
+
+#[test]
 fn arm64_preserves_private_archive_mirrors_and_replaces_only_official_cache() {
     let directory = tempdir().unwrap();
     let root = directory.path();
@@ -389,6 +496,51 @@ fn failed_repository_update_restores_both_configs() {
 }
 
 #[test]
+fn non_native_platform_windows_arm_and_old_windows_opam_are_inert() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_opam(root, "2.1.6", 0);
+    write(
+        root,
+        "/home/developer/.opam/config",
+        config("", false).as_bytes(),
+    );
+    write(
+        root,
+        "/home/developer/.opam/repo/repos-config",
+        repositories("https://opam.ocaml.org").as_bytes(),
+    );
+    let adapter = OpamAdapter;
+    let macos_container = SystemContext {
+        environment: ExecutionEnvironment::Container,
+        ..native_context(root, OperatingSystem::Macos, Architecture::Arm64)
+    };
+    assert!(
+        adapter
+            .detect(&macos_container, &test_runtime(root, BTreeMap::new(), None))
+            .unwrap_err()
+            .to_string()
+            .contains("native host")
+    );
+    let windows_arm = native_context(root, OperatingSystem::Windows, Architecture::Arm64);
+    assert!(
+        adapter
+            .detect(&windows_arm, &test_runtime(root, BTreeMap::new(), None))
+            .unwrap_err()
+            .to_string()
+            .contains("no native Windows arm64 executable")
+    );
+    let windows = native_context(root, OperatingSystem::Windows, Architecture::X86_64);
+    assert!(
+        adapter
+            .detect(&windows, &test_runtime(root, BTreeMap::new(), None))
+            .unwrap_err()
+            .to_string()
+            .contains("2.2+")
+    );
+}
+
+#[test]
 fn embedded_catalog_separates_git_repository_and_archive_cache() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -410,6 +562,14 @@ fn embedded_catalog_separates_git_repository_and_archive_cache() {
     assert_eq!(complete.provider_id, "nju");
     assert_eq!(complete.delivery_mode, DeliveryMode::Mirror);
     assert_eq!(
+        complete.compatibility.operating_systems,
+        [
+            OperatingSystem::Linux,
+            OperatingSystem::Macos,
+            OperatingSystem::Windows,
+        ]
+    );
+    assert_eq!(
         complete.compatibility.architectures,
         [Architecture::X86_64, Architecture::Arm64]
     );
@@ -428,6 +588,14 @@ fn embedded_catalog_separates_git_repository_and_archive_cache() {
         .unwrap();
     assert_eq!(cache.provider_id, "sjtug");
     assert_eq!(cache.delivery_mode, DeliveryMode::Proxy);
+    assert_eq!(
+        cache.compatibility.operating_systems,
+        [
+            OperatingSystem::Linux,
+            OperatingSystem::Macos,
+            OperatingSystem::Windows,
+        ]
+    );
     assert_eq!(cache.probes.len(), 3);
     assert_eq!(cache.probes[0].method, HttpMethod::Head);
     assert_eq!(cache.probes[1].method, HttpMethod::Get);

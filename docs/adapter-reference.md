@@ -73,7 +73,7 @@ content remain unchanged and are reported.
 | `dart-pub` | user | Linux/macOS shell profile or Windows HKCU environment plus isolated fixed-package resolution; token/project state preserved and Flutter SDK artifacts excluded ([details](adapters/dart-pub.md)) |
 | `flutter` | user | Linux/macOS profile or Windows HKCU pair; platform-specific Flutter storage and Pub chains must both validate before native precache/doctor/query ([details](adapters/flutter.md)) |
 | `julia` | user | Linux/macOS profile or Windows HKCU environment; native depot/registry/project discovery plus platform-specific Pkg artifact resolution ([details](adapters/julia.md)) |
-| `opam` | user | Repository/package archive query; project switches remain read-only ([#71](https://github.com/vibelab-tools/MirrorSwitch/issues/71)) |
+| `opam` | user | Native reported root plus paired NJU repository/SJTUG cache verification; private trust, project switches, BOM/newlines and permissions preserved ([details](adapters/opam.md)) |
 | `elpa` | user | Batch archive refresh; GNU/NonGNU/MELPA selected independently ([#80](https://github.com/vibelab-tools/MirrorSwitch/issues/80)) |
 
 ## Containers and development infrastructure

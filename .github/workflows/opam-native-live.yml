@@ -1,0 +1,121 @@
+name: opam macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "51 7 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: opam (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel, asset: opam-2.5.2-x86_64-macos, digest: 9c3fbee04f64f5caf6875697c84bf87092f71e1170b08b2a7bed744ed02e7b2f }
+          - { name: macOS arm64, runner: macos-15, asset: opam-2.5.2-arm64-macos, digest: 407e53416cfb49b41ce80e6d3c67a3df08df7f5028f407311f457f4e2a19004b }
+          - { name: Windows x86_64, runner: windows-2025, asset: opam-2.5.2-x86_64-windows.exe, digest: 51a530f538e86913489b061ac13c6084276e5dc916f5bd5c450883a826f8864c }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install native opam on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/opam-bin"
+          curl -fsSL "https://github.com/ocaml/opam/releases/download/2.5.2/${{ matrix.asset }}" -o "$RUNNER_TEMP/opam-bin/opam"
+          test "$(shasum -a 256 "$RUNNER_TEMP/opam-bin/opam"|awk '{print $1}')" = "${{ matrix.digest }}"
+          chmod 0755 "$RUNNER_TEMP/opam-bin/opam"
+          echo "$RUNNER_TEMP/opam-bin" >> "$GITHUB_PATH"
+      - name: Install native opam on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $bin=Join-Path $env:RUNNER_TEMP 'opam-bin'; New-Item -ItemType Directory -Force $bin|Out-Null
+          $target=Join-Path $bin 'opam.exe'; Invoke-WebRequest "https://github.com/ocaml/opam/releases/download/2.5.2/${{ matrix.asset }}" -OutFile $target
+          if((Get-FileHash $target -Algorithm SHA256).Hash.ToLowerInvariant() -ne '${{ matrix.digest }}'){throw 'opam executable checksum mismatch'}
+          $bin|Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          opam --version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic opam boundary
+        run: cargo test --locked --test opam_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS root, repositories, cache, frontends, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-opam-boundary"; export HOME="$boundary/home"
+          unset OPAMROOT OPAMFETCH OPAMYES OPAMROOTISOK
+          mkdir -p "$HOME/project"
+          opam init --bare --disable-sandboxing --no-setup --yes default https://opam.ocaml.org
+          root=$(opam var root --safe); config="$root/config"; repos="$root/repo/repos-config"; project="$HOME/project"
+          printf '%s\n' 'opam-version: "2.0"' > "$project/opam.locked"; chmod 0400 "$project/opam.locked"
+          printf '%s\n' 'opam-version: "2.0"' 'synopsis: "preserved local switch"' > "$project/.opam-switch/switch-config" 2>/dev/null || { mkdir -p "$project/.opam-switch"; printf '%s\n' 'opam-version: "2.0"' 'synopsis: "preserved local switch"' > "$project/.opam-switch/switch-config"; }; chmod 0400 "$project/.opam-switch/switch-config"
+          printf '{"version":1,"tools":[{"id":"opam","scope":"user"}]}\n' > "$project/request.json"
+          config_before=$(shasum -a 256 "$config"|awk '{print $1}'); repos_before=$(shasum -a 256 "$repos"|awk '{print $1}'); switch_before=$(shasum -a 256 "$project/.opam-switch/switch-config"|awk '{print $1}'); lock_before=$(shasum -a 256 "$project/opam.locked"|awk '{print $1}'); mode=$(stat -f '%Lp' "$config")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool opam --scope opam=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - "$root" <<'PY'
+          import json, sys
+          status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='opam']; assert len(tools)==1
+          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and 'Macos' in evidence
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool opam --scope opam=user > tui.txt; grep -E 'mirror=(nju|sjtug)' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          OPAMROOT="$root" opam repository list --all --short|grep -Fx default
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='opam' and r['receipt']['verified']
+          PY
+          test "$config_before" = "$(shasum -a 256 "$config"|awk '{print $1}')"; test "$repos_before" = "$(shasum -a 256 "$repos"|awk '{print $1}')"; test "$switch_before" = "$(shasum -a 256 .opam-switch/switch-config|awk '{print $1}')"; test "$lock_before" = "$(shasum -a 256 opam.locked|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$config")"
+      - name: Exercise Windows root, repositories, cache, frontends, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-opam-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:OPAMROOT,Env:OPAMFETCH,Env:OPAMYES,Env:OPAMROOTISOK -ErrorAction SilentlyContinue
+          $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:LOCALAPPDATA,$project,(Join-Path $project '.opam-switch')|Out-Null
+          opam init --bare --disable-sandboxing --no-setup --yes default https://opam.ocaml.org
+          $root=opam var root --safe; $config=Join-Path $root 'config'; $repos=Join-Path $root 'repo/repos-config'; [IO.File]::WriteAllText((Join-Path $project 'opam.locked'),'opam-version: "2.0"',[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project '.opam-switch/switch-config'),"opam-version: `"2.0`"`r`nsynopsis: `"preserved local switch`"`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'opam.locked') IsReadOnly $true; Set-ItemProperty (Join-Path $project '.opam-switch/switch-config') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"opam","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+          $configBefore=(Get-FileHash $config -Algorithm SHA256).Hash; $reposBefore=(Get-FileHash $repos -Algorithm SHA256).Hash; $switchBefore=(Get-FileHash (Join-Path $project '.opam-switch/switch-config') -Algorithm SHA256).Hash; $lockBefore=(Get-FileHash (Join-Path $project 'opam.locked') -Algorithm SHA256).Hash; $acl=(Get-Acl $config).Sddl
+          Push-Location $project
+          try{
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool opam --scope opam=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'opam'); if($tools.Count -ne 1){throw 'opam not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains($root) -or -not $evidence.Contains('Windows')){throw 'native root/platform evidence missing'}
+            $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)){throw 'frontend plans differ'}
+            @('','n')|& $binary tui --offline --tool opam --scope opam=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(nju|sjtug)')){throw 'opam mirrors missing'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'opam apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            $env:OPAMROOT=$root; if(-not((opam repository list --all --short)-contains 'default')){throw 'native opam did not list default'}; Remove-Item Env:OPAMROOT
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'opam'){throw 'restore failed'}
+          }finally{Pop-Location}
+          if($configBefore -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $reposBefore -ne (Get-FileHash $repos -Algorithm SHA256).Hash -or $switchBefore -ne (Get-FileHash (Join-Path $project '.opam-switch/switch-config') -Algorithm SHA256).Hash -or $lockBefore -ne (Get-FileHash (Join-Path $project 'opam.locked') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $config).Sddl){throw 'opam state not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: opam-native-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-opam-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

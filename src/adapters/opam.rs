@@ -7,7 +7,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{Architecture, OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -21,7 +21,7 @@ const CACHE_UPSTREAM: &str = "opam-cache--binary-cache";
 const NJU_REPOSITORY: &str = "https://mirrors.nju.edu.cn/git/opam-repository.git";
 const NJU_REPOSITORY_CONFIG: &str = "git+https://mirrors.nju.edu.cn/git/opam-repository.git";
 const SJTUG_CACHE: &str = "https://mirror.sjtu.edu.cn/opam-cache";
-const REPOSITORY_REVISION: &str = "3884cbee403b0a4e2211b428d54928e6e69434cc";
+const REPOSITORY_REVISION: &str = "da8b7e6fa7491ffc5dc8eee7f8f60452a1b26ce7";
 const CACHE_SHA256: &str = "61f0b75950614ac5378c6ec0d822cce6463402d919d5810b736fc46522b3a73e";
 const CACHE_PATH: &str =
     "sha256/61/61f0b75950614ac5378c6ec0d822cce6463402d919d5810b736fc46522b3a73e";
@@ -55,11 +55,11 @@ impl Adapter for OpamAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("opam") {
             return Ok(None);
         }
-        for command in ["env", "curl", "sha256sum", "git"] {
+        for command in ["curl", native_digest_command(context), "git"] {
             if !runtime.command_exists(command) {
                 return Err(AdapterError::Unsupported(format!(
                     "opam mirror verification requires {command}"
@@ -69,7 +69,7 @@ impl Adapter for OpamAdapter {
         let layout = layout(runtime)?;
         require_initialized(runtime, &layout)?;
         let version = opam_version(runtime)?;
-        review_version(&version)?;
+        review_version(context, &version)?;
         let repositories = parse_repositories(
             utf8(
                 &layout.repos_config,
@@ -85,6 +85,10 @@ impl Adapter for OpamAdapter {
             version: Some(version.clone()),
             evidence: vec![
                 format!("opam {version}"),
+                format!(
+                    "native platform is {:?} {:?}",
+                    context.os, context.architecture
+                ),
                 format!("opam root is {}", layout.root.display()),
                 format!("configured repositories: {}", repositories.entries),
                 format!(
@@ -124,7 +128,7 @@ impl Adapter for OpamAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if scope != ConfigurationScope::User {
             return Err(AdapterError::Unsupported(
                 "opam adapter supports user scope only".into(),
@@ -136,6 +140,7 @@ impl Adapter for OpamAdapter {
             ));
         }
         let version = opam_version(runtime)?;
+        review_version(context, &version)?;
         if detected.version.as_deref() != Some(version.as_str()) {
             return Err(AdapterError::Conflict(
                 "opam version changed after detection".into(),
@@ -224,7 +229,7 @@ impl Adapter for OpamAdapter {
         _detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         Ok(SelectionRequest {
             tool_id: "opam".into(),
@@ -261,7 +266,7 @@ impl Adapter for OpamAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         selected_endpoints(selections)?;
@@ -273,7 +278,11 @@ impl Adapter for OpamAdapter {
             context,
             current,
             repos,
-            rewrite_repositories(utf8(&repos.path, &repos.contents)?, &repos.path)?.into_bytes(),
+            preserve_bom(
+                &repos.contents,
+                rewrite_repositories(utf8(&repos.path, &repos.contents)?, &repos.path)?
+                    .into_bytes(),
+            ),
             "retarget only the official default opam repository while preserving anchors and order",
             &mut changes,
         );
@@ -281,7 +290,10 @@ impl Adapter for OpamAdapter {
             context,
             current,
             config,
-            rewrite_config(utf8(&config.path, &config.contents)?, &config.path)?.into_bytes(),
+            preserve_bom(
+                &config.contents,
+                rewrite_config(utf8(&config.path, &config.contents)?, &config.path)?.into_bytes(),
+            ),
             "append the reviewed checksum-keyed archive mirror while preserving download policy",
             &mut changes,
         );
@@ -372,7 +384,7 @@ impl Adapter for OpamAdapter {
                 ));
             }
             verify_opam(runtime, &layout, &receipt.transaction_id)?;
-            verify_cache(runtime, &layout)?;
+            verify_cache(context, runtime, &layout)?;
             Ok(VerificationResult {
                 valid: true,
                 summary: format!(
@@ -425,15 +437,24 @@ struct ParsedConfig {
     custom_download_command: bool,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "opam v0.1 supports Linux x86_64 and arm64 only".into(),
+            "opam on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "opam on Windows arm64 is unavailable because opam publishes no native Windows arm64 executable"
+                .into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "opam requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -457,7 +478,8 @@ fn layout(runtime: &dyn Runtime) -> Result<Layout, AdapterError> {
         .environment_variable("OPAMROOT")
         .filter(|value| !value.trim().is_empty())
         .map(PathBuf::from)
-        .unwrap_or_else(|| home.join(".opam"));
+        .map(Ok)
+        .unwrap_or_else(|| reported_opam_root(runtime))?;
     validate_path(&root, "root")?;
     let verification_root = home.join(".mirrorswitch/verification/opam");
     Ok(Layout {
@@ -468,6 +490,16 @@ fn layout(runtime: &dyn Runtime) -> Result<Layout, AdapterError> {
         verification_root,
         root,
     })
+}
+
+fn reported_opam_root(runtime: &dyn Runtime) -> Result<PathBuf, AdapterError> {
+    let output = command_output(
+        runtime.run("opam", &["var".into(), "root".into(), "--safe".into()])?,
+        "opam var root --safe",
+    )?;
+    let root = PathBuf::from(output.trim());
+    validate_path(&root, "reported root")?;
+    Ok(root)
 }
 
 fn require_initialized(runtime: &dyn Runtime, layout: &Layout) -> Result<(), AdapterError> {
@@ -493,7 +525,7 @@ fn opam_version(runtime: &dyn Runtime) -> Result<String, AdapterError> {
     Ok(version.into())
 }
 
-fn review_version(value: &str) -> Result<(), AdapterError> {
+fn review_version(context: &SystemContext, value: &str) -> Result<(), AdapterError> {
     let major = value
         .split('.')
         .next()
@@ -502,12 +534,26 @@ fn review_version(value: &str) -> Result<(), AdapterError> {
         .split('.')
         .nth(1)
         .and_then(|part| part.parse::<u64>().ok());
-    if !matches!((major, minor), (Some(2), Some(1..))) {
+    let minimum_minor = if context.os == OperatingSystem::Windows {
+        2
+    } else {
+        1
+    };
+    if major != Some(2) || minor.is_none_or(|minor| minor < minimum_minor) {
         return Err(AdapterError::Unsupported(format!(
-            "opam {value} is outside the reviewed opam 2.1+ format"
+            "opam {value} is outside the reviewed opam 2.{minimum_minor}+ format for {:?}",
+            context.os
         )));
     }
     Ok(())
+}
+
+fn native_digest_command(context: &SystemContext) -> &'static str {
+    match context.os {
+        OperatingSystem::Linux => "sha256sum",
+        OperatingSystem::Macos => "shasum",
+        OperatingSystem::Windows => "certutil.exe",
+    }
 }
 
 fn valid_version(value: &str) -> bool {
@@ -518,14 +564,13 @@ fn valid_version(value: &str) -> bool {
 }
 
 fn optional_opam_query(runtime: &dyn Runtime, root: &Path, args: &[&str]) -> Option<String> {
-    let mut command = vec![
-        format!("OPAMROOT={}", root.display()),
-        "OPAMROOTISOK=1".into(),
-        "opam".into(),
-    ];
-    command.extend(args.iter().map(|arg| (*arg).into()));
+    let environment = BTreeMap::from([
+        ("OPAMROOT".into(), root.display().to_string()),
+        ("OPAMROOTISOK".into(), "1".into()),
+    ]);
+    let arguments = args.iter().map(|arg| (*arg).into()).collect::<Vec<_>>();
     runtime
-        .run("env", &command)
+        .run_with_environment("opam", &arguments, &environment, &[])
         .ok()
         .filter(|output| output.status.success())
         .and_then(|output| String::from_utf8(output.stdout).ok())
@@ -648,8 +693,9 @@ fn rewrite_config(text: &str, path: &Path) -> Result<String, AdapterError> {
         .filter(|mirror| !is_official_cache(mirror) && !same_http_base(mirror, SJTUG_CACHE))
         .collect::<Vec<_>>();
     mirrors.push(SJTUG_CACHE.into());
+    let newline = if text.contains("\r\n") { "\r\n" } else { "\n" };
     let rendered = format!(
-        "archive-mirrors: [{}]\n",
+        "archive-mirrors: [{}]{newline}",
         mirrors
             .iter()
             .map(|mirror| format!("\"{mirror}\""))
@@ -732,42 +778,51 @@ fn verify_opam(
     layout: &Layout,
     transaction_id: &str,
 ) -> Result<(), AdapterError> {
-    let common = [
-        format!("OPAMROOT={}", layout.root.display()),
-        "OPAMROOTISOK=1".into(),
-        "OPAMYES=1".into(),
-        "opam".into(),
-    ];
-    let mut list = common.to_vec();
-    list.extend([
+    let environment = BTreeMap::from([
+        ("OPAMROOT".into(), layout.root.display().to_string()),
+        ("OPAMROOTISOK".into(), "1".into()),
+        ("OPAMYES".into(), "1".into()),
+    ]);
+    let list = vec![
         "repository".into(),
         "list".into(),
         "--all".into(),
         "--short".into(),
-    ]);
-    let output = command_output(runtime.run("env", &list)?, "opam repository list")?;
+    ];
+    let output = command_output(
+        runtime.run_with_environment("opam", &list, &environment, &[])?,
+        "opam repository list",
+    )?;
     if !output.lines().any(|line| line.trim() == "default") {
         return Err(AdapterError::Verification(
             "opam did not list the default repository".into(),
         ));
     }
-    let mut update = common.to_vec();
-    update.extend(["update".into(), "default".into()]);
-    command_output(runtime.run("env", &update)?, "opam update default")?;
+    let update = vec!["update".into(), "default".into()];
+    command_output(
+        runtime.run_with_environment("opam", &update, &environment, &[])?,
+        "opam update default",
+    )?;
     let source_dir = layout
         .verification_root
         .join(format!("stdio-source-{transaction_id}"));
-    let mut source = common.to_vec();
-    source.extend([
+    let source = vec![
         "source".into(),
         "stdio.v0.16.0".into(),
         format!("--dir={}", source_dir.display()),
-    ]);
-    command_output(runtime.run("env", &source)?, "opam source stdio.v0.16.0")?;
+    ];
+    command_output(
+        runtime.run_with_environment("opam", &source, &environment, &[])?,
+        "opam source stdio.v0.16.0",
+    )?;
     Ok(())
 }
 
-fn verify_cache(runtime: &dyn Runtime, layout: &Layout) -> Result<(), AdapterError> {
+fn verify_cache(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+    layout: &Layout,
+) -> Result<(), AdapterError> {
     let archive = path_text(&layout.verification_archive, "archive")?;
     let arguments = vec![
         "--fail".into(),
@@ -782,11 +837,22 @@ fn verify_cache(runtime: &dyn Runtime, layout: &Layout) -> Result<(), AdapterErr
         runtime.run("curl", &arguments)?,
         "opam archive cache download",
     )?;
+    let (program, digest_arguments) = match context.os {
+        OperatingSystem::Linux => ("sha256sum", vec![archive.into()]),
+        OperatingSystem::Macos => ("shasum", vec!["-a".into(), "256".into(), archive.into()]),
+        OperatingSystem::Windows => (
+            "certutil.exe",
+            vec!["-hashfile".into(), archive.into(), "SHA256".into()],
+        ),
+    };
     let output = command_output(
-        runtime.run("sha256sum", &[archive.into()])?,
+        runtime.run(program, &digest_arguments)?,
         "opam archive cache checksum",
     )?;
-    if output.split_whitespace().next() != Some(CACHE_SHA256) {
+    if !output
+        .split_whitespace()
+        .any(|value| value.eq_ignore_ascii_case(CACHE_SHA256))
+    {
         return Err(AdapterError::Verification(
             "opam archive cache checksum does not match its path".into(),
         ));
@@ -1021,7 +1087,7 @@ fn validate_path(path: &Path, kind: &str) -> Result<(), AdapterError> {
     if !path.is_absolute()
         || path
             .components()
-            .any(|component| component == Component::ParentDir)
+            .any(|component| matches!(component, Component::ParentDir | Component::CurDir))
     {
         return Err(AdapterError::InvalidConfiguration(format!(
             "opam reported unsafe {kind} path {}",
@@ -1037,12 +1103,22 @@ fn path_text<'a>(path: &'a Path, kind: &str) -> Result<&'a str, AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "opam configuration {} is not UTF-8",
             path.display()
         ))
     })
+}
+
+fn preserve_bom(original: &[u8], mut rendered: Vec<u8>) -> Vec<u8> {
+    if original.starts_with(&[0xef, 0xbb, 0xbf]) {
+        rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+    }
+    rendered
 }
 
 fn verification_failure<T>(
