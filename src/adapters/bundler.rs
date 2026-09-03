@@ -8,7 +8,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{Architecture, OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -79,17 +79,21 @@ impl Adapter for BundlerAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("bundle") || !runtime.command_exists("ruby") {
             return Ok(None);
         }
-        require_verification_client(runtime)?;
         let snapshot = bundler_snapshot(runtime)?;
         let state = read_state(runtime, &snapshot)?;
         let analysis = analyze_state(runtime, &snapshot, &state)?;
         let mut evidence = vec![
             format!("Bundler {}", snapshot.bundler_version),
             format!("Ruby {}", snapshot.ruby_version),
+            format!(
+                "native platform is {:?} {:?}; bundle resolved through native PATH semantics",
+                context.os, context.architecture
+            ),
+            format!("selected user home is {}", snapshot.home.display()),
             format!(
                 "global configuration is {}",
                 snapshot.global_config.display()
@@ -138,7 +142,7 @@ impl Adapter for BundlerAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "bundler" {
             return Err(AdapterError::InvalidConfiguration(
@@ -279,7 +283,7 @@ impl Adapter for BundlerAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         reviewed_bundler_version(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("Bundler version is missing".into())
@@ -317,7 +321,7 @@ impl Adapter for BundlerAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let source = public_source(current)?;
         let endpoint = selected_endpoint(selections)?;
@@ -332,12 +336,15 @@ impl Adapter for BundlerAdapter {
             })?;
         let parsed = parse_bundler_config(&target.path, &target.contents)?;
         validate_config_policy(&parsed, &target.path)?;
-        let rendered = rewrite_mirror_config(
+        let mut rendered = rewrite_mirror_config(
             utf8(&target.path, &target.contents)?,
             &parsed,
             source,
             endpoint,
         )?;
+        if target.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            rendered.insert(0, '\u{feff}');
+        }
         let mut changes = Vec::new();
         if rendered.as_bytes() != target.contents {
             changes.push(PlannedFileChange {
@@ -419,7 +426,6 @@ impl Adapter for BundlerAdapter {
         runtime: &mut dyn Runtime,
         plan: &ChangePlan,
     ) -> Result<ApplyOutcome, AdapterError> {
-        require_verification_client(runtime)?;
         runtime.apply_plan(plan)
     }
 
@@ -503,7 +509,6 @@ impl Adapter for BundlerAdapter {
                     "effective Bundler config did not load the selected mirror".into(),
                 ));
             }
-            require_verification_client(runtime)?;
             let verification_dir = snapshot.verification_dir.as_path();
             let key = canonical_mirror_name(&analysis.source_identity);
             let config_output = run_isolated_bundle(
@@ -512,9 +517,20 @@ impl Adapter for BundlerAdapter {
                 &["config", "get", &key],
                 "bundle config get mirror verification",
             )?;
-            if !config_output.contains(&endpoint)
-                || !config_output.contains(&snapshot.verification_config.display().to_string())
-            {
+            let reported_config = config_output.replace('\\', "/");
+            let expected_config = snapshot
+                .verification_config
+                .display()
+                .to_string()
+                .replace('\\', "/");
+            let path_matches = if context.os == OperatingSystem::Windows {
+                reported_config
+                    .to_ascii_lowercase()
+                    .contains(&expected_config.to_ascii_lowercase())
+            } else {
+                reported_config.contains(&expected_config)
+            };
+            if !config_output.contains(&endpoint) || !path_matches {
                 return Err(AdapterError::Verification(
                     "bundle config get did not report the isolated selected mirror".into(),
                 ));
@@ -1528,45 +1544,49 @@ fn run_isolated_bundle(
     operation: &str,
 ) -> Result<String, AdapterError> {
     let isolated_home = snapshot.verification_dir.join("home");
-    let mut arguments = Vec::new();
-    for variable in VERIFICATION_UNSET_ENVIRONMENT {
-        arguments.push("-u".to_owned());
-        arguments.push((*variable).to_owned());
-    }
-    arguments.extend([
-        format!("HOME={}", path_string(&isolated_home)?),
-        format!(
-            "BUNDLE_USER_HOME={}",
-            path_string(&isolated_home.join(".bundle"))?
+    let environment = BTreeMap::from([
+        ("HOME".into(), path_string(&isolated_home)?),
+        ("USERPROFILE".into(), path_string(&isolated_home)?),
+        (
+            "BUNDLE_USER_HOME".into(),
+            path_string(&isolated_home.join(".bundle"))?,
         ),
-        format!(
-            "BUNDLE_USER_CONFIG={}",
-            path_string(&isolated_home.join(".bundle/config"))?
+        (
+            "BUNDLE_USER_CONFIG".into(),
+            path_string(&isolated_home.join(".bundle/config"))?,
         ),
-        format!(
-            "BUNDLE_APP_CONFIG={}",
-            path_string(&snapshot.verification_dir.join(".bundle"))?
+        (
+            "BUNDLE_APP_CONFIG".into(),
+            path_string(&snapshot.verification_dir.join(".bundle"))?,
         ),
-        format!(
-            "BUNDLE_GEMFILE={}",
-            path_string(&snapshot.verification_gemfile)?
+        (
+            "BUNDLE_GEMFILE".into(),
+            path_string(&snapshot.verification_gemfile)?,
         ),
-        format!(
-            "BUNDLE_PATH={}",
-            path_string(&snapshot.verification_dir.join("bundle"))?
+        (
+            "BUNDLE_PATH".into(),
+            path_string(&snapshot.verification_dir.join("bundle"))?,
         ),
-        format!(
-            "BUNDLE_CACHE_PATH={}",
-            path_string(&snapshot.verification_dir.join("cache"))?
+        (
+            "BUNDLE_CACHE_PATH".into(),
+            path_string(&snapshot.verification_dir.join("cache"))?,
         ),
-        "bundle".into(),
     ]);
-    arguments.extend(
-        bundle_arguments
-            .iter()
-            .map(|argument| (*argument).to_owned()),
-    );
-    let output = runtime.run_in(&snapshot.verification_dir, "env", &arguments)?;
+    let removed_environment = VERIFICATION_UNSET_ENVIRONMENT
+        .iter()
+        .map(|variable| (*variable).to_owned())
+        .collect::<Vec<_>>();
+    let arguments = bundle_arguments
+        .iter()
+        .map(|argument| (*argument).to_owned())
+        .collect::<Vec<_>>();
+    let output = runtime.run_in_with_environment(
+        &snapshot.verification_dir,
+        "bundle",
+        &arguments,
+        &environment,
+        &removed_environment,
+    )?;
     output_text(output, operation)
 }
 
@@ -1741,16 +1761,6 @@ fn nonempty_environment(runtime: &dyn Runtime, name: &str) -> Option<String> {
         .filter(|value| !value.trim().is_empty())
 }
 
-fn require_verification_client(runtime: &dyn Runtime) -> Result<(), AdapterError> {
-    if runtime.command_exists("env") {
-        Ok(())
-    } else {
-        Err(AdapterError::Unsupported(
-            "env is required for isolated Bundler verification".into(),
-        ))
-    }
-}
-
 fn environment_path(
     home: &Path,
     value: &str,
@@ -1794,12 +1804,9 @@ fn validate_project_path(root: &Path, path: &Path, label: &str) -> Result<(), Ad
 
 fn validate_absolute_path(path: &Path, label: &str) -> Result<(), AdapterError> {
     if !path.is_absolute()
-        || path.components().any(|component| {
-            matches!(
-                component,
-                Component::ParentDir | Component::CurDir | Component::Prefix(_)
-            )
-        })
+        || path
+            .components()
+            .any(|component| matches!(component, Component::ParentDir | Component::CurDir))
     {
         return Err(AdapterError::InvalidConfiguration(format!(
             "{label} path {} is not absolute and normalized",
@@ -1897,15 +1904,18 @@ fn verification_failure<T>(
     )))
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "Bundler v0.1 supports Linux x86_64 and arm64 only".into(),
+            "Bundler on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "Bundler requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -1950,6 +1960,9 @@ fn path_string(path: &Path) -> Result<String, AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|error| {
         AdapterError::InvalidConfiguration(format!("{} is not UTF-8: {error}", path.display()))
     })

@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     path::{Path, PathBuf},
     process::Output,
 };
@@ -45,6 +46,18 @@ pub trait Runtime {
         arguments: &[String],
     ) -> Result<Output, AdapterError> {
         self.run(program, arguments)
+    }
+    fn run_in_with_environment(
+        &self,
+        _directory: &Path,
+        _program: &str,
+        _arguments: &[String],
+        _environment: &BTreeMap<String, String>,
+        _removed_environment: &[String],
+    ) -> Result<Output, AdapterError> {
+        Err(AdapterError::Unsupported(
+            "native per-command environment isolation is unavailable in this runtime".into(),
+        ))
     }
     fn apply_plan(&mut self, _plan: &ChangePlan) -> Result<ApplyOutcome, AdapterError> {
         Err(AdapterError::Unsupported(

@@ -702,6 +702,32 @@ impl Runtime for OsRuntime {
         })
     }
 
+    fn run_in_with_environment(
+        &self,
+        directory: &Path,
+        program: &str,
+        arguments: &[String],
+        environment: &BTreeMap<String, String>,
+        removed_environment: &[String],
+    ) -> Result<Output, AdapterError> {
+        let logical = self.find_command(program).ok_or_else(|| {
+            AdapterError::Runtime(format!("command {program} is not available on PATH"))
+        })?;
+        run_command_with_environment(
+            &physical_path(&self.root, &logical),
+            arguments,
+            Some(&physical_path(&self.root, directory)),
+            environment,
+            removed_environment,
+        )
+        .map_err(|error| {
+            AdapterError::Runtime(format!(
+                "could not run {program} in {} with an isolated environment: {error}",
+                directory.display()
+            ))
+        })
+    }
+
     fn apply_plan(
         &mut self,
         plan: &crate::plan::ChangePlan,
@@ -1143,6 +1169,16 @@ fn find_command_in(directory: &Path, command: &str, root: &Path) -> Option<PathB
 }
 
 fn run_command(path: &Path, arguments: &[String], directory: Option<&Path>) -> io::Result<Output> {
+    run_command_with_environment(path, arguments, directory, &BTreeMap::new(), &[])
+}
+
+fn run_command_with_environment(
+    path: &Path,
+    arguments: &[String],
+    directory: Option<&Path>,
+    environment: &BTreeMap<String, String>,
+    removed_environment: &[String],
+) -> io::Result<Output> {
     #[cfg(windows)]
     let mut command = if matches!(
         path.extension()
@@ -1162,6 +1198,10 @@ fn run_command(path: &Path, arguments: &[String], directory: Option<&Path>) -> i
     if let Some(directory) = directory {
         command.current_dir(directory);
     }
+    for name in removed_environment {
+        command.env_remove(name);
+    }
+    command.envs(environment);
     command.args(arguments).output()
 }
 

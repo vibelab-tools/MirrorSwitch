@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     cell::RefCell,
@@ -50,6 +50,16 @@ fn context(
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -65,40 +75,30 @@ fn executable(root: &Path, path: &str, contents: String) {
 }
 
 fn install_bundler(root: &Path, bundler: &str, ruby: &str, failure: &str) {
-    executable(
-        root,
-        "/usr/bin/bundle",
-        format!(
-            "#!/bin/sh\n[ \"$1\" = --version ] || exit 70\nprintf '%s\\n' 'Bundler version {bundler}'\n"
-        ),
-    );
-    executable(
-        root,
-        "/usr/bin/ruby",
-        format!(
-            "#!/bin/sh\n[ \"$1\" = --version ] || exit 71\nprintf '%s\\n' 'ruby {ruby} (test revision) [x86_64-linux]'\n"
-        ),
-    );
     let verification = root.join("home/developer/.mirrorswitch/verification/bundler");
     executable(
         root,
-        "/usr/bin/env",
+        "/usr/bin/bundle",
         format!(
             r#"#!/bin/sh
 config='{config}'
 gemfile='{gemfile}'
 case "$*" in
-  *" bundle config get mirror."*)
-    [ '{failure}' != config ] || exit 72
+  "--version") printf '%s\n' 'Bundler version {bundler}' ;;
+  "config get mirror."*)
+    [ "$BUNDLE_USER_CONFIG" = '/home/developer/.mirrorswitch/verification/bundler/home/.bundle/config' ] || exit 70
+    [ "$BUNDLE_APP_CONFIG" = '/home/developer/.mirrorswitch/verification/bundler/.bundle' ] || exit 71
+    [ "$BUNDLE_GEMFILE" = '/home/developer/.mirrorswitch/verification/bundler/Gemfile' ] || exit 72
+    [ '{failure}' != config ] || exit 73
     endpoint=$(sed -n 's/^.*: "\([^"]*\)"$/\1/p' "$config")
     key=$(sed -n 's/^BUNDLE_MIRROR__\([^:]*\):.*$/mirror.\1/p' "$config")
-    [ -n "$endpoint" ] || exit 73
+    [ -n "$endpoint" ] || exit 74
     printf '%s\n' "$key" "Set for your local app (/home/developer/.mirrorswitch/verification/bundler/.bundle/config): \"$endpoint\""
     ;;
-  *" bundle lock --print")
-    [ '{failure}' != lock ] || exit 74
+  "lock --print")
+    [ '{failure}' != lock ] || exit 75
     source=$(sed -n 's/^source "\([^"]*\)"$/\1/p' "$gemfile")
-    [ -n "$source" ] || exit 75
+    [ -n "$source" ] || exit 76
     printf '%s\n' \
       'GEM' \
       "  remote: $source" \
@@ -113,11 +113,18 @@ case "$*" in
       'DEPENDENCIES' \
       '  net-protocol (= 0.3.0)'
     ;;
-  *) exit 76 ;;
+  *) exit 77 ;;
 esac
 "#,
             config = verification.join(".bundle/config").display(),
             gemfile = verification.join("Gemfile").display(),
+        ),
+    );
+    executable(
+        root,
+        "/usr/bin/ruby",
+        format!(
+            "#!/bin/sh\n[ \"$1\" = --version ] || exit 71\nprintf '%s\\n' 'ruby {ruby} (test revision) [x86_64-linux]'\n"
         ),
     );
 }
@@ -300,6 +307,133 @@ GEM
             .join("home/developer/.mirrorswitch/verification/bundler/Gemfile")
             .exists()
     );
+}
+
+#[test]
+fn synthetic_native_contexts_preserve_bom_newlines_security_and_project_files() {
+    for (os, architecture, original) in [
+        (
+            OperatingSystem::Macos,
+            Architecture::Arm64,
+            b"---\nBUNDLE_MIRROR__HTTPS://RUBYGEMS__ORG/: \"https://mirrors.ustc.edu.cn/rubygems/\"\nBUNDLE_GEMS__CORP__EXAMPLE: \"fixture:credential\"\nBUNDLE_SSL_CA_CERT: \"/private/fixture/ca.pem\"\nBUNDLE_HTTPS_PROXY: \"https://proxy.corp.example/\"\n".as_slice(),
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::X86_64,
+            b"\xef\xbb\xbf---\r\nBUNDLE_MIRROR__HTTPS://RUBYGEMS__ORG/: \"https://mirrors.ustc.edu.cn/rubygems/\"\r\nBUNDLE_GEMS__CORP__EXAMPLE: \"fixture:credential\"\r\nBUNDLE_SSL_CA_CERT: 'C:/fixture/ca.pem'\r\nBUNDLE_HTTPS_PROXY: \"https://proxy.corp.example/\"\r\n".as_slice(),
+        ),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_bundler(root, "4.0.19", "3.4.10", "none");
+        let global = write(root, "/home/developer/.bundle/config", original);
+        let gemfile_contents = b"source 'https://rubygems.org'\ngem 'net-protocol', '= 0.3.0'\n";
+        let lockfile_contents = b"GEM\n  remote: https://rubygems.org/\n";
+        let local_contents = if os == OperatingSystem::Windows {
+            b"\xef\xbb\xbf---\r\nBUNDLE_PATH: \"vendor/bundle\"\r\n".as_slice()
+        } else {
+            b"---\nBUNDLE_PATH: \"vendor/bundle\"\n".as_slice()
+        };
+        let gemfile = write(root, "/work/app/Gemfile", gemfile_contents);
+        let lockfile = write(root, "/work/app/Gemfile.lock", lockfile_contents);
+        let local = write(root, "/work/app/.bundle/config", local_contents);
+        let adapter = BundlerAdapter;
+        let context = native_context(root, os, architecture);
+        let mut runtime = runtime(root, BTreeMap::new(), Some("/work/app"));
+
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        assert!(detected.evidence.iter().any(|line| line.contains(&format!("{os:?}"))));
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let chosen = [selection("aliyun", ALIYUN)];
+        let cli = adapter.plan(&context, &current, &chosen).unwrap();
+        let config = adapter.plan(&context, &current, &chosen).unwrap();
+        let tui = adapter.plan(&context, &current, &chosen).unwrap();
+        assert_eq!(cli, config);
+        assert_eq!(config, tui);
+        assert!(!format!("{cli:?}").contains("fixture:credential"));
+        let rendered = &cli.changes[0].new_contents;
+        assert_eq!(
+            rendered.starts_with(&[0xef, 0xbb, 0xbf]),
+            os == OperatingSystem::Windows
+        );
+        if os == OperatingSystem::Windows {
+            assert!(rendered.iter().enumerate().all(|(index, byte)| {
+                *byte != b'\n' || index > 0 && rendered[index - 1] == b'\r'
+            }));
+        }
+        let project_current = adapter
+            .read_current(
+                &context,
+                &runtime,
+                &detected,
+                ConfigurationScope::Project,
+            )
+            .unwrap();
+        let project_plan = adapter.plan(&context, &project_current, &chosen).unwrap();
+        let project_target = project_plan
+            .changes
+            .iter()
+            .find(|change| change.target.ends_with("work/app/.bundle/config"))
+            .unwrap();
+        assert_eq!(
+            project_target
+                .new_contents
+                .starts_with(&[0xef, 0xbb, 0xbf]),
+            os == OperatingSystem::Windows
+        );
+        if os == OperatingSystem::Windows {
+            assert!(
+                project_target
+                    .new_contents
+                    .iter()
+                    .enumerate()
+                    .all(|(index, byte)| {
+                        *byte != b'\n'
+                            || index > 0 && project_target.new_contents[index - 1] == b'\r'
+                    })
+            );
+        }
+
+        let ApplyOutcome::Applied(receipt) =
+            adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("Bundler configuration should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        let detected_after = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current_after = adapter
+            .read_current(
+                &context,
+                &runtime,
+                &detected_after,
+                ConfigurationScope::User,
+            )
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &current_after, &chosen)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(global).unwrap(), original);
+        assert_eq!(fs::read(gemfile).unwrap(), gemfile_contents);
+        assert_eq!(fs::read(lockfile).unwrap(), lockfile_contents);
+        assert_eq!(fs::read(local).unwrap(), local_contents);
+    }
 }
 
 #[test]
@@ -640,6 +774,18 @@ fn catalog_uses_case_specific_index_dependency_and_gem_sha_gates_before_latency(
     );
     for candidate in actionable {
         assert_eq!(candidate.delivery_mode, DeliveryMode::Mirror);
+        assert_eq!(
+            candidate.compatibility.operating_systems,
+            [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows,
+            ]
+        );
+        assert_eq!(
+            candidate.compatibility.architectures,
+            [Architecture::X86_64, Architecture::Arm64]
+        );
         assert_eq!(candidate.endpoints.len(), 3);
         let paths = candidate
             .probes
@@ -738,7 +884,7 @@ fn catalog_uses_case_specific_index_dependency_and_gem_sha_gates_before_latency(
 }
 
 #[test]
-fn unsupported_versions_platform_scope_and_missing_clients_are_inert() {
+fn unsupported_versions_non_native_context_scope_and_missing_clients_are_inert() {
     let adapter = BundlerAdapter;
     let directory = tempdir().unwrap();
     install_bundler(directory.path(), "1.17.3", "2.6.10", "none");
@@ -770,18 +916,22 @@ fn unsupported_versions_platform_scope_and_missing_clients_are_inert() {
     let directory = tempdir().unwrap();
     install_bundler(directory.path(), "2.4.20", "3.2.3", "none");
     let installed = runtime(directory.path(), BTreeMap::new(), None);
-    let mut windows = context(
+    let windows = native_context(
         directory.path(),
+        OperatingSystem::Windows,
         Architecture::X86_64,
-        ExecutionEnvironment::Host,
     );
-    windows.os = OperatingSystem::Windows;
+    assert!(adapter.detect(&windows, &installed).unwrap().is_some());
+    let windows_container = SystemContext {
+        environment: ExecutionEnvironment::Container,
+        ..windows.clone()
+    };
     assert!(
         adapter
-            .detect(&windows, &installed)
+            .detect(&windows_container, &installed)
             .unwrap_err()
             .to_string()
-            .contains("Linux")
+            .contains("native host")
     );
 
     let detected = adapter.detect(&linux, &installed).unwrap().unwrap();
@@ -805,58 +955,5 @@ fn unsupported_versions_platform_scope_and_missing_clients_are_inert() {
             .detect(&empty_context, &empty_runtime)
             .unwrap()
             .is_none()
-    );
-
-    let directory = tempdir().unwrap();
-    install_bundler(directory.path(), "2.4.20", "3.2.3", "none");
-    fs::remove_file(directory.path().join("usr/bin/env")).unwrap();
-    let env_missing_runtime = runtime(directory.path(), BTreeMap::new(), None);
-    let env_missing_context = context(
-        directory.path(),
-        Architecture::X86_64,
-        ExecutionEnvironment::Host,
-    );
-    assert!(
-        adapter
-            .detect(&env_missing_context, &env_missing_runtime)
-            .unwrap_err()
-            .to_string()
-            .contains("env is required")
-    );
-
-    let directory = tempdir().unwrap();
-    install_bundler(directory.path(), "2.4.20", "3.2.3", "none");
-    let mut runtime = runtime(directory.path(), BTreeMap::new(), None);
-    let context = context(
-        directory.path(),
-        Architecture::X86_64,
-        ExecutionEnvironment::Host,
-    );
-    let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
-    let current = adapter
-        .read_current(&context, &runtime, &detected, ConfigurationScope::User)
-        .unwrap();
-    let plan = adapter
-        .plan(&context, &current, &[selection("tuna", TUNA)])
-        .unwrap();
-    fs::remove_file(directory.path().join("usr/bin/env")).unwrap();
-    assert!(
-        adapter
-            .apply(&context, &mut runtime, &plan)
-            .unwrap_err()
-            .to_string()
-            .contains("env is required")
-    );
-    assert!(
-        !directory
-            .path()
-            .join("home/developer/.bundle/config")
-            .exists()
-    );
-    assert!(
-        !directory
-            .path()
-            .join("home/developer/.mirrorswitch/verification/bundler")
-            .exists()
     );
 }
