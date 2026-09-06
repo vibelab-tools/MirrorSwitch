@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     cell::RefCell,
@@ -52,6 +52,26 @@ fn context(
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: Some(Distribution {
+            id: match os {
+                OperatingSystem::Linux => "linux",
+                OperatingSystem::Macos => "macos",
+                OperatingSystem::Windows => "windows",
+            }
+            .into(),
+            version_id: None,
+            version_codename: None,
+            id_like: Vec::new(),
+        }),
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -67,24 +87,6 @@ fn executable(root: &Path, path: &str, contents: String) {
 }
 
 fn install_stack(root: &Path, version: &str, failure: &str) {
-    executable(
-        root,
-        "/usr/bin/env",
-        format!(
-            r#"#!/bin/sh
-while [ $# -gt 0 ]; do
-  case "$1" in
-    *=*) export "$1"; shift ;;
-    *) break ;;
-  esac
-done
-[ "$1" = stack ] || exit 90
-shift
-exec '{root}/usr/bin/stack' "$@"
-"#,
-            root = root.display(),
-        ),
-    );
     executable(
         root,
         "/usr/bin/stack",
@@ -329,6 +331,168 @@ extra-deps:
 }
 
 #[test]
+fn native_user_layouts_preserve_encoding_private_project_and_security_policy() {
+    let cases = vec![
+        (
+            OperatingSystem::Macos,
+            Architecture::X86_64,
+            "/home/developer/.stack/config.yaml",
+            "/home/developer/.stack",
+            BTreeMap::from([
+                ("HTTPS_PROXY".into(), "https://proxy.invalid:8443".into()),
+                ("SSL_CERT_FILE".into(), "/home/developer/certs/ca.pem".into()),
+            ]),
+            b"# native policy\nurls:\n  latest-snapshot: https://www.stackage.org/snapshots\npackage-index:\n  download-prefix: https://hackage.haskell.org/\n  hackage-security:\n    keyids: [\"reviewed-key\"]\n    key-threshold: 1\n    ignore-expiry: false\ncolor: never\n".to_vec(),
+            "ghc-9.6.6-x86_64-apple-darwin.tar.bz2",
+        ),
+        (
+            OperatingSystem::Macos,
+            Architecture::Arm64,
+            "/home/developer/.config/stack/config.yaml",
+            "/home/developer/.local/share/stack",
+            BTreeMap::from([
+                ("STACK_XDG".into(), "1".into()),
+                ("XDG_CONFIG_HOME".into(), "/home/developer/.config".into()),
+                (
+                    "XDG_DATA_HOME".into(),
+                    "/home/developer/.local/share".into(),
+                ),
+                ("HTTPS_PROXY".into(), "https://proxy.invalid:8443".into()),
+                ("SSL_CERT_FILE".into(), "/home/developer/certs/ca.pem".into()),
+            ]),
+            b"# native policy\nurls:\n  latest-snapshot: https://www.stackage.org/snapshots\npackage-index:\n  download-prefix: https://hackage.haskell.org/\n  hackage-security:\n    keyids: [\"reviewed-key\"]\n    key-threshold: 1\n    ignore-expiry: false\ncolor: never\n".to_vec(),
+            "ghc-9.6.6-aarch64-apple-darwin.tar.bz2",
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::X86_64,
+            "/profiles/developer/roaming/stack/config.yaml",
+            "/profiles/developer/roaming/stack",
+            BTreeMap::from([
+                ("APPDATA".into(), "/profiles/developer/roaming".into()),
+                ("HTTPS_PROXY".into(), "https://proxy.invalid:8443".into()),
+                ("SSL_CERT_FILE".into(), "/home/developer/certs/ca.pem".into()),
+            ]),
+            b"\xef\xbb\xbf# native policy\r\nurls:\r\n  latest-snapshot: https://www.stackage.org/snapshots\r\npackage-index:\r\n  download-prefix: https://hackage.haskell.org/\r\n  hackage-security:\r\n    keyids: [\"reviewed-key\"]\r\n    key-threshold: 1\r\n    ignore-expiry: false\r\ncolor: never\r\n".to_vec(),
+            "ghc-9.6.6-x86_64-unknown-mingw32.tar.xz",
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::X86_64,
+            "/stack-root/config.yaml",
+            "/stack-root",
+            BTreeMap::from([
+                ("APPDATA".into(), "/profiles/developer/roaming".into()),
+                ("STACK_ROOT".into(), "/stack-root".into()),
+                ("STACK_XDG".into(), "1".into()),
+                ("HTTPS_PROXY".into(), "https://proxy.invalid:8443".into()),
+                ("SSL_CERT_FILE".into(), "/home/developer/certs/ca.pem".into()),
+            ]),
+            b"\xef\xbb\xbf# native policy\r\nurls:\r\n  latest-snapshot: https://www.stackage.org/snapshots\r\npackage-index:\r\n  download-prefix: https://hackage.haskell.org/\r\n  hackage-security:\r\n    keyids: [\"reviewed-key\"]\r\n    key-threshold: 1\r\n    ignore-expiry: false\r\ncolor: never\r\n".to_vec(),
+            "ghc-9.6.6-x86_64-unknown-mingw32.tar.xz",
+        ),
+    ];
+
+    for (os, architecture, logical, expected_root, environment, original, toolchain) in cases {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_stack(root, "3.7.1", "none");
+        let user = write(root, logical, &original);
+        fs::set_permissions(&user, fs::Permissions::from_mode(0o600)).unwrap();
+        let project_original = b"resolver: lts-22.43\npackages:\n  - .\nextra-deps:\n  - archive: https://build:credential@packages.invalid.example/private.tar.gz\n";
+        let project = write(root, "/home/developer/project/stack.yaml", project_original);
+        fs::set_permissions(&project, fs::Permissions::from_mode(0o400)).unwrap();
+        let adapter = StackAdapter;
+        let context = native_context(root, os, architecture);
+        let mut runtime = runtime(root, environment, Some("/home/developer/project"));
+
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let evidence = detected.evidence.join("\n");
+        assert!(evidence.contains(&format!("{os:?} {architecture:?}")));
+        assert!(evidence.contains("selected user home is /home/developer"));
+        assert!(evidence.contains("selected project directory is /home/developer/project"));
+        assert!(evidence.contains(expected_root));
+        assert!(evidence.contains(logical));
+        if os == OperatingSystem::Windows {
+            assert!(evidence.contains("no system-wide Stack configuration"));
+        }
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(!format!("{current:?}").contains("credential"));
+        let request = adapter
+            .selection_request(&context, &detected, &current)
+            .unwrap();
+        assert_eq!(request.probe_contexts[STACKAGE].len(), 1);
+        assert_eq!(
+            request.probe_contexts[STACKAGE][0]["toolchain_file"],
+            toolchain
+        );
+
+        let selected = selections();
+        let cli = adapter.plan(&context, &current, &selected).unwrap();
+        let config = adapter.plan(&context, &current, &selected).unwrap();
+        let tui = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(cli, config);
+        assert_eq!(config, tui);
+        let rendered = &cli.changes[0].new_contents;
+        assert!(String::from_utf8_lossy(rendered).contains("keyids: [\"reviewed-key\"]"));
+        assert!(String::from_utf8_lossy(rendered).contains("ignore-expiry: false"));
+        if os == OperatingSystem::Windows {
+            assert!(rendered.starts_with(&[0xef, 0xbb, 0xbf]));
+            assert!(rendered.iter().enumerate().all(|(index, byte)| {
+                *byte != b'\n' || (index > 0 && rendered[index - 1] == b'\r')
+            }));
+        }
+
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("native Stack configuration should change")
+        };
+        let verified = adapter.verify(&context, &mut runtime, &receipt).unwrap();
+        assert!(verified.valid, "{}", verified.summary);
+        assert_eq!(
+            fs::metadata(&user).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        assert_eq!(fs::read(&project).unwrap(), project_original);
+        assert_eq!(
+            fs::metadata(&project).unwrap().permissions().mode() & 0o777,
+            0o400
+        );
+
+        let detected_after = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current_after = adapter
+            .read_current(
+                &context,
+                &runtime,
+                &detected_after,
+                ConfigurationScope::User,
+            )
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &current_after, &selected)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(&user).unwrap(), original);
+        assert_eq!(fs::read(&project).unwrap(), project_original);
+        assert_eq!(
+            fs::metadata(&user).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+    }
+}
+
+#[test]
 fn project_override_dynamic_yaml_custom_sources_and_unreviewed_versions_are_blocked() {
     let adapter = StackAdapter;
     for (version, config, project, expected) in [
@@ -461,6 +625,54 @@ fn linux_architecture_and_environment_variants_produce_the_same_configuration_pl
     );
 }
 
+#[test]
+fn unsupported_native_contexts_are_inert_before_configuration_reads() {
+    let directory = tempdir().unwrap();
+    install_stack(directory.path(), "3.7.1", "none");
+    let adapter = StackAdapter;
+    let runtime = runtime(directory.path(), BTreeMap::new(), None);
+
+    let mut mac_container = native_context(
+        directory.path(),
+        OperatingSystem::Macos,
+        Architecture::X86_64,
+    );
+    mac_container.environment = ExecutionEnvironment::Container;
+    assert!(
+        adapter
+            .detect(&mac_container, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("native host")
+    );
+
+    let windows_arm = native_context(
+        directory.path(),
+        OperatingSystem::Windows,
+        Architecture::Arm64,
+    );
+    assert!(
+        adapter
+            .detect(&windows_arm, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("no native Windows arm64 GHC toolchain")
+    );
+
+    let windows_x64 = native_context(
+        directory.path(),
+        OperatingSystem::Windows,
+        Architecture::X86_64,
+    );
+    assert!(
+        adapter
+            .detect(&windows_x64, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("APPDATA is unavailable")
+    );
+}
+
 #[derive(Clone)]
 struct StackProtocolProber {
     calls: Rc<RefCell<Vec<(HttpMethod, String)>>>,
@@ -492,9 +704,17 @@ impl CandidateProber for StackProtocolProber {
             )
         } else if url.ends_with("stack-setup.yaml") {
             let body = if self.corrupt_toolchain {
-                "missing toolchain metadata".into()
+                b"missing toolchain metadata".to_vec()
             } else {
-                "ghc-9.6.6-x86_64-deb9-linux.tar.xz ff5b4929a4e89c536e7badb3b142e353dc4bda1f31d3ee446406ad88c3bebddf".into()
+                [
+                    "ghc-9.6.6-x86_64-deb9-linux.tar.xz ff5b4929a4e89c536e7badb3b142e353dc4bda1f31d3ee446406ad88c3bebddf",
+                    "ghc-9.6.6-aarch64-deb10-linux.tar.xz 58d5ce65758ec5179b448e4e1a2f835924b4ada96cf56af80d011bed87d91fef",
+                    "ghc-9.6.6-x86_64-apple-darwin.tar.bz2 951d1b5ed47fc25a782014befccb82699fcbe585265bd2c6c1a4e0163a2a6dff",
+                    "ghc-9.6.6-aarch64-apple-darwin.tar.bz2 c812e10db846185ea576619b3454151604531b0c14791ac1d368439e755be613",
+                    "ghc-9.6.6-x86_64-unknown-mingw32.tar.xz fc12b7bfc78e69c8c7ebcb9f874f868665e5744df1af73e71cf5224c32d9c6e4",
+                ]
+                .join("\n")
+                .into_bytes()
             };
             (Some("application/octet-stream".into()), body)
         } else if url.ends_with("root.json") {
@@ -586,6 +806,14 @@ fn catalog_gates_both_upstreams_and_architecture_toolchain_before_latency() {
     );
     for candidate in &candidates {
         assert_eq!(candidate.delivery_mode, DeliveryMode::Mirror);
+        assert_eq!(
+            candidate.compatibility.operating_systems,
+            [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows,
+            ]
+        );
         assert_eq!(candidate.endpoints.len(), 3);
         assert_eq!(
             candidate
@@ -670,6 +898,70 @@ fn catalog_gates_both_upstreams_and_architecture_toolchain_before_latency() {
                 CandidateEvaluation::ProbeFailed { .. }
             ))
     );
+}
+
+#[test]
+fn native_candidates_probe_exact_stackage_toolchains_and_complete_hackage() {
+    let catalog = synthetic_catalog();
+    let cases = [
+        (
+            OperatingSystem::Macos,
+            Architecture::X86_64,
+            "/home/developer/.stack/config.yaml",
+            BTreeMap::new(),
+            "ghc-9.6.6-x86_64-apple-darwin.tar.bz2",
+        ),
+        (
+            OperatingSystem::Macos,
+            Architecture::Arm64,
+            "/home/developer/.stack/config.yaml",
+            BTreeMap::new(),
+            "ghc-9.6.6-aarch64-apple-darwin.tar.bz2",
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::X86_64,
+            "/home/developer/AppData/Roaming/stack/config.yaml",
+            BTreeMap::from([("APPDATA".into(), "/home/developer/AppData/Roaming".into())]),
+            "ghc-9.6.6-x86_64-unknown-mingw32.tar.xz",
+        ),
+    ];
+
+    for (os, architecture, logical, environment, toolchain) in cases {
+        let directory = tempdir().unwrap();
+        install_stack(directory.path(), "3.7.1", "none");
+        write(directory.path(), logical, b"color: never\n");
+        let adapter = StackAdapter;
+        let context = native_context(directory.path(), os, architecture);
+        let runtime = runtime(directory.path(), environment, None);
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let request = adapter
+            .selection_request(&context, &detected, &current)
+            .unwrap();
+        let calls = Rc::new(RefCell::new(Vec::new()));
+        let selected = MirrorSelector::with_prober(
+            &catalog,
+            StackProtocolProber {
+                calls: calls.clone(),
+                corrupt_toolchain: false,
+            },
+            ProbeLimits::default(),
+        )
+        .select_at(&request, 100)
+        .unwrap();
+        assert!(selected.actionable, "{selected:#?}");
+        assert_eq!(selected.selections.len(), 2);
+        assert_eq!(calls.borrow().len(), 36);
+        assert!(
+            calls
+                .borrow()
+                .iter()
+                .any(|(_, url)| url.ends_with(toolchain))
+        );
+    }
 }
 
 #[test]

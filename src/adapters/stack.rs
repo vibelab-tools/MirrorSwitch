@@ -8,7 +8,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{Architecture, OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -113,16 +113,11 @@ impl Adapter for StackAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("stack") {
             return Ok(None);
         }
-        if !runtime.command_exists("env") {
-            return Err(AdapterError::Unsupported(
-                "Stack verification requires the standard env command".into(),
-            ));
-        }
-        let snapshot = stack_snapshot(runtime)?;
+        let snapshot = stack_snapshot(context, runtime)?;
         let documents = read_documents(runtime, &snapshot)?;
         for document in documents.documents() {
             parse_yaml(&document.path, &document.contents)?;
@@ -149,17 +144,27 @@ impl Adapter for StackAdapter {
         let mut evidence = vec![
             format!("Stack {}", snapshot.version),
             format!(
-                "system configuration is {}",
-                snapshot.system_config.display()
+                "native platform is {:?} {:?}",
+                context.os, context.architecture
+            ),
+            format!("selected user home is {}", snapshot.user_home.display()),
+            format!("Stack root is {}", snapshot.stack_root.display()),
+            snapshot.project_dir.as_ref().map_or_else(
+                || "no project directory was selected".into(),
+                |path| format!("selected project directory is {}", path.display()),
+            ),
+            snapshot.system_config.as_ref().map_or_else(
+                || "native platform has no system-wide Stack configuration".into(),
+                |path| format!("system configuration is {}", path.display()),
             ),
             format!("user configuration is {}", snapshot.user_config.display()),
             project.unwrap_or_else(|| "no active project stack.yaml was detected".into()),
             format!("{private_count} private archive/VCS reference(s) remain opaque and unchanged"),
         ];
-        evidence.push(match context.architecture {
-            Architecture::X86_64 => "toolchain gate is GHC 9.6.6 linux-x86_64".into(),
-            Architecture::Arm64 => "toolchain gate is GHC 9.6.6 linux-aarch64".into(),
-        });
+        evidence.push(format!(
+            "toolchain gate is GHC 9.6.6 {}",
+            stack_toolchain(context).0
+        ));
         Ok(Some(DetectedTool {
             tool_id: "stack".into(),
             executable: Some(PathBuf::from("stack")),
@@ -175,14 +180,14 @@ impl Adapter for StackAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "stack" {
             return Err(AdapterError::InvalidConfiguration(
                 "Stack read received another tool's detection result".into(),
             ));
         }
-        let snapshot = stack_snapshot(runtime)?;
+        let snapshot = stack_snapshot(context, runtime)?;
         if detected.version.as_deref() != Some(snapshot.version.as_str()) {
             return Err(AdapterError::Conflict(
                 "Stack version changed after detection".into(),
@@ -246,22 +251,23 @@ impl Adapter for StackAdapter {
                 files.push(document.path.clone());
             }
         }
-        let mut configuration_documents = vec![
-            ConfigurationDocument {
-                path: documents.system.path,
+        let mut configuration_documents = Vec::new();
+        if let Some(system) = documents.system {
+            configuration_documents.push(ConfigurationDocument {
+                path: system.path,
                 format: "stack-system-config-read-only".into(),
-                contents: documents.system.contents,
+                contents: system.contents,
+            });
+        }
+        configuration_documents.push(ConfigurationDocument {
+            path: documents.user.path,
+            format: if scope == ConfigurationScope::User {
+                "stack-target-config".into()
+            } else {
+                "stack-user-config-read-only".into()
             },
-            ConfigurationDocument {
-                path: documents.user.path,
-                format: if scope == ConfigurationScope::User {
-                    "stack-target-config".into()
-                } else {
-                    "stack-user-config-read-only".into()
-                },
-                contents: documents.user.contents,
-            },
-        ];
+            contents: documents.user.contents,
+        });
         if let Some(project) = documents.project {
             configuration_documents.push(ConfigurationDocument {
                 path: project.path,
@@ -315,21 +321,12 @@ impl Adapter for StackAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         reviewed_stack_version(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("Stack version is missing".into())
         })?)?;
-        let (toolchain_file, toolchain_sha) = match context.architecture {
-            Architecture::X86_64 => (
-                "ghc-9.6.6-x86_64-deb9-linux.tar.xz",
-                "ff5b4929a4e89c536e7badb3b142e353dc4bda1f31d3ee446406ad88c3bebddf",
-            ),
-            Architecture::Arm64 => (
-                "ghc-9.6.6-aarch64-deb10-linux.tar.xz",
-                "58d5ce65758ec5179b448e4e1a2f835924b4ada96cf56af80d011bed87d91fef",
-            ),
-        };
+        let (toolchain_file, toolchain_sha) = stack_toolchain(context);
         Ok(SelectionRequest {
             tool_id: "stack".into(),
             adapter_key: "stack".into(),
@@ -371,7 +368,7 @@ impl Adapter for StackAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let endpoints = selected_endpoints(selections)?;
         let target = current
@@ -400,9 +397,12 @@ impl Adapter for StackAdapter {
         }
         let parsed = parse_yaml(&target.path, &target.contents)?;
         validate_managed_values(&parsed)?;
-        let rendered = rewrite_config(&parsed, &endpoints)?;
+        let mut rendered = rewrite_config(&parsed, &endpoints)?.into_bytes();
+        if target.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let mut changes = Vec::new();
-        if rendered.as_bytes() != target.contents {
+        if rendered != target.contents {
             changes.push(PlannedFileChange {
                 target: rooted(&context.root, &target.path),
                 old_contents: current
@@ -410,7 +410,7 @@ impl Adapter for StackAdapter {
                     .contains(&target.path)
                     .then(|| target.contents.clone()),
                 old_mode: None,
-                new_contents: rendered.into_bytes(),
+                new_contents: rendered,
                 new_mode: None,
                 summary: format!(
                     "configure independent Stackage snapshot/global-hints/setup and Hackage download roots in {}; preserve snapshot/resolver, private packages, security policy, comments and unrelated keys",
@@ -530,7 +530,7 @@ impl Adapter for StackAdapter {
         receipt: &TransactionReceipt,
     ) -> Result<VerificationResult, AdapterError> {
         let result = (|| {
-            let snapshot = stack_snapshot(runtime)?;
+            let snapshot = stack_snapshot(context, runtime)?;
             let known = [
                 rooted(&context.root, &snapshot.user_config),
                 snapshot
@@ -612,12 +612,14 @@ impl Adapter for StackAdapter {
                     AdapterError::Verification("invalid Stack verification path".into())
                 })?
                 .join("root");
-            let common = stack_verification_arguments(
+            let environment = stack_verification_environment(
                 &root,
                 &verification.path,
                 &system.path,
                 &project.path,
             )?;
+            let removed_environment = vec!["STACK_XDG".into()];
+            let common = vec!["--no-terminal".into()];
             let mut dependency_arguments = common.clone();
             dependency_arguments.extend([
                 "ls".into(),
@@ -627,8 +629,10 @@ impl Adapter for StackAdapter {
             let dependencies = run_program_in(
                 runtime,
                 &project.path,
-                "env",
+                "stack",
                 &dependency_arguments,
+                &environment,
+                &removed_environment,
                 "Stack fixed snapshot/global-hints dependency resolution",
             )?;
             for marker in ["StateVar 1.2.2", "base 4.18.2.1"] {
@@ -656,8 +660,10 @@ impl Adapter for StackAdapter {
             run_program_in(
                 runtime,
                 &project.path,
-                "env",
+                "stack",
                 &unpack_arguments,
+                &environment,
+                &removed_environment,
                 "Stack fixed Hackage package resolution",
             )?;
             let package_file = destination
@@ -722,7 +728,10 @@ struct ReviewedStackage {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct StackSnapshot {
     version: String,
-    system_config: PathBuf,
+    user_home: PathBuf,
+    project_dir: Option<PathBuf>,
+    stack_root: PathBuf,
+    system_config: Option<PathBuf>,
     user_config: PathBuf,
     project_config: Option<PathBuf>,
     verification_config: PathBuf,
@@ -740,15 +749,16 @@ struct TextDocument {
 }
 
 struct StackDocuments {
-    system: TextDocument,
+    system: Option<TextDocument>,
     user: TextDocument,
     project: Option<TextDocument>,
 }
 
 impl StackDocuments {
     fn documents(&self) -> impl Iterator<Item = &TextDocument> {
-        [&self.system, &self.user]
-            .into_iter()
+        self.system
+            .iter()
+            .chain(std::iter::once(&self.user))
             .chain(self.project.iter())
     }
 }
@@ -802,7 +812,10 @@ struct SelectedEndpoints {
     hackage: String,
 }
 
-fn stack_snapshot(runtime: &dyn Runtime) -> Result<StackSnapshot, AdapterError> {
+fn stack_snapshot(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+) -> Result<StackSnapshot, AdapterError> {
     let output = run_program(
         runtime,
         "stack",
@@ -819,34 +832,63 @@ fn stack_snapshot(runtime: &dyn Runtime) -> Result<StackSnapshot, AdapterError> 
         .home_dir()
         .ok_or_else(|| AdapterError::Unsupported("Stack user home is unavailable".into()))?;
     validate_path(&home, "Stack user home")?;
+    let project_dir = runtime.project_dir();
+    if let Some(project) = &project_dir {
+        validate_path(project, "Stack project directory")?;
+    }
     let system_config = if let Some(value) = nonempty_environment(runtime, "STACK_GLOBAL_CONFIG") {
-        absolute_environment_path(&value, "STACK_GLOBAL_CONFIG")?
+        Some(absolute_environment_path(&value, "STACK_GLOBAL_CONFIG")?)
+    } else if context.os == OperatingSystem::Windows {
+        None
     } else {
         let legacy = PathBuf::from("/etc/stack/config");
         if runtime.read(&legacy)?.is_some() {
-            legacy
+            Some(legacy)
         } else {
-            PathBuf::from("/etc/stack/config.yaml")
+            Some(PathBuf::from("/etc/stack/config.yaml"))
         }
     };
+    let explicit_root = nonempty_environment(runtime, "STACK_ROOT");
+    let use_xdg = explicit_root.is_none() && nonempty_environment(runtime, "STACK_XDG").is_some();
+    let stack_root = if let Some(value) = explicit_root.as_deref() {
+        environment_user_path(context, runtime, &home, value, "STACK_ROOT")?
+    } else if use_xdg {
+        let data = match nonempty_environment(runtime, "XDG_DATA_HOME") {
+            Some(value) => environment_user_path(context, runtime, &home, &value, "XDG_DATA_HOME")?,
+            None if context.os == OperatingSystem::Windows => windows_app_data(runtime)?,
+            None => home.join(".local/share"),
+        };
+        data.join("stack")
+    } else if context.os == OperatingSystem::Windows {
+        windows_app_data(runtime)?.join("stack")
+    } else {
+        home.join(".stack")
+    };
     let user_config = if let Some(value) = nonempty_environment(runtime, "STACK_CONFIG") {
-        environment_user_path(&home, &value, "STACK_CONFIG")?
-    } else if let Some(value) = nonempty_environment(runtime, "STACK_ROOT") {
-        environment_user_path(&home, &value, "STACK_ROOT")?.join("config.yaml")
-    } else if nonempty_environment(runtime, "STACK_XDG").is_some() {
+        environment_user_path(context, runtime, &home, &value, "STACK_CONFIG")?
+    } else if explicit_root.is_some() {
+        stack_root.join("config.yaml")
+    } else if use_xdg {
         let xdg = match nonempty_environment(runtime, "XDG_CONFIG_HOME") {
-            Some(value) => environment_user_path(&home, &value, "XDG_CONFIG_HOME")?,
+            Some(value) => {
+                environment_user_path(context, runtime, &home, &value, "XDG_CONFIG_HOME")?
+            }
+            None if context.os == OperatingSystem::Windows => windows_app_data(runtime)?,
             None => home.join(".config"),
         };
         xdg.join("stack/config.yaml")
     } else {
-        home.join(".stack/config.yaml")
+        stack_root.join("config.yaml")
     };
-    validate_user_path(&home, &user_config, "Stack user config")?;
+    validate_user_config_path(context, runtime, &home, &user_config)?;
     let project_config = project_config_path(runtime)?;
     let verification = home.join(".mirrorswitch/verification/stack");
+    validate_user_path(&home, &verification, "Stack verification root")?;
     Ok(StackSnapshot {
         version,
+        user_home: home,
+        project_dir,
+        stack_root,
         system_config,
         user_config,
         project_config,
@@ -901,7 +943,11 @@ fn read_documents(
     snapshot: &StackSnapshot,
 ) -> Result<StackDocuments, AdapterError> {
     Ok(StackDocuments {
-        system: read_document(runtime, &snapshot.system_config, "Stack system config")?,
+        system: snapshot
+            .system_config
+            .as_ref()
+            .map(|path| read_document(runtime, path, "Stack system config"))
+            .transpose()?,
         user: read_document(runtime, &snapshot.user_config, "Stack user config")?,
         project: snapshot
             .project_config
@@ -1545,6 +1591,9 @@ fn rewrite_config(
         }
         rendered.push_str(&append);
     }
+    if parsed.contents.contains("\r\n") {
+        rendered = rendered.replace("\r\n", "\n").replace('\n', "\r\n");
+    }
     Ok(rendered)
 }
 
@@ -1777,22 +1826,47 @@ fn unique_endpoint(selection: &MirrorSelection, role: EndpointRole) -> Result<&s
     Ok(&matches[0].url)
 }
 
-fn stack_verification_arguments(
+fn stack_toolchain(context: &SystemContext) -> (&'static str, &'static str) {
+    match (context.os, context.architecture) {
+        (OperatingSystem::Linux, Architecture::X86_64) => (
+            "ghc-9.6.6-x86_64-deb9-linux.tar.xz",
+            "ff5b4929a4e89c536e7badb3b142e353dc4bda1f31d3ee446406ad88c3bebddf",
+        ),
+        (OperatingSystem::Linux, Architecture::Arm64) => (
+            "ghc-9.6.6-aarch64-deb10-linux.tar.xz",
+            "58d5ce65758ec5179b448e4e1a2f835924b4ada96cf56af80d011bed87d91fef",
+        ),
+        (OperatingSystem::Macos, Architecture::X86_64) => (
+            "ghc-9.6.6-x86_64-apple-darwin.tar.bz2",
+            "951d1b5ed47fc25a782014befccb82699fcbe585265bd2c6c1a4e0163a2a6dff",
+        ),
+        (OperatingSystem::Macos, Architecture::Arm64) => (
+            "ghc-9.6.6-aarch64-apple-darwin.tar.bz2",
+            "c812e10db846185ea576619b3454151604531b0c14791ac1d368439e755be613",
+        ),
+        (OperatingSystem::Windows, Architecture::X86_64) => (
+            "ghc-9.6.6-x86_64-unknown-mingw32.tar.xz",
+            "fc12b7bfc78e69c8c7ebcb9f874f868665e5744df1af73e71cf5224c32d9c6e4",
+        ),
+        (OperatingSystem::Windows, Architecture::Arm64) => {
+            unreachable!("Windows arm64 is rejected before Stack candidate selection")
+        }
+    }
+}
+
+fn stack_verification_environment(
     root: &Path,
     config: &Path,
     system: &Path,
     project: &Path,
-) -> Result<Vec<String>, AdapterError> {
-    Ok(vec![
-        format!("STACK_ROOT={}", path_string(root)?),
-        format!("STACK_CONFIG={}", path_string(config)?),
-        format!("STACK_GLOBAL_CONFIG={}", path_string(system)?),
-        format!("STACK_YAML={}", path_string(project)?),
-        "STACK_XDG=".into(),
-        "NO_COLOR=1".into(),
-        "stack".into(),
-        "--no-terminal".into(),
-    ])
+) -> Result<BTreeMap<String, String>, AdapterError> {
+    Ok(BTreeMap::from([
+        ("STACK_ROOT".into(), path_string(root)?),
+        ("STACK_CONFIG".into(), path_string(config)?),
+        ("STACK_GLOBAL_CONFIG".into(), path_string(system)?),
+        ("STACK_YAML".into(), path_string(project)?),
+        ("NO_COLOR".into(), "1".into()),
+    ]))
 }
 
 fn add_change_if_needed(
@@ -1850,12 +1924,23 @@ fn run_program_in(
     project: &Path,
     program: &str,
     arguments: &[String],
+    environment: &BTreeMap<String, String>,
+    removed_environment: &[String],
     operation: &str,
 ) -> Result<String, AdapterError> {
     let directory = project
         .parent()
         .ok_or_else(|| AdapterError::Runtime("Stack project has no parent directory".into()))?;
-    output_text(runtime.run_in(directory, program, arguments)?, operation)
+    output_text(
+        runtime.run_in_with_environment(
+            directory,
+            program,
+            arguments,
+            environment,
+            removed_environment,
+        )?,
+        operation,
+    )
 }
 
 fn output_text(output: Output, operation: &str) -> Result<String, AdapterError> {
@@ -1903,14 +1988,64 @@ fn absolute_environment_path(value: &str, variable: &str) -> Result<PathBuf, Ada
     Ok(path)
 }
 
+fn windows_app_data(runtime: &dyn Runtime) -> Result<PathBuf, AdapterError> {
+    let value = nonempty_environment(runtime, "APPDATA")
+        .ok_or_else(|| AdapterError::Unsupported("Stack APPDATA is unavailable".into()))?;
+    absolute_environment_path(&value, "APPDATA")
+}
+
 fn environment_user_path(
+    context: &SystemContext,
+    _runtime: &dyn Runtime,
     home: &Path,
     value: &str,
     variable: &str,
 ) -> Result<PathBuf, AdapterError> {
     let path = absolute_environment_path(value, variable)?;
-    validate_user_path(home, &path, variable)?;
-    Ok(path)
+    if context.os == OperatingSystem::Windows {
+        if path.parent().is_some() {
+            return Ok(path);
+        }
+        return Err(AdapterError::Unsupported(format!(
+            "{variable} must not select a Windows filesystem root"
+        )));
+    }
+    if path.starts_with(home) && path != home {
+        return Ok(path);
+    }
+    Err(AdapterError::Unsupported(format!(
+        "{variable} must select a path inside {}",
+        home.display()
+    )))
+}
+
+fn validate_user_config_path(
+    context: &SystemContext,
+    _runtime: &dyn Runtime,
+    home: &Path,
+    path: &Path,
+) -> Result<(), AdapterError> {
+    validate_path(path, "Stack user config")?;
+    if !path.is_absolute() || path == home {
+        return Err(AdapterError::Unsupported(
+            "Stack user config must be an absolute user file".into(),
+        ));
+    }
+    if path.starts_with(home) {
+        return Ok(());
+    }
+    if context.os == OperatingSystem::Windows {
+        if path.parent().is_some() {
+            return Ok(());
+        }
+        return Err(AdapterError::Unsupported(
+            "Stack user config must not be a Windows filesystem root".into(),
+        ));
+    }
+    Err(AdapterError::Unsupported(format!(
+        "Stack user config must select a path inside {}",
+        home.display()
+    )))
 }
 
 fn validate_user_path(home: &Path, path: &Path, label: &str) -> Result<(), AdapterError> {
@@ -1982,14 +2117,27 @@ fn ensure_trailing_slash(value: &str) -> String {
     format!("{}/", value.trim_end_matches('/'))
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os == OperatingSystem::Linux {
-        Ok(())
-    } else {
-        Err(AdapterError::Unsupported(
-            "Stack adapter is limited to Linux in v0.1".into(),
-        ))
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
+        return Err(AdapterError::Unsupported(
+            "Stack on macOS and Windows requires a native host".into(),
+        ));
     }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "Stack on Windows arm64 is unavailable because the reviewed setup metadata has no native Windows arm64 GHC toolchain"
+                .into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "Stack requires x86_64 or arm64".into(),
+        ));
+    }
+    Ok(())
 }
 
 fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
@@ -2021,6 +2169,9 @@ fn require_current(current: &CurrentConfiguration) -> Result<(), AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|error| {
         AdapterError::InvalidConfiguration(format!("{} is not UTF-8: {error}", path.display()))
     })

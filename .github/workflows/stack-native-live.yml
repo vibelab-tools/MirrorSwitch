@@ -1,0 +1,131 @@
+name: Stack macOS and Windows live boundary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+  STACK_VERSION: 3.7.1
+
+jobs:
+  native:
+    name: Stack (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel, asset: stack-3.7.1-osx-x86_64.tar.gz, digest: a45175d882373afafc3b0dc8c7cf1aab6d046f6134fe465e03b2e61a7add1098 }
+          - { name: macOS arm64, runner: macos-15, asset: stack-3.7.1-osx-aarch64.tar.gz, digest: c08d0e3ce2bf1518f3fa654014acd25801f921ef0d4879882ac35c075605feb0 }
+          - { name: Windows x86_64, runner: windows-2025, asset: stack-3.7.1-windows-x86_64.tar.gz, digest: 244b230db60c5f5dee70bd3d4f1f0d7097aee2254429a75369961db7060631af }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: "9.6.6"
+          cabal-version: "3.14.2.0"
+          cabal-update: false
+      - name: Install checksum-pinned native Stack on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bin="$RUNNER_TEMP/stack-bin"; archive="$RUNNER_TEMP/${{ matrix.asset }}"; mkdir -p "$bin"
+          curl -fsSL "https://mirror.nju.edu.cn/ghcup/packages/~ghcup/unofficial-bindists/stack/$STACK_VERSION/${{ matrix.asset }}" -o "$archive"
+          test "$(shasum -a 256 "$archive"|awk '{print $1}')" = "${{ matrix.digest }}"
+          directory='${{ matrix.asset }}'; directory="${directory%.tar.gz}"
+          tar -xzf "$archive" -C "$bin" --strip-components=1 "$directory/stack"
+          chmod 0755 "$bin/stack"
+          echo "$bin" >> "$GITHUB_PATH"
+      - name: Install checksum-pinned native Stack on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $bin=Join-Path $env:RUNNER_TEMP 'stack-bin'; $archive=Join-Path $env:RUNNER_TEMP '${{ matrix.asset }}'; New-Item -ItemType Directory -Force $bin|Out-Null
+          Invoke-WebRequest "https://mirror.nju.edu.cn/ghcup/packages/~ghcup/unofficial-bindists/stack/$env:STACK_VERSION/${{ matrix.asset }}" -OutFile $archive
+          if((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne '${{ matrix.digest }}'){throw 'Stack archive checksum mismatch'}
+          $asset='${{ matrix.asset }}'; $directory=$asset.Replace('.tar.gz',''); $member="$directory/stack.exe"; tar -xzf $archive -C $bin --strip-components=1 $member; if($LASTEXITCODE -ne 0){throw 'Stack archive extraction failed'}
+          $bin|Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          stack --numeric-version
+          ghc --numeric-version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic Stack boundary
+        run: cargo test --locked --test stack_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS roots, repositories, build, frontends, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-stack-boundary"; export HOME="$boundary/home"
+          unset STACK_CONFIG STACK_GLOBAL_CONFIG STACK_ROOT STACK_XDG STACK_YAML XDG_CONFIG_HOME XDG_DATA_HOME
+          project="$HOME/project"; config="$HOME/.stack/config.yaml"; mkdir -p "$project" "$(dirname "$config")"
+          printf '%s\n' '# native Stack policy' 'urls:' '  latest-snapshot: https://www.stackage.org/snapshots' 'package-index:' '  download-prefix: https://hackage.haskell.org/' '  hackage-security:' '    keyids: ["reviewed-key"]' '    key-threshold: 1' '    ignore-expiry: false' 'color: never' > "$config"; chmod 0600 "$config"
+          printf '%s\n' 'resolver: lts-22.43' 'packages:' '  - .' 'extra-deps:' '  - archive: https://build:fixture-only@packages.invalid.example/private.tar.gz' > "$project/stack.yaml"; chmod 0400 "$project/stack.yaml"
+          printf '{"version":1,"tools":[{"id":"stack","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$config"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/stack.yaml"|awk '{print $1}'); mode=$(stat -f '%Lp' "$config")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool stack --scope stack=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - "$config" <<'PY'
+          import json, pathlib, sys
+          status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='stack']; assert len(tools)==1
+          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and str(pathlib.Path.cwd()) in evidence and 'Macos' in evidence
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          assert 'fixture-only' not in pathlib.Path('status.json').read_text()+pathlib.Path('plan-cli.json').read_text()+pathlib.Path('plan-config.json').read_text()
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool stack --scope stack=user > tui.txt; grep -E 'mirror=(nju|tuna|ustc)' tui.txt; ! grep -F 'fixture-only' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          grep -F 'latest-snapshot: https://mirrors.' "$config"; grep -F 'keyids: ["reviewed-key"]' "$config"; grep -F 'ignore-expiry: false' "$config"; grep -F 'fixture-only' "$project/stack.yaml"
+          verification="$HOME/.mirrorswitch/verification/stack"; STACK_ROOT="$verification/root" STACK_CONFIG="$verification/config.yaml" STACK_GLOBAL_CONFIG="$verification/system.yaml" STACK_YAML="$verification/stack.yaml" stack --no-terminal --system-ghc --no-install-ghc build
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='stack' and r['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$config"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 stack.yaml|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$config")"; test ! -e "$verification/config.yaml"; test ! -e "$verification/stack.yaml"; test ! -e "$verification/system.yaml"
+      - name: Exercise Windows roots, repositories, build, frontends, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-stack-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:STACK_CONFIG,Env:STACK_GLOBAL_CONFIG,Env:STACK_ROOT,Env:STACK_XDG,Env:STACK_YAML,Env:XDG_CONFIG_HOME,Env:XDG_DATA_HOME -ErrorAction SilentlyContinue
+          $launcher=(Get-Command stack -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -ne '.exe'){throw "native Stack launcher is not an executable: $launcher"}
+          $project=Join-Path $env:USERPROFILE 'project'; $config=Join-Path $env:APPDATA 'stack/config.yaml'; New-Item -ItemType Directory -Force $project,(Split-Path $config),$env:LOCALAPPDATA|Out-Null
+          $contents="# native Stack policy`r`nurls:`r`n  latest-snapshot: https://www.stackage.org/snapshots`r`npackage-index:`r`n  download-prefix: https://hackage.haskell.org/`r`n  hackage-security:`r`n    keyids: [`"reviewed-key`"]`r`n    key-threshold: 1`r`n    ignore-expiry: false`r`ncolor: never`r`n"; [IO.File]::WriteAllText($config,$contents,[Text.UTF8Encoding]::new($true))
+          [IO.File]::WriteAllText((Join-Path $project 'stack.yaml'),"resolver: lts-22.43`r`npackages:`r`n  - .`r`nextra-deps:`r`n  - archive: https://build:fixture-only@packages.invalid.example/private.tar.gz`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'stack.yaml') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"stack","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+          $before=(Get-FileHash $config -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'stack.yaml') -Algorithm SHA256).Hash; $acl=(Get-Acl $config).Sddl
+          Push-Location $project
+          try{
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool stack --scope stack=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'stack'); if($tools.Count -ne 1){throw 'Stack not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains($config) -or -not $evidence.Contains($project) -or -not $evidence.Contains('Windows') -or -not $evidence.Contains('no system-wide Stack configuration')){throw 'native path/platform evidence missing'}
+            $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -or (Get-Content status.json,plan-cli.json,plan-config.json -Raw)-match 'fixture-only'){throw 'frontend plans differ or credential leaked'}
+            @('','n')|& $binary tui --offline --tool stack --scope stack=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(nju|tuna|ustc)') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Stack apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            $configured=[IO.File]::ReadAllText($config); if(-not $configured.Contains('latest-snapshot: https://mirrors.') -or -not $configured.Contains('keyids: ["reviewed-key"]') -or -not $configured.Contains('ignore-expiry: false') -or -not $configured.Contains("`r`n")){throw 'native configuration policy or CRLF was not preserved'}; $bytes=[IO.File]::ReadAllBytes($config); if($bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'UTF-8 BOM was not preserved'}; if(-not([IO.File]::ReadAllText((Join-Path $project 'stack.yaml')).Contains('fixture-only'))){throw 'project policy changed'}
+            $verification=Join-Path $env:USERPROFILE '.mirrorswitch/verification/stack'; $env:STACK_ROOT=Join-Path $verification 'root'; $env:STACK_CONFIG=Join-Path $verification 'config.yaml'; $env:STACK_GLOBAL_CONFIG=Join-Path $verification 'system.yaml'; $env:STACK_YAML=Join-Path $verification 'stack.yaml'; Remove-Item Env:STACK_XDG -ErrorAction SilentlyContinue; & stack --no-terminal --system-ghc --no-install-ghc build; if($LASTEXITCODE -ne 0){throw 'native Stack build failed'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'stack'){throw 'restore failed'}
+          }finally{Pop-Location}
+          if($before -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'stack.yaml') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $config).Sddl -or (Test-Path (Join-Path $verification 'config.yaml')) -or (Test-Path (Join-Path $verification 'stack.yaml')) -or (Test-Path (Join-Path $verification 'system.yaml'))){throw 'Stack state not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: stack-native-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-stack-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

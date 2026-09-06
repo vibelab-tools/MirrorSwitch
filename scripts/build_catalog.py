@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "104"
+CATALOG_FORMAT_REVISION = "105"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -2234,7 +2234,7 @@ def runtime_properties(
         and upstream_key == STACKAGE_RUNTIME_UPSTREAM
         and entry["provider_id"] in STACK_ACTIONABLE_PROVIDERS
     ):
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []
@@ -2290,7 +2290,7 @@ def runtime_properties(
         and upstream_key == STACK_HACKAGE_UPSTREAM
         and entry["provider_id"] in STACK_ACTIONABLE_PROVIDERS
     ):
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []

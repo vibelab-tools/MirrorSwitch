@@ -64,7 +64,7 @@ content remain unchanged and are reported.
 | `scoop` | user | Installed official bucket origins plus architecture-specific `scoop download`; manifest assets are not rewritten ([details](adapters/scoop.md)) |
 | `nuget` | user | Linux and Windows NuGet/dotnet config hierarchy and fixed restore/install; shared Windows config, encoding, mappings and auth preserved ([details](adapters/nuget.md)) |
 | `cabal` | user | Linux/macOS plus Windows x64 secure index/package query; native config hierarchy, encoding and read-only project state preserved ([details](adapters/cabal.md)) |
-| `stack` | user/project | Snapshot/Hackage/toolchain query; project scope explicit ([details](adapters/stack.md)) |
+| `stack` | user/project | Linux/macOS plus Windows x64 snapshot/Hackage/platform-toolchain query; native roots, encoding and explicit project scope preserved ([details](adapters/stack.md)) |
 | `ghcup` | user | Linux/macOS plus Windows x64 signed metadata and platform bindist checks; native paths, encoding, custom channels and keys preserved ([details](adapters/ghcup.md)) |
 | `cpan` | user | CPAN/CPANM index and distribution query; client-specific config preserved ([#67](https://github.com/vibelab-tools/MirrorSwitch/issues/67)) |
 | `cran` | user | Linux source or macOS/Windows native binary query; Rprofile.site, named repositories, Bioconductor, renv, auth, BOM/newlines and permissions preserved ([details](adapters/cran.md)) |
