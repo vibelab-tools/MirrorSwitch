@@ -1,0 +1,136 @@
+name: Cabal macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "19 8 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CABAL_VERSION: 3.14.2.0
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: Cabal (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel, asset: cabal-install-3.14.2.0-x86_64-apple-darwin.tar.xz, digest: 1a45b672939f72b88187ae1b623e42440ab37c03338484d928f47cdde0f5189f }
+          - { name: macOS arm64, runner: macos-15, asset: cabal-install-3.14.2.0-aarch64-apple-darwin.tar.xz, digest: a7ce265f063030a2d3648b31419de11ba0d17c67fa5e74a6d285607f6d55d235 }
+          - { name: Windows x86_64, runner: windows-2025, asset: cabal-install-3.14.2.0-x86_64-mingw64.zip, digest: e45f979e7c24591c6131619666be8f3345345ccf779d8bb7d19cd73ead8b940b }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: "9.10.3"
+          cabal-version: "3.14.2.0"
+          cabal-update: false
+      - name: Install checksum-pinned native Cabal on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bin="$RUNNER_TEMP/cabal-bin"; archive="$RUNNER_TEMP/${{ matrix.asset }}"; mkdir -p "$bin"
+          curl -fsSL "https://mirror.nju.edu.cn/ghcup/packages/~ghcup/unofficial-bindists/cabal/$CABAL_VERSION/${{ matrix.asset }}" -o "$archive"
+          test "$(shasum -a 256 "$archive"|awk '{print $1}')" = "${{ matrix.digest }}"
+          tar -xJf "$archive" -C "$bin" cabal
+          chmod 0755 "$bin/cabal"
+          echo "$bin" >> "$GITHUB_PATH"
+      - name: Install checksum-pinned native Cabal on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $bin=Join-Path $env:RUNNER_TEMP 'cabal-bin'; $archive=Join-Path $env:RUNNER_TEMP '${{ matrix.asset }}'; New-Item -ItemType Directory -Force $bin|Out-Null
+          Invoke-WebRequest "https://mirror.nju.edu.cn/ghcup/packages/~ghcup/unofficial-bindists/cabal/$env:CABAL_VERSION/${{ matrix.asset }}" -OutFile $archive
+          if((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne '${{ matrix.digest }}'){throw 'Cabal archive checksum mismatch'}
+          Expand-Archive $archive -DestinationPath $bin -Force
+          $bin|Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          cabal --numeric-version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic Cabal boundary
+        run: cargo test --locked --test cabal_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS config hierarchy, secure Hackage, frontends, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-cabal-boundary"; export HOME="$boundary/home" XDG_CONFIG_HOME="$boundary/home/.config"
+          unset CABAL_CONFIG CABAL_DIR
+          project="$HOME/project"; config="$XDG_CONFIG_HOME/cabal/config"; mkdir -p "$project" "$(dirname "$config")"
+          printf '%s\n' '-- native Cabal policy' 'repository hackage.haskell.org' '  url: https://hackage.haskell.org/' '  secure: True' 'repository private.corp' '  url: https://build:fixture-only@packages.invalid.example/hackage' '  secure: True' 'active-repositories: :rest, hackage.haskell.org, private.corp:override' 'http-transport: curl' > "$config"; chmod 0600 "$config"
+          printf '%s\n' 'packages: .' 'index-state: 2026-08-01T00:00:00Z' > "$project/cabal.project"; chmod 0400 "$project/cabal.project"
+          printf '%s\n' 'cabal-version: 3.0' 'name: mirrorswitch-cabal-boundary' 'version: 0.0.0' 'build-type: Simple' 'executable native-boundary' '  main-is: Main.hs' '  default-language: Haskell2010' '  build-depends: base >=4.14 && <5' > "$project/mirrorswitch-cabal-boundary.cabal"
+          printf '%s\n' 'main :: IO ()' 'main = putStrLn "native Cabal boundary"' > "$project/Main.hs"
+          printf '{"version":1,"tools":[{"id":"cabal","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$config"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/cabal.project"|awk '{print $1}'); mode=$(stat -f '%Lp' "$config")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool cabal --scope cabal=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - "$config" <<'PY'
+          import json, pathlib, sys
+          status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='cabal']; assert len(tools)==1
+          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and str(pathlib.Path.cwd()) in evidence and 'Macos' in evidence
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          assert 'fixture-only' not in pathlib.Path('status.json').read_text()+pathlib.Path('plan-cli.json').read_text()+pathlib.Path('plan-config.json').read_text()
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool cabal --scope cabal=user > tui.txt; grep -E 'mirror=(nju|tuna|ustc)' tui.txt; ! grep -F 'fixture-only' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          grep -F 'url: https://mirrors.' "$config"; grep -F 'https://build:fixture-only@packages.invalid.example/hackage' "$config"; grep -F 'secure: True' "$config"
+          cabal --config-file="$config" user-config diff >/dev/null
+          cabal --config-file="$config" build --offline all
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='cabal' and r['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$config"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 cabal.project|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$config")"; test ! -e "$HOME/.mirrorswitch/verification/cabal/config"
+      - name: Exercise Windows config hierarchy, secure Hackage, frontends, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-cabal-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:CABAL_CONFIG,Env:CABAL_DIR,Env:XDG_CONFIG_HOME -ErrorAction SilentlyContinue
+          $launcher=(Get-Command cabal -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -ne '.exe'){throw "native Cabal launcher is not an executable: $launcher"}
+          $project=Join-Path $env:USERPROFILE 'project'; $config=Join-Path $env:APPDATA 'cabal/config'; New-Item -ItemType Directory -Force $project,(Split-Path $config),$env:LOCALAPPDATA|Out-Null
+          $contents="-- native Cabal policy`r`nrepository hackage.haskell.org`r`n  url: https://hackage.haskell.org/`r`n  secure: True`r`nrepository private.corp`r`n  url: https://build:fixture-only@packages.invalid.example/hackage`r`n  secure: True`r`nactive-repositories: :rest, hackage.haskell.org, private.corp:override`r`nhttp-transport: curl`r`n"; [IO.File]::WriteAllText($config,$contents,[Text.UTF8Encoding]::new($true))
+          [IO.File]::WriteAllText((Join-Path $project 'cabal.project'),"packages: .`r`nindex-state: 2026-08-01T00:00:00Z`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'cabal.project') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"cabal","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+          [IO.File]::WriteAllText((Join-Path $project 'mirrorswitch-cabal-boundary.cabal'),"cabal-version: 3.0`r`nname: mirrorswitch-cabal-boundary`r`nversion: 0.0.0`r`nbuild-type: Simple`r`nexecutable native-boundary`r`n  main-is: Main.hs`r`n  default-language: Haskell2010`r`n  build-depends: base >=4.14 && <5`r`n",[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project 'Main.hs'),"main :: IO ()`r`nmain = pure ()`r`n",[Text.UTF8Encoding]::new($false))
+          $before=(Get-FileHash $config -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'cabal.project') -Algorithm SHA256).Hash; $acl=(Get-Acl $config).Sddl
+          Push-Location $project
+          try{
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool cabal --scope cabal=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'cabal'); if($tools.Count -ne 1){throw 'Cabal not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains($config) -or -not $evidence.Contains($project) -or -not $evidence.Contains('Windows')){throw 'native path/platform evidence missing'}
+            $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -or (Get-Content status.json,plan-cli.json,plan-config.json -Raw)-match 'fixture-only'){throw 'frontend plans differ or credential leaked'}
+            @('','n')|& $binary tui --offline --tool cabal --scope cabal=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(nju|tuna|ustc)') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Cabal apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            $configured=[IO.File]::ReadAllText($config); if(-not $configured.Contains('url: https://mirrors.') -or -not $configured.Contains('https://build:fixture-only@packages.invalid.example/hackage') -or -not $configured.Contains('secure: True') -or -not $configured.Contains("`r`n")){throw 'native configuration policy or CRLF was not preserved'}; $bytes=[IO.File]::ReadAllBytes($config); if($bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'UTF-8 BOM was not preserved'}
+            $configArg="--config-file=$config"; & cabal $configArg user-config diff|Out-Null; if($LASTEXITCODE -ne 0){throw 'native Cabal rejected the applied config'}
+            & cabal $configArg build --offline all; if($LASTEXITCODE -ne 0){throw 'native Cabal build failed'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'cabal'){throw 'restore failed'}
+          }finally{Pop-Location}
+          $verification=Join-Path $env:USERPROFILE '.mirrorswitch/verification/cabal/config'; if($before -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'cabal.project') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $config).Sddl -or (Test-Path $verification)){throw 'Cabal state not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cabal-native-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-cabal-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

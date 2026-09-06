@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     cell::RefCell,
@@ -43,6 +43,26 @@ fn context(
             id: "debian".into(),
             version_id: Some("13".into()),
             version_codename: Some("trixie".into()),
+            id_like: Vec::new(),
+        }),
+        root: root.to_path_buf(),
+    }
+}
+
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: Some(Distribution {
+            id: match os {
+                OperatingSystem::Linux => "linux",
+                OperatingSystem::Macos => "macos",
+                OperatingSystem::Windows => "windows",
+            }
+            .into(),
+            version_id: None,
+            version_codename: None,
             id_like: Vec::new(),
         }),
         root: root.to_path_buf(),
@@ -279,7 +299,7 @@ index-state: 2026-07-01T00:00:00Z
 fn arm64_legacy_remote_repo_failure_restores_user_and_managed_config() {
     let directory = tempdir().unwrap();
     let root = directory.path();
-    install_cabal(root, "3.8.1.0", None, "info");
+    install_cabal(root, "3.8.1.0", None, "get");
     let original = br#"remote-repo: hackage.haskell.org:http://hackage.haskell.org/packages/archive
 remote-repo: private.corp:https://token@packages.corp.example/hackage
 remote-repo-cache: /home/developer/.cabal/packages
@@ -321,26 +341,76 @@ remote-repo-cache: /home/developer/.cabal/packages
 }
 
 #[test]
+fn source_only_cabal_verifies_secure_update_and_package_without_info() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_cabal(root, "3.14.2.0", None, "info");
+    let original =
+        b"repository hackage.haskell.org\n  url: https://hackage.haskell.org/\n  secure: True\n";
+    let user = write(root, "/home/developer/.config/cabal/config", original);
+    let adapter = CabalAdapter;
+    let context = context(root, Architecture::X86_64, ExecutionEnvironment::Host);
+    let mut runtime = runtime(root, BTreeMap::new(), None);
+
+    let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+    assert!(
+        detected
+            .evidence
+            .iter()
+            .any(|line| line.contains("GHC is not installed"))
+    );
+    let current = adapter
+        .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+        .unwrap();
+    let plan = adapter
+        .plan(&context, &current, &[selection("tuna", TUNA)])
+        .unwrap();
+    let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+    else {
+        panic!("source-only Cabal configuration should change")
+    };
+    let verified = adapter.verify(&context, &mut runtime, &receipt).unwrap();
+    assert!(verified.valid);
+    assert!(verified.summary.contains("without an installed compiler"));
+    assert!(
+        adapter
+            .restore(&context, &mut runtime, &receipt)
+            .unwrap()
+            .restored
+    );
+    assert_eq!(fs::read(user).unwrap(), original);
+}
+
+#[test]
 fn versioned_config_discovery_honors_xdg_legacy_and_user_environment_paths() {
     let adapter = CabalAdapter;
     let cases = [
         (
+            OperatingSystem::Linux,
             "3.8.1.0",
             "/home/developer/.cabal/config",
             BTreeMap::from([("CABAL_CONFIG".into(), "/etc/ignored-by-cabal-3.8".into())]),
         ),
         (
+            OperatingSystem::Linux,
             "3.10.3.0",
             "/home/developer/.config/cabal/config",
             BTreeMap::new(),
         ),
-        ("3.10.3.0", "/home/developer/.cabal/config", BTreeMap::new()),
         (
+            OperatingSystem::Linux,
+            "3.10.3.0",
+            "/home/developer/.cabal/config",
+            BTreeMap::new(),
+        ),
+        (
+            OperatingSystem::Linux,
             "3.16.1.0",
             "/home/developer/custom-cabal/config",
             BTreeMap::from([("CABAL_DIR".into(), "/home/developer/custom-cabal".into())]),
         ),
         (
+            OperatingSystem::Linux,
             "3.16.1.0",
             "/home/developer/explicit/cabal.config",
             BTreeMap::from([(
@@ -348,8 +418,59 @@ fn versioned_config_discovery_honors_xdg_legacy_and_user_environment_paths() {
                 "/home/developer/explicit/cabal.config".into(),
             )]),
         ),
+        (
+            OperatingSystem::Macos,
+            "3.8.1.0",
+            "/home/developer/.cabal/config",
+            BTreeMap::new(),
+        ),
+        (
+            OperatingSystem::Macos,
+            "3.16.1.0",
+            "/home/developer/.config/cabal/config",
+            BTreeMap::new(),
+        ),
+        (
+            OperatingSystem::Windows,
+            "3.8.1.0",
+            "/home/developer/AppData/Roaming/cabal/config",
+            BTreeMap::from([("APPDATA".into(), "/home/developer/AppData/Roaming".into())]),
+        ),
+        (
+            OperatingSystem::Windows,
+            "3.16.1.0",
+            "/home/developer/AppData/Roaming/cabal/config",
+            BTreeMap::from([("APPDATA".into(), "/home/developer/AppData/Roaming".into())]),
+        ),
+        (
+            OperatingSystem::Windows,
+            "3.16.1.0",
+            "/profiles/developer/roaming/cabal/config",
+            BTreeMap::from([("APPDATA".into(), "/profiles/developer/roaming".into())]),
+        ),
+        (
+            OperatingSystem::Windows,
+            "3.16.1.0",
+            "/profiles/developer/roaming/explicit.config",
+            BTreeMap::from([
+                ("APPDATA".into(), "/profiles/developer/roaming".into()),
+                (
+                    "CABAL_CONFIG".into(),
+                    "/profiles/developer/roaming/explicit.config".into(),
+                ),
+            ]),
+        ),
+        (
+            OperatingSystem::Windows,
+            "3.16.1.0",
+            "/home/developer/xdg/cabal/config",
+            BTreeMap::from([
+                ("APPDATA".into(), "/home/developer/AppData/Roaming".into()),
+                ("XDG_CONFIG_HOME".into(), "/home/developer/xdg".into()),
+            ]),
+        ),
     ];
-    for (version, path, environment) in cases {
+    for (os, version, path, environment) in cases {
         let directory = tempdir().unwrap();
         install_cabal(directory.path(), version, Some("9.8.4"), "none");
         write(
@@ -358,15 +479,153 @@ fn versioned_config_discovery_honors_xdg_legacy_and_user_environment_paths() {
             b"repository hackage.haskell.org\n  url: https://hackage.haskell.org/\n  secure: True\n",
         );
         let runtime = runtime(directory.path(), environment, None);
-        let context = context(
-            directory.path(),
-            Architecture::X86_64,
-            ExecutionEnvironment::Host,
-        );
+        let context = native_context(directory.path(), os, Architecture::X86_64);
         let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
         assert!(
             detected.evidence.iter().any(|line| line.contains(path)),
             "{detected:?}"
+        );
+    }
+}
+
+#[test]
+fn native_user_configs_preserve_layout_encoding_private_policy_and_project_state() {
+    let cases = vec![
+        (
+            OperatingSystem::Macos,
+            Architecture::X86_64,
+            "/home/developer/.config/cabal/config",
+            BTreeMap::from([
+                ("HTTPS_PROXY".into(), "https://proxy.invalid:8443".into()),
+                ("SSL_CERT_FILE".into(), "/home/developer/certs/ca.pem".into()),
+            ]),
+            b"-- native policy\nrepository hackage.haskell.org\n  url: https://hackage.haskell.org/\n  secure: True\nrepository private.corp\n  url: https://build:credential@packages.corp.example/hackage\n  secure: True\nactive-repositories: :rest, hackage.haskell.org, private.corp:override\nhttp-transport: curl\ncustom-policy: keep\n".to_vec(),
+        ),
+        (
+            OperatingSystem::Macos,
+            Architecture::Arm64,
+            "/home/developer/.config/cabal/config",
+            BTreeMap::from([
+                ("HTTPS_PROXY".into(), "https://proxy.invalid:8443".into()),
+                ("SSL_CERT_FILE".into(), "/home/developer/certs/ca.pem".into()),
+            ]),
+            b"-- native policy\nrepository hackage.haskell.org\n  url: https://hackage.haskell.org/\n  secure: True\nrepository private.corp\n  url: https://build:credential@packages.corp.example/hackage\n  secure: True\nactive-repositories: :rest, hackage.haskell.org, private.corp:override\nhttp-transport: curl\ncustom-policy: keep\n".to_vec(),
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::X86_64,
+            "/home/developer/AppData/Roaming/cabal/config",
+            BTreeMap::from([
+                (
+                    "APPDATA".into(),
+                    "/home/developer/AppData/Roaming".into(),
+                ),
+                ("HTTPS_PROXY".into(), "https://proxy.invalid:8443".into()),
+                ("SSL_CERT_FILE".into(), "/home/developer/certs/ca.pem".into()),
+            ]),
+            b"\xef\xbb\xbf-- native policy\r\nrepository hackage.haskell.org\r\n  url: https://hackage.haskell.org/\r\n  secure: True\r\nrepository private.corp\r\n  url: https://build:credential@packages.corp.example/hackage\r\n  secure: True\r\nactive-repositories: :rest, hackage.haskell.org, private.corp:override\r\nhttp-transport: curl\r\ncustom-policy: keep\r\n".to_vec(),
+        ),
+    ];
+
+    for (os, architecture, logical, environment, original) in cases {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_cabal(root, "3.14.2.0", Some("9.10.3"), "none");
+        let user = write(root, logical, &original);
+        fs::set_permissions(&user, fs::Permissions::from_mode(0o600)).unwrap();
+        let project = write(
+            root,
+            "/home/developer/project/cabal.project",
+            b"packages: .\nindex-state: 2026-08-01T00:00:00Z\n",
+        );
+        fs::set_permissions(&project, fs::Permissions::from_mode(0o400)).unwrap();
+        let project_before = fs::read(&project).unwrap();
+        let adapter = CabalAdapter;
+        let context = native_context(root, os, architecture);
+        let mut runtime = runtime(root, environment, Some("/home/developer/project"));
+
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let evidence = detected.evidence.join("\n");
+        assert!(evidence.contains(&format!("{os:?} {architecture:?}")));
+        assert!(evidence.contains("selected user home is /home/developer"));
+        assert!(evidence.contains("project directory /home/developer/project remains read-only"));
+        assert!(evidence.contains(logical));
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(!format!("{current:?}").contains("credential"));
+        let request = adapter
+            .selection_request(&context, &detected, &current)
+            .unwrap();
+        assert!(request.probe_contexts.is_empty());
+
+        let selected = [selection("tuna", TUNA)];
+        let cli = adapter.plan(&context, &current, &selected).unwrap();
+        let config = adapter.plan(&context, &current, &selected).unwrap();
+        let tui = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(cli, config);
+        assert_eq!(config, tui);
+        let rendered = &cli.changes[0].new_contents;
+        assert!(String::from_utf8_lossy(rendered).contains("custom-policy: keep"));
+        assert!(
+            String::from_utf8_lossy(rendered)
+                .contains("https://build:credential@packages.corp.example/hackage")
+        );
+        if os == OperatingSystem::Windows {
+            assert!(rendered.starts_with(&[0xef, 0xbb, 0xbf]));
+            assert!(rendered.iter().enumerate().all(|(index, byte)| {
+                *byte != b'\n' || (index > 0 && rendered[index - 1] == b'\r')
+            }));
+        }
+
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("native Cabal configuration should change")
+        };
+        let verification = adapter.verify(&context, &mut runtime, &receipt).unwrap();
+        assert!(verification.valid, "{}", verification.summary);
+        assert_eq!(
+            fs::metadata(&user).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        assert_eq!(fs::read(&project).unwrap(), project_before);
+        assert_eq!(
+            fs::metadata(&project).unwrap().permissions().mode() & 0o777,
+            0o400
+        );
+
+        let detected_after = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current_after = adapter
+            .read_current(
+                &context,
+                &runtime,
+                &detected_after,
+                ConfigurationScope::User,
+            )
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &current_after, &selected)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(&user).unwrap(), original);
+        assert_eq!(
+            fs::metadata(&user).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        assert_eq!(fs::read(&project).unwrap(), project_before);
+        assert!(
+            !root
+                .join("home/developer/.mirrorswitch/verification/cabal/config")
+                .exists()
         );
     }
 }
@@ -563,6 +822,14 @@ fn catalog_requires_signed_metadata_index_and_tarball_sha_before_latency() {
     );
     for candidate in &candidates {
         assert_eq!(candidate.delivery_mode, DeliveryMode::Mirror);
+        assert_eq!(
+            candidate.compatibility.operating_systems,
+            [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows,
+            ]
+        );
         assert_eq!(candidate.compatibility.repository_versions, ["secure"]);
         assert_eq!(candidate.probes.len(), 6);
         assert_eq!(
@@ -658,6 +925,65 @@ fn catalog_requires_signed_metadata_index_and_tarball_sha_before_latency() {
 }
 
 #[test]
+fn native_contexts_select_only_complete_hackage_security_candidates() {
+    let catalog = catalog_for_synthetic_package();
+    let cases = [
+        (
+            OperatingSystem::Macos,
+            Architecture::X86_64,
+            "/home/developer/.config/cabal/config",
+            BTreeMap::new(),
+        ),
+        (
+            OperatingSystem::Macos,
+            Architecture::Arm64,
+            "/home/developer/.config/cabal/config",
+            BTreeMap::new(),
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::X86_64,
+            "/home/developer/AppData/Roaming/cabal/config",
+            BTreeMap::from([("APPDATA".into(), "/home/developer/AppData/Roaming".into())]),
+        ),
+    ];
+
+    for (os, architecture, logical, environment) in cases {
+        let directory = tempdir().unwrap();
+        install_cabal(directory.path(), "3.14.2.0", Some("9.10.3"), "none");
+        write(
+            directory.path(),
+            logical,
+            b"repository hackage.haskell.org\n  url: https://hackage.haskell.org/\n  secure: True\n",
+        );
+        let adapter = CabalAdapter;
+        let context = native_context(directory.path(), os, architecture);
+        let runtime = runtime(directory.path(), environment, None);
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let request = adapter
+            .selection_request(&context, &detected, &current)
+            .unwrap();
+        let calls = Rc::new(RefCell::new(Vec::new()));
+        let selected = MirrorSelector::with_prober(
+            &catalog,
+            CabalProtocolProber {
+                calls: calls.clone(),
+                corrupt_package: false,
+            },
+            ProbeLimits::default(),
+        )
+        .select_at(&request, 100)
+        .unwrap();
+        assert!(selected.actionable, "{selected:#?}");
+        assert_eq!(selected.selections.len(), 1);
+        assert_eq!(calls.borrow().len(), 18);
+    }
+}
+
+#[test]
 fn unsupported_platform_versions_ghc_and_missing_client_are_inert() {
     let adapter = CabalAdapter;
     let directory = tempdir().unwrap();
@@ -695,18 +1021,44 @@ fn unsupported_platform_versions_ghc_and_missing_client_are_inert() {
     let directory = tempdir().unwrap();
     install_cabal(directory.path(), "3.16.1.0", None, "none");
     let installed = runtime(directory.path(), BTreeMap::new(), None);
-    let mut windows = context(
+    let mut mac_container = native_context(
         directory.path(),
+        OperatingSystem::Macos,
         Architecture::X86_64,
-        ExecutionEnvironment::Host,
     );
-    windows.os = OperatingSystem::Windows;
+    mac_container.environment = ExecutionEnvironment::Container;
     assert!(
         adapter
-            .detect(&windows, &installed)
+            .detect(&mac_container, &installed)
             .unwrap_err()
             .to_string()
-            .contains("Linux")
+            .contains("native host")
+    );
+
+    let windows_arm = native_context(
+        directory.path(),
+        OperatingSystem::Windows,
+        Architecture::Arm64,
+    );
+    assert!(
+        adapter
+            .detect(&windows_arm, &installed)
+            .unwrap_err()
+            .to_string()
+            .contains("no native Windows arm64")
+    );
+
+    let windows_x64 = native_context(
+        directory.path(),
+        OperatingSystem::Windows,
+        Architecture::X86_64,
+    );
+    assert!(
+        adapter
+            .detect(&windows_x64, &installed)
+            .unwrap_err()
+            .to_string()
+            .contains("APPDATA is unavailable")
     );
 
     let empty = tempdir().unwrap();

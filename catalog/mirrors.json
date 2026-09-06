@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+6a5bae8a18b9",
-  "content_revision": 20260903054505,
-  "generated_at": "2026-09-03T05:45:05Z",
+  "content_version": "2026.08.28+533878463be3",
+  "content_revision": 20260906030350,
+  "generated_at": "2026-09-06T03:03:50Z",
   "providers": [
     {
       "id": "aliyun",
@@ -7127,122 +7127,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "1ee67ed9a37afa3b5b4d5d15",
-      "provider_id": "ustc",
-      "upstream_id": "hackage--language-registry",
-      "tool_id": "cabal",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "hackage"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/hackage/"
-        },
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/hackage/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/hackage/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": [
-          "secure"
-        ]
-      },
-      "probes": [
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/root.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"Root\"",
-          "sha256": "f62e46cb51d4a499a8336894d7a46071b7e528135ad71614c7102c1de0aeeabc"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/timestamp.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"Timestamp\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/snapshot.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "01-index.tar.gz"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/mirrors.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"Mirrorlist\""
-        },
-        {
-          "endpoint_role": "index",
-          "method": "head",
-          "path": "/01-index.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/package/StateVar-1.2.2.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "sha256": "5e4b39da395656a59827b0280508aafdc70335798b50e5d6fd52596026251825"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/hackage.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -16572,6 +16456,124 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "6f682a674e9407378ad49d0c",
+      "provider_id": "nju",
+      "upstream_id": "hackage--language-registry",
+      "tool_id": "cabal",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "hackage"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/hackage/"
+        },
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/hackage/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/hackage/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "secure"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/root.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"Root\"",
+          "sha256": "f62e46cb51d4a499a8336894d7a46071b7e528135ad71614c7102c1de0aeeabc"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/timestamp.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"Timestamp\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/snapshot.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "01-index.tar.gz"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/mirrors.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"Mirrorlist\""
+        },
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/01-index.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/package/StateVar-1.2.2.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "5e4b39da395656a59827b0280508aafdc70335798b50e5d6fd52596026251825"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "703d4616875a03774ae80ad6",
       "provider_id": "aliyun",
       "upstream_id": "centos--repository-metadata",
@@ -17142,122 +17144,6 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/mysql-repo.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "74864e0eb1ced1709cbce3a7",
-      "provider_id": "tuna",
-      "upstream_id": "hackage--language-registry",
-      "tool_id": "cabal",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "hackage"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/hackage/"
-        },
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/hackage/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/hackage/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": [
-          "secure"
-        ]
-      },
-      "probes": [
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/root.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"Root\"",
-          "sha256": "f62e46cb51d4a499a8336894d7a46071b7e528135ad71614c7102c1de0aeeabc"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/timestamp.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"Timestamp\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/snapshot.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "01-index.tar.gz"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/mirrors.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"Mirrorlist\""
-        },
-        {
-          "endpoint_role": "index",
-          "method": "head",
-          "path": "/01-index.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/package/StateVar-1.2.2.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "sha256": "5e4b39da395656a59827b0280508aafdc70335798b50e5d6fd52596026251825"
-        }
-      ],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -27183,122 +27069,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "c0a3c11f3fb77cd7bb19e472",
-      "provider_id": "nju",
-      "upstream_id": "hackage--language-registry",
-      "tool_id": "cabal",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "hackage"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/hackage/"
-        },
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/hackage/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/hackage/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": [
-          "secure"
-        ]
-      },
-      "probes": [
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/root.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"Root\"",
-          "sha256": "f62e46cb51d4a499a8336894d7a46071b7e528135ad71614c7102c1de0aeeabc"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/timestamp.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"Timestamp\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/snapshot.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "01-index.tar.gz"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/mirrors.json",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/json",
-          "contains": "\"Mirrorlist\""
-        },
-        {
-          "endpoint_role": "index",
-          "method": "head",
-          "path": "/01-index.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "expected_content_type": "application/octet-stream"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/package/StateVar-1.2.2.tar.gz",
-          "expected_status": [
-            200,
-            206
-          ],
-          "sha256": "5e4b39da395656a59827b0280508aafdc70335798b50e5d6fd52596026251825"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "c21b931bca6b2baa340e7476",
       "provider_id": "tuna",
       "upstream_id": "influxdata-packages--repository-metadata",
@@ -32821,6 +32591,124 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "e5ce8e11a56c99a44c1d3d0f",
+      "provider_id": "ustc",
+      "upstream_id": "hackage--language-registry",
+      "tool_id": "cabal",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "hackage"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/hackage/"
+        },
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/hackage/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/hackage/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "secure"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/root.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"Root\"",
+          "sha256": "f62e46cb51d4a499a8336894d7a46071b7e528135ad71614c7102c1de0aeeabc"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/timestamp.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"Timestamp\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/snapshot.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "01-index.tar.gz"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/mirrors.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"Mirrorlist\""
+        },
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/01-index.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/package/StateVar-1.2.2.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "5e4b39da395656a59827b0280508aafdc70335798b50e5d6fd52596026251825"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/hackage.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "e5d5d1191f43cc7bd37881c9",
       "provider_id": "nju",
       "upstream_id": "gentoo--repository-metadata",
@@ -32879,6 +32767,124 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "e6cd603fabb3b93a34c78a4e",
+      "provider_id": "tuna",
+      "upstream_id": "hackage--language-registry",
+      "tool_id": "cabal",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "hackage"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/hackage/"
+        },
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/hackage/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/hackage/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "secure"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/root.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"Root\"",
+          "sha256": "f62e46cb51d4a499a8336894d7a46071b7e528135ad71614c7102c1de0aeeabc"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/timestamp.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"Timestamp\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/snapshot.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "01-index.tar.gz"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/mirrors.json",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/json",
+          "contains": "\"Mirrorlist\""
+        },
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/01-index.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "expected_content_type": "application/octet-stream"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/package/StateVar-1.2.2.tar.gz",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "5e4b39da395656a59827b0280508aafdc70335798b50e5d6fd52596026251825"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

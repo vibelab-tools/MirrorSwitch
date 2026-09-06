@@ -63,7 +63,7 @@ content remain unchanged and are reported.
 | `cocoapods` | user/project | Existing Specs Git repo or explicit Podfile source; CDN and dependency assets remain distinct ([details](adapters/cocoapods.md)) |
 | `scoop` | user | Installed official bucket origins plus architecture-specific `scoop download`; manifest assets are not rewritten ([details](adapters/scoop.md)) |
 | `nuget` | user | Linux and Windows NuGet/dotnet config hierarchy and fixed restore/install; shared Windows config, encoding, mappings and auth preserved ([details](adapters/nuget.md)) |
-| `cabal` | user | Secure index/package query; project configuration remains read-only ([details](adapters/cabal.md)) |
+| `cabal` | user | Linux/macOS plus Windows x64 secure index/package query; native config hierarchy, encoding and read-only project state preserved ([details](adapters/cabal.md)) |
 | `stack` | user/project | Snapshot/Hackage/toolchain query; project scope explicit ([details](adapters/stack.md)) |
 | `ghcup` | user | Linux/macOS plus Windows x64 signed metadata and platform bindist checks; native paths, encoding, custom channels and keys preserved ([details](adapters/ghcup.md)) |
 | `cpan` | user | CPAN/CPANM index and distribution query; client-specific config preserved ([#67](https://github.com/vibelab-tools/MirrorSwitch/issues/67)) |

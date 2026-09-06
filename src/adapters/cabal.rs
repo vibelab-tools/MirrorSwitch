@@ -8,7 +8,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -68,11 +68,11 @@ impl Adapter for CabalAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("cabal") {
             return Ok(None);
         }
-        let snapshot = cabal_snapshot(runtime)?;
+        let snapshot = cabal_snapshot(context, runtime)?;
         let user = read_document(runtime, &snapshot.user_config, "Cabal user config")?;
         let parsed = parse_config(&snapshot.user_config, &user.contents, false)?;
         let analysis = analyze_user_config(&parsed, user.exists)?;
@@ -83,6 +83,15 @@ impl Adapter for CabalAdapter {
             snapshot.ghc_version.as_ref().map_or_else(
                 || "GHC is not installed; repository commands remain available".into(),
                 |version| format!("GHC {version}"),
+            ),
+            format!(
+                "native platform is {:?} {:?}",
+                context.os, context.architecture
+            ),
+            format!("selected user home is {}", snapshot.user_home.display()),
+            snapshot.project_dir.as_ref().map_or_else(
+                || "no project directory was selected".into(),
+                |path| format!("project directory {} remains read-only", path.display()),
             ),
             format!("user configuration is {}", snapshot.user_config.display()),
             format!(
@@ -118,14 +127,14 @@ impl Adapter for CabalAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "cabal" {
             return Err(AdapterError::InvalidConfiguration(
                 "Cabal read received another tool's detection result".into(),
             ));
         }
-        let snapshot = cabal_snapshot(runtime)?;
+        let snapshot = cabal_snapshot(context, runtime)?;
         if detected.version.as_deref() != Some(snapshot.cabal_version.as_str()) {
             return Err(AdapterError::Conflict(
                 "cabal-install version changed after detection".into(),
@@ -197,7 +206,7 @@ impl Adapter for CabalAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         reviewed_cabal_version(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("cabal-install version is missing".into())
@@ -234,7 +243,7 @@ impl Adapter for CabalAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let endpoint = selected_endpoint(selections)?;
         let user = current
@@ -266,8 +275,12 @@ impl Adapter for CabalAdapter {
             &analysis.location,
             endpoint,
         )?;
+        let mut rendered = rendered.into_bytes();
+        if user.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let mut changes = Vec::new();
-        if rendered.as_bytes() != user.contents {
+        if rendered != user.contents {
             changes.push(PlannedFileChange {
                 target: rooted(&context.root, &user.path),
                 old_contents: current
@@ -275,7 +288,7 @@ impl Adapter for CabalAdapter {
                     .contains(&user.path)
                     .then(|| user.contents.clone()),
                 old_mode: None,
-                new_contents: rendered.into_bytes(),
+                new_contents: rendered,
                 new_mode: None,
                 summary: format!(
                     "retarget {HACKAGE_REPOSITORY} to {endpoint} in {}, adding reviewed root trust only when absent; preserve {} private repositories, existing secure/root-key policy, active-repositories, project files and all unrelated Cabal settings",
@@ -336,7 +349,7 @@ impl Adapter for CabalAdapter {
         receipt: &TransactionReceipt,
     ) -> Result<VerificationResult, AdapterError> {
         let result = (|| {
-            let snapshot = cabal_snapshot(runtime)?;
+            let snapshot = cabal_snapshot(context, runtime)?;
             let known_targets = [
                 rooted(&context.root, &snapshot.user_config),
                 rooted(&context.root, &snapshot.verification_config),
@@ -388,20 +401,25 @@ impl Adapter for CabalAdapter {
                 &[&config_argument, "update", HACKAGE_REPOSITORY],
                 "cabal update Hackage security verification",
             )?;
-            let info = run_program(
-                runtime,
-                Some(verification_dir),
-                "cabal",
-                &[&config_argument, "info", VERIFY_PACKAGE_ID],
-                "cabal info fixed package verification",
-            )?;
-            for marker in [VERIFY_PACKAGE, VERIFY_VERSION] {
-                if !info.contains(marker) {
-                    return Err(AdapterError::Verification(format!(
-                        "cabal info did not report reviewed marker {marker}"
-                    )));
+            let info_verified = if snapshot.ghc_version.is_some() {
+                let info = run_program(
+                    runtime,
+                    Some(verification_dir),
+                    "cabal",
+                    &[&config_argument, "info", VERIFY_PACKAGE_ID],
+                    "cabal info fixed package verification",
+                )?;
+                for marker in [VERIFY_PACKAGE, VERIFY_VERSION] {
+                    if !info.contains(marker) {
+                        return Err(AdapterError::Verification(format!(
+                            "cabal info did not report reviewed marker {marker}"
+                        )));
+                    }
                 }
-            }
+                true
+            } else {
+                false
+            };
             let destination = verification_dir
                 .join("source")
                 .join(&receipt.transaction_id);
@@ -439,10 +457,15 @@ impl Adapter for CabalAdapter {
                     "fixed verification package metadata is inconsistent".into(),
                 ));
             }
+            let info_summary = if info_verified {
+                "cabal info/get"
+            } else {
+                "cabal get without an installed compiler"
+            };
             Ok(VerificationResult {
                 valid: true,
                 summary: format!(
-                    "cabal-install {} loaded {endpoint}; cabal update verified Hackage Security metadata and cabal info/get resolved {VERIFY_PACKAGE_ID}; the catalog gate separately enforces tarball SHA-256 {VERIFY_TARBALL_SHA256}",
+                    "cabal-install {} loaded {endpoint}; cabal update verified Hackage Security metadata and {info_summary} resolved {VERIFY_PACKAGE_ID}; the catalog gate separately enforces tarball SHA-256 {VERIFY_TARBALL_SHA256}",
                     snapshot.cabal_version
                 ),
             })
@@ -474,6 +497,8 @@ impl Adapter for CabalAdapter {
 struct CabalSnapshot {
     cabal_version: String,
     ghc_version: Option<String>,
+    user_home: PathBuf,
+    project_dir: Option<PathBuf>,
     user_config: PathBuf,
     project_files: Vec<PathBuf>,
     verification_config: PathBuf,
@@ -570,7 +595,10 @@ struct UserAnalysis {
     private_count: usize,
 }
 
-fn cabal_snapshot(runtime: &dyn Runtime) -> Result<CabalSnapshot, AdapterError> {
+fn cabal_snapshot(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+) -> Result<CabalSnapshot, AdapterError> {
     let cabal_version = run_program(
         runtime,
         None,
@@ -603,8 +631,12 @@ fn cabal_snapshot(runtime: &dyn Runtime) -> Result<CabalSnapshot, AdapterError> 
         .home_dir()
         .ok_or_else(|| AdapterError::Unsupported("Cabal user home is unavailable".into()))?;
     validate_path(&home, "Cabal user home")?;
-    let user_config = cabal_config_path(runtime, &home, version)?;
-    validate_user_path(&home, &user_config, "Cabal user config")?;
+    let project_dir = runtime.project_dir();
+    if let Some(project) = &project_dir {
+        validate_path(project, "Cabal project directory")?;
+    }
+    let user_config = cabal_config_path(context, runtime, &home, version)?;
+    validate_user_config_path(context, runtime, &home, &user_config)?;
     if version >= (3, 10, 0)
         && nonempty_environment(runtime, "CABAL_CONFIG").is_some()
         && runtime.read(&user_config)?.is_none()
@@ -620,6 +652,8 @@ fn cabal_snapshot(runtime: &dyn Runtime) -> Result<CabalSnapshot, AdapterError> 
     Ok(CabalSnapshot {
         cabal_version,
         ghc_version,
+        user_home: home,
+        project_dir,
         user_config,
         project_files,
         verification_config,
@@ -627,25 +661,36 @@ fn cabal_snapshot(runtime: &dyn Runtime) -> Result<CabalSnapshot, AdapterError> 
 }
 
 fn cabal_config_path(
+    context: &SystemContext,
     runtime: &dyn Runtime,
     home: &Path,
     version: (u64, u64, u64),
 ) -> Result<PathBuf, AdapterError> {
     if version < (3, 10, 0) {
+        if context.os == OperatingSystem::Windows {
+            return Ok(windows_app_data(runtime)?.join("cabal/config"));
+        }
         return Ok(home.join(".cabal/config"));
     }
     if let Some(value) = nonempty_environment(runtime, "CABAL_CONFIG") {
-        return environment_user_path(home, &value, "CABAL_CONFIG");
+        return environment_user_path(context, runtime, home, &value, "CABAL_CONFIG");
     }
     if let Some(value) = nonempty_environment(runtime, "CABAL_DIR") {
-        return Ok(environment_user_path(home, &value, "CABAL_DIR")?.join("config"));
+        return Ok(
+            environment_user_path(context, runtime, home, &value, "CABAL_DIR")?.join("config"),
+        );
     }
     let xdg = match nonempty_environment(runtime, "XDG_CONFIG_HOME") {
-        Some(value) => environment_user_path(home, &value, "XDG_CONFIG_HOME")?,
+        Some(value) => environment_user_path(context, runtime, home, &value, "XDG_CONFIG_HOME")?,
+        None if context.os == OperatingSystem::Windows => windows_app_data(runtime)?,
         None => home.join(".config"),
     };
     let xdg_config = xdg.join("cabal/config");
-    let legacy = home.join(".cabal/config");
+    let legacy = if context.os == OperatingSystem::Windows {
+        windows_app_data(runtime)?.join("cabal/config")
+    } else {
+        home.join(".cabal/config")
+    };
     if runtime.read(&xdg_config)?.is_some() {
         Ok(xdg_config)
     } else if runtime.read(&legacy)?.is_some() {
@@ -655,6 +700,19 @@ fn cabal_config_path(
     }
 }
 
+fn windows_app_data(runtime: &dyn Runtime) -> Result<PathBuf, AdapterError> {
+    let value = nonempty_environment(runtime, "APPDATA")
+        .ok_or_else(|| AdapterError::Unsupported("Cabal APPDATA is unavailable".into()))?;
+    let path = PathBuf::from(value);
+    validate_path(&path, "APPDATA")?;
+    if !path.is_absolute() {
+        return Err(AdapterError::Unsupported(
+            "Cabal APPDATA must be an absolute path".into(),
+        ));
+    }
+    Ok(path)
+}
+
 fn nonempty_environment(runtime: &dyn Runtime, name: &str) -> Option<String> {
     runtime
         .environment_variable(name)
@@ -662,19 +720,33 @@ fn nonempty_environment(runtime: &dyn Runtime, name: &str) -> Option<String> {
 }
 
 fn environment_user_path(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
     home: &Path,
     value: &str,
     variable: &str,
 ) -> Result<PathBuf, AdapterError> {
     let path = PathBuf::from(value);
     validate_path(&path, variable)?;
-    if !path.is_absolute() || !path.starts_with(home) || path == home {
+    if !path.is_absolute() || path == home {
         return Err(AdapterError::Unsupported(format!(
             "{variable} must select an absolute path inside {}",
             home.display()
         )));
     }
-    Ok(path)
+    if path.starts_with(home) {
+        return Ok(path);
+    }
+    if context.os == OperatingSystem::Windows {
+        let app_data = windows_app_data(runtime)?;
+        if path.starts_with(&app_data) && path != app_data {
+            return Ok(path);
+        }
+    }
+    Err(AdapterError::Unsupported(format!(
+        "{variable} must select a path inside {} or the Windows roaming user directory",
+        home.display()
+    )))
 }
 
 fn project_config_files(runtime: &dyn Runtime) -> Result<Vec<PathBuf>, AdapterError> {
@@ -1691,14 +1763,27 @@ fn verification_failure<T>(
     )))
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os == OperatingSystem::Linux {
-        Ok(())
-    } else {
-        Err(AdapterError::Unsupported(
-            "Cabal adapter is limited to Linux in v0.1".into(),
-        ))
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
+        return Err(AdapterError::Unsupported(
+            "Cabal on macOS and Windows requires a native host".into(),
+        ));
     }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "Cabal on Windows arm64 is unavailable because the reviewed toolchain has no native Windows arm64 cabal-install executable"
+                .into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "Cabal requires x86_64 or arm64".into(),
+        ));
+    }
+    Ok(())
 }
 
 fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
@@ -1719,6 +1804,35 @@ fn require_current(current: &CurrentConfiguration) -> Result<(), AdapterError> {
             "Cabal operation received another tool or scope".into(),
         ))
     }
+}
+
+fn validate_user_config_path(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+    home: &Path,
+    path: &Path,
+) -> Result<(), AdapterError> {
+    validate_path(path, "Cabal user config")?;
+    if !path.is_absolute() || path == home {
+        return Err(AdapterError::Unsupported(format!(
+            "Cabal user config {} is not a user configuration file",
+            path.display()
+        )));
+    }
+    if path.starts_with(home) {
+        return Ok(());
+    }
+    if context.os == OperatingSystem::Windows {
+        let app_data = windows_app_data(runtime)?;
+        if path.starts_with(&app_data) && path != app_data {
+            return Ok(());
+        }
+    }
+    Err(AdapterError::Unsupported(format!(
+        "Cabal user config {} is outside user home {}",
+        path.display(),
+        home.display()
+    )))
 }
 
 fn validate_user_path(home: &Path, path: &Path, label: &str) -> Result<(), AdapterError> {
@@ -1754,6 +1868,9 @@ fn path_string(path: &Path) -> Result<String, AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|error| {
         AdapterError::InvalidConfiguration(format!("{} is not UTF-8: {error}", path.display()))
     })

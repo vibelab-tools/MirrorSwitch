@@ -1,15 +1,23 @@
 # Cabal adapter
 
-Issue [#57](https://github.com/vibelab-tools/MirrorSwitch/issues/57) implements
-the Linux Hackage boundary for cabal-install 2.4 through 3.16 on `x86_64` and
-`arm64`. GHC is detected when present, but the Hackage metadata and source
-packages themselves are architecture independent.
+Issues [#57](https://github.com/vibelab-tools/MirrorSwitch/issues/57) and
+[#134](https://github.com/vibelab-tools/MirrorSwitch/issues/134) implement the
+Hackage boundary for cabal-install 2.4 through 3.16. Linux supports `x86_64`
+and `arm64` hosts and containers; macOS supports native Intel and Apple Silicon
+hosts; Windows supports native x86_64 hosts. Windows arm64 is rejected because
+the reviewed toolchain has no native Windows arm64 cabal-install executable.
+GHC is detected when present, but the Hackage metadata and source packages are
+architecture independent.
 
-The adapter follows cabal-install's versioned user-config discovery. Cabal
-2.4–3.8 uses `~/.cabal/config`; Cabal 3.10 and later honors `CABAL_CONFIG`,
-`CABAL_DIR`, the legacy `~/.cabal` fallback, and XDG config paths. An explicit
-environment path is writable only when it remains inside the user's home.
-Project files and imports are read-only policy inputs.
+The adapter follows cabal-install's versioned user-config discovery. On Linux
+and macOS, Cabal 2.4–3.8 uses `~/.cabal/config`; on Windows it uses
+`%APPDATA%\cabal\config`. Cabal 3.10 and later honors `CABAL_CONFIG`,
+`CABAL_DIR`, the legacy directory, and XDG config paths. The XDG default is
+`~/.config/cabal/config` on Linux/macOS and `%APPDATA%\cabal\config` on
+Windows. Explicit environment paths remain constrained to the selected user
+location. Project files and imports are read-only policy inputs. UTF-8 BOMs,
+CRLF/LF line endings, private repositories, proxy/certificate environment,
+comments, and unknown unrelated fields remain unchanged.
 
 The repository id remains `hackage.haskell.org`, and MirrorSwitch changes its
 URL only after validating the effective policy. A clean cabal-install 3.8
@@ -33,8 +41,16 @@ counts, the runtime catalog checks `root.json`, `timestamp.json`,
 metadata or package index required by secure Cabal clients; Alibaba Cloud and
 SJTUG do not currently publish Hackage. Those three providers stay inert.
 
-After apply, an isolated credential-free config runs a real `cabal update`,
-`cabal info`, and fixed-package `cabal get`. Cabal therefore validates the
-Hackage Security signatures and expiry chain itself. The catalog gate
+After apply, an isolated credential-free config always runs a real
+`cabal update` and fixed-package `cabal get`; it also runs `cabal info` when GHC
+is installed. Cabal therefore validates the Hackage Security signatures and
+expiry chain itself even on a source-only Cabal installation. The catalog gate
 independently enforces the reviewed source-tarball digest. Verification failure
 restores the user config, and reapplying the same selection is a no-op.
+
+The scheduled native boundary installs checksum-pinned Cabal 3.14.2.0
+executables from the signed GHCup bindist set on macOS Intel, macOS Apple
+Silicon, and Windows x86_64. It compares CLI/configuration/TUI plans, runs the
+real secure `update`, `info`, and `get` verification, parses the applied user
+config with the native client, proves idempotence, and restores the original
+bytes, permissions or ACL, and read-only project fixture.
