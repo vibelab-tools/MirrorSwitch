@@ -69,7 +69,7 @@ content remain unchanged and are reported.
 | `cpan` | user | Linux/macOS plus Windows x64 CPAN.pm and cpanminus index/distribution query; native profiles or HKCU state, private mirrors and project files preserved ([details](adapters/cpan.md)) |
 | `cran` | user | Linux source or macOS/Windows native binary query; Rprofile.site, named repositories, Bioconductor, renv, auth, BOM/newlines and permissions preserved ([details](adapters/cran.md)) |
 | `bioconductor` | user | R/Bioc release pairing plus Linux sources or native macOS/Windows BioCsoft binaries; all repository classes and CRAN/project/auth state preserved ([details](adapters/bioconductor.md)) |
-| `tlmgr` | system/user | TeX Live remote query; release year and installation platform must match ([#65](https://github.com/vibelab-tools/MirrorSwitch/issues/65)) |
+| `tlmgr` | system/user | Linux/macOS plus Windows x64 TeX Live 2026 remote query; native installation/user trees, platform archive, encoding and verification policy preserved ([details](adapters/tlmgr.md)) |
 | `dart-pub` | user | Linux/macOS shell profile or Windows HKCU environment plus isolated fixed-package resolution; token/project state preserved and Flutter SDK artifacts excluded ([details](adapters/dart-pub.md)) |
 | `flutter` | user | Linux/macOS profile or Windows HKCU pair; platform-specific Flutter storage and Pub chains must both validate before native precache/doctor/query ([details](adapters/flutter.md)) |
 | `julia` | user | Linux/macOS profile or Windows HKCU environment; native depot/registry/project discovery plus platform-specific Pkg artifact resolution ([details](adapters/julia.md)) |

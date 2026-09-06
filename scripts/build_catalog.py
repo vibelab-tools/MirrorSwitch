@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "106"
+CATALOG_FORMAT_REVISION = "107"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -633,11 +633,6 @@ TLMGR_ENDPOINTS = {
 TLMGR_INFRA_SHA256 = (
     "c762f37bd7d99cba6d5b0799697768cd26028583d2f81ca2f630d8f403a5c491"
 )
-TLMGR_PLATFORM_SHA256 = {
-    "x86_64-linux": "168ce3c58aa35cafaa38e1defb3c3e26553473b35951d64bf54b5b2f00fd086f",
-    "x86_64-linuxmusl": "bd32c86e19c774b7715824fceab5fe92ca33f6110e8d9d84fc62589249d581ba",
-    "aarch64-linux": "01ad1b1457f65d4717b969b7ca27e08a559831d2c0658581b9659cf93c3c10ff",
-}
 HOMEBREW_GIT_UPSTREAM = "homebrew--git-mirror"
 HOMEBREW_BOTTLES_UPSTREAM = "homebrew-bottles--binary-cache"
 COCOAPODS_GIT_UPSTREAM = "cocoapods--git-mirror"
@@ -1826,7 +1821,7 @@ def runtime_properties(
         and entry["raw_name"] == "CTAN"
         and entry["provider_id"] in TLMGR_ENDPOINTS
     ):
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []
@@ -1855,17 +1850,16 @@ def runtime_properties(
                 "sha256": TLMGR_INFRA_SHA256,
             },
         ]
-        for platform, sha256 in TLMGR_PLATFORM_SHA256.items():
-            probes.append(
-                {
-                    "endpoint_role": "artifacts",
-                    "method": "get",
-                    "path": f"/archive/texlive.infra.{platform}.tar.xz",
-                    "expected_status": [200],
-                    "expected_content_type": "application/octet-stream",
-                    "sha256": sha256,
-                }
-            )
+        probes.append(
+            {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": "/archive/texlive.infra.{texlive_platform}.tar.xz",
+                "expected_status": [200],
+                "expected_content_type": "application/octet-stream",
+                "sha256": "{texlive_platform_sha}",
+            }
+        )
     elif (
         tool_id == "bioconductor"
         and upstream_key == BIOCONDUCTOR_RUNTIME_UPSTREAM

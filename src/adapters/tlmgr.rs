@@ -7,7 +7,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{Architecture, OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -51,7 +51,7 @@ impl Adapter for TlmgrAdapter {
         runtime: &dyn Runtime,
         detected: &DetectedTool,
     ) -> Result<ConfigurationScope, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if detected.tool_id != "tlmgr" {
             return Err(AdapterError::InvalidConfiguration(
                 "tlmgr scope selection received another tool's detection result".into(),
@@ -75,7 +75,7 @@ impl Adapter for TlmgrAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("tlmgr") {
             return Ok(None);
         }
@@ -109,6 +109,18 @@ impl Adapter for TlmgrAdapter {
             evidence: vec![
                 format!("TeX Live {}", installation.release),
                 format!("tlmgr revision {}", installation.revision),
+                format!(
+                    "native platform is {:?} {:?}",
+                    context.os, context.architecture
+                ),
+                runtime.home_dir().map_or_else(
+                    || "no user home was selected".into(),
+                    |path| format!("selected user home is {}", path.display()),
+                ),
+                runtime.project_dir().map_or_else(
+                    || "no project directory was selected".into(),
+                    |path| format!("project directory {} remains read-only", path.display()),
+                ),
                 format!("TeX Live platform {}", installation.platform),
                 format!("installation root is {}", installation.root.display()),
                 format!("system main repository is {}", public_state(&observed_main)),
@@ -124,7 +136,7 @@ impl Adapter for TlmgrAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "tlmgr" {
             return Err(AdapterError::InvalidConfiguration(
@@ -195,13 +207,15 @@ impl Adapter for TlmgrAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         if detected.version.as_deref() != Some(RELEASE) {
             return Err(AdapterError::Unsupported(
                 "only TeX Live 2026 has reviewed rolling CTAN candidates".into(),
             ));
         }
+        let platform = current_snapshot_value(current, "texlive-platform")?;
+        let platform_sha = platform_archive_sha(platform)?;
         Ok(SelectionRequest {
             tool_id: "tlmgr".into(),
             adapter_key: "tlmgr".into(),
@@ -209,7 +223,13 @@ impl Adapter for TlmgrAdapter {
             tool_version: detected.version.clone(),
             required_upstreams: vec![UPSTREAM.into()],
             repository_versions: BTreeMap::from([(UPSTREAM.into(), RELEASE.into())]),
-            probe_contexts: BTreeMap::new(),
+            probe_contexts: BTreeMap::from([(
+                UPSTREAM.into(),
+                vec![BTreeMap::from([
+                    ("texlive_platform".into(), platform.into()),
+                    ("texlive_platform_sha".into(), platform_sha.into()),
+                ])],
+            )]),
             required_compatibility_evidence: vec![
                 CompatibilityDimension::OperatingSystem,
                 CompatibilityDimension::Architecture,
@@ -234,14 +254,17 @@ impl Adapter for TlmgrAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         let endpoint = selected_endpoint(selections)?;
         let document = find_tlpdb(current)?;
         let text = utf8(&document.path, &document.contents)?;
         let parsed = parse_tlpdb(text, &document.path)?;
-        let rendered = rewrite_main(text, &parsed, &endpoint).into_bytes();
+        let mut rendered = rewrite_main(text, &parsed, &endpoint).into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let changes = if rendered == document.contents {
             Vec::new()
         } else {
@@ -411,15 +434,24 @@ struct ParsedTlpdb {
     preserved_options: Vec<String>,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "tlmgr v0.1 supports Linux x86_64 and arm64 only".into(),
+            "tlmgr on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "tlmgr on Windows arm64 is unavailable because TeX Live 2026 publishes no native Windows arm64 platform package"
+                .into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "tlmgr requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -487,9 +519,16 @@ fn inspect_installation(
         "tlmgr print-platform",
     )?;
     let platform = platform.trim().to_owned();
-    let allowed = match context.architecture {
-        Architecture::X86_64 => ["x86_64-linux", "x86_64-linuxmusl"].as_slice(),
-        Architecture::Arm64 => ["aarch64-linux"].as_slice(),
+    let allowed = match (context.os, context.architecture) {
+        (OperatingSystem::Linux, Architecture::X86_64) => {
+            ["x86_64-linux", "x86_64-linuxmusl"].as_slice()
+        }
+        (OperatingSystem::Linux, Architecture::Arm64) => ["aarch64-linux"].as_slice(),
+        (OperatingSystem::Macos, _) => ["universal-darwin"].as_slice(),
+        (OperatingSystem::Windows, Architecture::X86_64) => ["windows"].as_slice(),
+        (OperatingSystem::Windows, Architecture::Arm64) => {
+            unreachable!("Windows arm64 is rejected before tlmgr installation inspection")
+        }
     };
     if !allowed.contains(&platform.as_str()) {
         return Err(AdapterError::Unsupported(format!(
@@ -946,6 +985,52 @@ fn snapshot_source(kind: &str, value: &str) -> ConfiguredSource {
     }
 }
 
+fn current_snapshot_value<'a>(
+    current: &'a CurrentConfiguration,
+    kind: &str,
+) -> Result<&'a str, AdapterError> {
+    let matches = current
+        .sources
+        .iter()
+        .filter(|source| {
+            source
+                .metadata
+                .get("kind")
+                .is_some_and(|values| values.as_slice() == [kind])
+        })
+        .collect::<Vec<_>>();
+    if matches.len() != 1 {
+        return Err(AdapterError::InvalidConfiguration(format!(
+            "tlmgr current configuration must contain one {kind} snapshot"
+        )));
+    }
+    matches[0]
+        .url
+        .strip_prefix("tlmgr-snapshot:")
+        .ok_or_else(|| {
+            AdapterError::InvalidConfiguration(format!(
+                "tlmgr {kind} snapshot has an invalid value"
+            ))
+        })
+}
+
+fn platform_archive_sha(platform: &str) -> Result<&'static str, AdapterError> {
+    match platform {
+        "x86_64-linux" => Ok("168ce3c58aa35cafaa38e1defb3c3e26553473b35951d64bf54b5b2f00fd086f"),
+        "x86_64-linuxmusl" => {
+            Ok("bd32c86e19c774b7715824fceab5fe92ca33f6110e8d9d84fc62589249d581ba")
+        }
+        "aarch64-linux" => Ok("01ad1b1457f65d4717b969b7ca27e08a559831d2c0658581b9659cf93c3c10ff"),
+        "universal-darwin" => {
+            Ok("be0ea467f6cfd4e077da2688b020e3a50f5480b4cf489706495d2324662e5d3e")
+        }
+        "windows" => Ok("297273a72f454b632ee6fde6b645a938766de33355b6e0923a794b03c0c1327a"),
+        _ => Err(AdapterError::Unsupported(format!(
+            "TeX Live platform {platform} has no reviewed infrastructure archive"
+        ))),
+    }
+}
+
 fn metadata<'a>(source: &'a ConfiguredSource, key: &str) -> Result<&'a str, AdapterError> {
     let values = source.metadata.get(key).ok_or_else(|| {
         AdapterError::InvalidConfiguration(format!("tlmgr source is missing {key} metadata"))
@@ -1020,6 +1105,9 @@ fn validate_path(path: &Path, kind: &str) -> Result<(), AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "tlmgr configuration {} is not UTF-8",
