@@ -4,7 +4,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     Adapter, AdapterError, Runtime,
@@ -97,18 +97,21 @@ impl Adapter for CpanAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("perl") {
             return Ok(None);
         }
-        if !runtime.command_exists("env") {
+        if context.os == OperatingSystem::Windows
+            && runtime.command_exists("cpanm")
+            && !runtime.command_exists("reg.exe")
+        {
             return Err(AdapterError::Unsupported(
-                "CPAN client discovery requires the standard env command".into(),
+                "cpanm Windows persistence requires reg.exe".into(),
             ));
         }
         let home = user_home(runtime)?;
         let discovery = perl_discovery(runtime, &home)?;
-        validate_discovery(&discovery, &home)?;
+        validate_discovery(context, runtime, &discovery, &home)?;
         let (cpanm, cpanm_discovery_failed) = match cpanm_version(runtime, &home) {
             Ok(version) => (version, false),
             Err(error) if discovery.cpan_version.is_none() => return Err(error),
@@ -121,9 +124,30 @@ impl Adapter for CpanAdapter {
         let mut evidence = vec![
             format!("Perl {}", discovery.perl_version),
             format!("Perl architecture is {}", discovery.archname),
+            format!(
+                "native platform is {:?} {:?}",
+                context.os, context.architecture
+            ),
+            format!("selected user home is {}", home.display()),
+            runtime.project_dir().map_or_else(
+                || "no project directory was selected".into(),
+                |path| format!("project directory {} remains read-only", path.display()),
+            ),
         ];
         if let Some(version) = &discovery.cpan_version {
             evidence.push(format!("CPAN.pm {version}"));
+            if let Some(path) = &discovery.cpan_home {
+                evidence.push(format!("CPAN home is {}", path.display()));
+            }
+            if let Some(path) = &discovery.my_config {
+                evidence.push(format!("CPAN.pm user configuration is {}", path.display()));
+            }
+            if let Some(path) = &discovery.system_config {
+                evidence.push(format!(
+                    "CPAN.pm system configuration {} remains read-only",
+                    path.display()
+                ));
+            }
             evidence.push(format!(
                 "CPAN.pm configuration is {}",
                 cpan_config_state(runtime, &discovery)?
@@ -142,7 +166,15 @@ impl Adapter for CpanAdapter {
             }
             evidence.push(format!(
                 "PERL_CPANM_OPT is {}",
-                cpanm_environment_state(runtime)
+                if context.os == OperatingSystem::Windows {
+                    match query_windows_cpanm_options(runtime) {
+                        Ok(Some(_)) => "configured in the Windows user environment",
+                        Ok(None) => "not configured in the Windows user environment",
+                        Err(_) => "unavailable in the Windows user environment",
+                    }
+                } else {
+                    cpanm_environment_state(runtime)
+                }
             ));
         } else {
             evidence.push(
@@ -177,7 +209,7 @@ impl Adapter for CpanAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "cpan" {
             return Err(AdapterError::InvalidConfiguration(
@@ -186,7 +218,7 @@ impl Adapter for CpanAdapter {
         }
         let home = user_home(runtime)?;
         let discovery = perl_discovery(runtime, &home)?;
-        validate_discovery(&discovery, &home)?;
+        validate_discovery(context, runtime, &discovery, &home)?;
         if detected.version.as_deref() != Some(discovery.perl_version.as_str()) {
             return Err(AdapterError::Conflict(
                 "Perl version changed after CPAN client detection".into(),
@@ -254,7 +286,7 @@ impl Adapter for CpanAdapter {
         _detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         if !has_actionable_client(current) {
             return Err(AdapterError::Unsupported(
@@ -293,43 +325,47 @@ impl Adapter for CpanAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let selected = selected_endpoint(selections)?;
         let mut changes = Vec::new();
 
         if let Some(document) = find_document(current, "cpan-pm-user-config")? {
+            let rendered = rewrite_cpan_config(
+                utf8(&document.path, &document.contents)?,
+                &document.path,
+                &selected,
+            )?
+            .into_bytes();
             add_change(
                 context,
                 current,
                 document,
-                rewrite_cpan_config(
-                    utf8(&document.path, &document.contents)?,
-                    &document.path,
-                    &selected,
-                )?
-                .into_bytes(),
+                preserve_bom(&document.contents, rendered),
                 "retarget CPAN.pm urllist while preserving private mirrors and non-mirror policy",
                 &mut changes,
             );
         }
-        if let Some(document) = current
+        if context.os == OperatingSystem::Windows {
+            add_windows_cpanm_plan(context, current, &selected, &mut changes)?;
+        } else if let Some(document) = current
             .documents
             .iter()
             .find(|document| document.format.starts_with("cpanm-selected-"))
         {
             let shell = shell_from_format(&document.format)?;
+            let rendered = rewrite_profile(
+                utf8(&document.path, &document.contents)?,
+                &document.path,
+                shell,
+                &selected,
+            )?
+            .into_bytes();
             add_change(
                 context,
                 current,
                 document,
-                rewrite_profile(
-                    utf8(&document.path, &document.contents)?,
-                    &document.path,
-                    shell,
-                    &selected,
-                )?
-                .into_bytes(),
+                preserve_bom(&document.contents, rendered),
                 "add or retarget one managed cpanm mirror option while preserving unrelated options",
                 &mut changes,
             );
@@ -352,11 +388,15 @@ impl Adapter for CpanAdapter {
 
     fn apply(
         &self,
-        _context: &SystemContext,
+        context: &SystemContext,
         runtime: &mut dyn Runtime,
         plan: &ChangePlan,
     ) -> Result<ApplyOutcome, AdapterError> {
-        runtime.apply_plan(plan)
+        if context.os == OperatingSystem::Windows {
+            windows_cpanm_apply(runtime, plan)
+        } else {
+            runtime.apply_plan(plan)
+        }
     }
 
     fn verify(
@@ -366,10 +406,10 @@ impl Adapter for CpanAdapter {
         receipt: &TransactionReceipt,
     ) -> Result<VerificationResult, AdapterError> {
         let result = (|| {
-            require_linux(context)?;
+            require_supported_context(context)?;
             let home = user_home(runtime)?;
             let discovery = perl_discovery(runtime, &home)?;
-            validate_discovery(&discovery, &home)?;
+            validate_discovery(context, runtime, &discovery, &home)?;
             let my_config_target = discovery
                 .my_config
                 .as_ref()
@@ -436,26 +476,54 @@ impl Adapter for CpanAdapter {
                 verify_cpan_pm(runtime, &home, &verification_root(&home))?;
                 verified.push("CPAN.pm");
             }
-            if let Some(layout) = &layout
-                && let Some(contents) = runtime.read(&layout.profile)?
-                && let Ok(profile) = parse_profile(
-                    utf8(&layout.profile, &contents)?,
-                    &layout.profile,
-                    layout.shell,
-                )
-                && let Some(value) = profile.value()
-            {
-                let options = parse_cpanm_options(value)?;
-                let endpoint = unique_reviewed(&options.urls(), "cpanm options")?;
-                if option_tokens(&rewrite_cpanm_options(value, &endpoint)?) != option_tokens(value)
+            if let Some(layout) = &layout {
+                if layout.shell == ShellKind::WindowsRegistry {
+                    if let Some(contents) = runtime.read(&layout.profile)? {
+                        let state: WindowsCpanmRecoveryState = serde_json::from_slice(&contents)
+                            .map_err(|error| {
+                                AdapterError::InvalidConfiguration(format!(
+                                    "cpanm Windows recovery state is invalid: {error}"
+                                ))
+                            })?;
+                        state.validate()?;
+                        if !query_windows_cpanm_options(runtime)?
+                            .as_deref()
+                            .is_some_and(|value| {
+                                option_tokens(value) == option_tokens(&state.selected)
+                            })
+                        {
+                            return Err(AdapterError::Verification(
+                                "cpanm Windows user environment did not retain PERL_CPANM_OPT"
+                                    .into(),
+                            ));
+                        }
+                        let options = parse_cpanm_options(&state.selected)?;
+                        let endpoint = unique_reviewed(&options.urls(), "cpanm Windows options")?;
+                        selected.insert(endpoint);
+                        verify_cpanm(runtime, &home, &verification_root(&home), &state.selected)?;
+                        verified.push("cpanm");
+                    }
+                } else if let Some(contents) = runtime.read(&layout.profile)?
+                    && let Ok(profile) = parse_profile(
+                        utf8(&layout.profile, &contents)?,
+                        &layout.profile,
+                        layout.shell,
+                    )
+                    && let Some(value) = profile.value()
                 {
-                    return Err(AdapterError::Verification(
-                        "cpanm mirror resolver options are not canonical".into(),
-                    ));
+                    let options = parse_cpanm_options(value)?;
+                    let endpoint = unique_reviewed(&options.urls(), "cpanm options")?;
+                    if option_tokens(&rewrite_cpanm_options(value, &endpoint)?)
+                        != option_tokens(value)
+                    {
+                        return Err(AdapterError::Verification(
+                            "cpanm mirror resolver options are not canonical".into(),
+                        ));
+                    }
+                    selected.insert(endpoint);
+                    verify_cpanm(runtime, &home, &verification_root(&home), value)?;
+                    verified.push("cpanm");
                 }
-                selected.insert(endpoint);
-                verify_cpanm(runtime, &home, &verification_root(&home), value)?;
-                verified.push("cpanm");
             }
             if verified.is_empty() {
                 return Err(AdapterError::Verification(
@@ -478,16 +546,22 @@ impl Adapter for CpanAdapter {
         })();
         match result {
             Ok(result) => Ok(result),
+            Err(error) if context.os == OperatingSystem::Windows => {
+                windows_cpanm_verification_failure(runtime, receipt, error.to_string())
+            }
             Err(error) => verification_failure(runtime, receipt, error.to_string()),
         }
     }
 
     fn restore(
         &self,
-        _context: &SystemContext,
+        context: &SystemContext,
         runtime: &mut dyn Runtime,
         receipt: &TransactionReceipt,
     ) -> Result<RestoreResult, AdapterError> {
+        if context.os == OperatingSystem::Windows {
+            return windows_cpanm_restore(runtime, receipt);
+        }
         let restored = runtime.restore_transaction(&receipt.transaction_id)?;
         Ok(RestoreResult {
             restored: restored.verified,
@@ -515,6 +589,7 @@ enum ShellKind {
     Bash,
     Zsh,
     Fish,
+    WindowsRegistry,
 }
 
 impl ShellKind {
@@ -523,6 +598,7 @@ impl ShellKind {
             Self::Bash => "bash",
             Self::Zsh => "zsh",
             Self::Fish => "fish",
+            Self::WindowsRegistry => "Windows user environment",
         }
     }
 }
@@ -530,6 +606,34 @@ impl ShellKind {
 struct ProfileLayout {
     shell: ShellKind,
     profile: PathBuf,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct WindowsCpanmRecoveryState {
+    schema_version: u32,
+    original: Option<String>,
+    selected: String,
+}
+
+impl WindowsCpanmRecoveryState {
+    fn validate(&self) -> Result<(), AdapterError> {
+        if self.schema_version != 1 || !canonical_cpanm_options(&self.selected) {
+            return Err(AdapterError::InvalidConfiguration(
+                "cpanm Windows recovery state has invalid selected options".into(),
+            ));
+        }
+        if self
+            .original
+            .as_deref()
+            .is_some_and(|value| rewrite_cpanm_options(value, ALIYUN).is_err())
+        {
+            return Err(AdapterError::InvalidConfiguration(
+                "cpanm Windows recovery state has unsafe original options".into(),
+            ));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -607,15 +711,24 @@ impl CpanmOptions {
     }
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "CPAN v0.1 supports Linux x86_64 and arm64 only".into(),
+            "CPAN clients on macOS and Windows require a native host".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "CPAN clients on Windows arm64 are unavailable because the reviewed Perl distribution has no native Windows arm64 runtime"
+                .into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "CPAN clients require x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -648,17 +761,19 @@ fn user_home(runtime: &dyn Runtime) -> Result<PathBuf, AdapterError> {
 }
 
 fn perl_discovery(runtime: &dyn Runtime, home: &Path) -> Result<PerlDiscovery, AdapterError> {
-    let output = run_env(
+    let environment = BTreeMap::from([("HOME".into(), path_text(home, "home")?.into())]);
+    let output = run_isolated(
         runtime,
         None,
+        "perl",
         &[
-            format!("HOME={}", path_text(home, "home")?),
-            "perl".into(),
             "-MConfig".into(),
             "-MJSON::PP".into(),
             "-e".into(),
             DISCOVERY_SCRIPT.into(),
         ],
+        &environment,
+        &[],
         "Perl and CPAN.pm discovery",
     )?;
     serde_json::from_str(output.trim()).map_err(|error| {
@@ -666,7 +781,12 @@ fn perl_discovery(runtime: &dyn Runtime, home: &Path) -> Result<PerlDiscovery, A
     })
 }
 
-fn validate_discovery(discovery: &PerlDiscovery, home: &Path) -> Result<(), AdapterError> {
+fn validate_discovery(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+    discovery: &PerlDiscovery,
+    home: &Path,
+) -> Result<(), AdapterError> {
     if !valid_version(&discovery.perl_version) || discovery.archname.trim().is_empty() {
         return Err(AdapterError::Unsupported(
             "Perl version or architecture is unrecognized".into(),
@@ -684,8 +804,8 @@ fn validate_discovery(discovery: &PerlDiscovery, home: &Path) -> Result<(), Adap
         let my_config = discovery.my_config.as_ref().ok_or_else(|| {
             AdapterError::Unsupported("CPAN.pm did not report its user config path".into())
         })?;
-        validate_user_path(cpan_home, home, "CPAN home")?;
-        validate_user_path(my_config, home, "CPAN user config")?;
+        validate_cpan_user_path(context, runtime, cpan_home, home, "CPAN home")?;
+        validate_cpan_user_path(context, runtime, my_config, home, "CPAN user config")?;
         if let Some(system) = &discovery.system_config {
             validate_path(system, "CPAN system config")?;
         }
@@ -698,18 +818,20 @@ fn cpanm_version(runtime: &dyn Runtime, home: &Path) -> Result<Option<String>, A
         return Ok(None);
     }
     let detection_home = verification_root(home).join("detection-cpanm");
-    let output = run_env(
+    let environment = BTreeMap::from([
+        ("HOME".into(), path_text(home, "home")?.into()),
+        (
+            "PERL_CPANM_HOME".into(),
+            path_text(&detection_home, "cpanm detection home")?.into(),
+        ),
+    ]);
+    let output = run_isolated(
         runtime,
         None,
-        &[
-            format!("HOME={}", path_text(home, "home")?),
-            format!(
-                "PERL_CPANM_HOME={}",
-                path_text(&detection_home, "cpanm detection home")?
-            ),
-            "cpanm".into(),
-            "--version".into(),
-        ],
+        "cpanm",
+        &["--version".into()],
+        &environment,
+        &[],
         "cpanm --version",
     )?;
     let version = output.lines().find_map(|line| {
@@ -810,6 +932,9 @@ fn add_cpanm_state(
     sources: &mut Vec<ConfiguredSource>,
     documents: &mut Vec<ConfigurationDocument>,
 ) -> Result<(), AdapterError> {
+    if context.os == OperatingSystem::Windows {
+        return add_windows_cpanm_state(runtime, files, sources, documents);
+    }
     let layout = match profile_layout(context, runtime, home) {
         Ok(layout) => layout,
         Err(_) => {
@@ -871,11 +996,428 @@ fn add_cpanm_state(
     Ok(())
 }
 
+fn add_windows_cpanm_state(
+    runtime: &dyn Runtime,
+    files: &mut Vec<PathBuf>,
+    sources: &mut Vec<ConfiguredSource>,
+    documents: &mut Vec<ConfigurationDocument>,
+) -> Result<(), AdapterError> {
+    let layout = ProfileLayout {
+        shell: ShellKind::WindowsRegistry,
+        profile: windows_cpanm_recovery_path(runtime)?,
+    };
+    let observed = runtime.read(&layout.profile)?;
+    let recovery_exists = observed.is_some();
+    let recovery_contents = observed.unwrap_or_default();
+    let recovery = if recovery_exists {
+        let state: WindowsCpanmRecoveryState =
+            serde_json::from_slice(&recovery_contents).map_err(|error| {
+                AdapterError::InvalidConfiguration(format!(
+                    "cpanm Windows recovery state is invalid: {error}"
+                ))
+            })?;
+        state.validate()?;
+        Some(state)
+    } else {
+        None
+    };
+    let registry = match query_windows_cpanm_options(runtime) {
+        Ok(value) => value,
+        Err(AdapterError::Unsupported(_)) if recovery.is_none() => {
+            sources.push(policy_source(
+                "cpanm-unsafe-windows-registry",
+                Path::new(r"HKCU\Environment"),
+                "cpanm",
+            ));
+            return Ok(());
+        }
+        Err(error) => return Err(error),
+    };
+    if let Some(state) = &recovery
+        && registry
+            .as_deref()
+            .is_none_or(|value| option_tokens(value) != option_tokens(&state.selected))
+    {
+        return Err(AdapterError::Conflict(
+            "cpanm Windows recovery state does not match HKCU PERL_CPANM_OPT".into(),
+        ));
+    }
+    if let Some(value) = &registry {
+        let options = match parse_cpanm_options(value) {
+            Ok(options) if rewrite_cpanm_options(value, ALIYUN).is_ok() => options,
+            _ => {
+                sources.push(policy_source(
+                    "cpanm-unsafe-windows-registry",
+                    Path::new(r"HKCU\Environment"),
+                    "cpanm",
+                ));
+                return Ok(());
+            }
+        };
+        for url in options.urls() {
+            sources.push(if is_public_cpan(&url) {
+                configured_source(
+                    &url,
+                    "cpanm-public-mirror",
+                    Path::new(r"HKCU\Environment"),
+                    "cpanm",
+                )
+            } else {
+                policy_source(
+                    "cpanm-private-preserved",
+                    Path::new(r"HKCU\Environment"),
+                    "cpanm",
+                )
+            });
+        }
+    }
+    if let Some(value) = runtime
+        .environment_variable(CPANM_ENV)
+        .filter(|value| !value.trim().is_empty())
+    {
+        let stale_original = recovery
+            .as_ref()
+            .and_then(|state| state.original.as_deref())
+            .is_some_and(|original| option_tokens(original) == option_tokens(&value));
+        if registry
+            .as_deref()
+            .is_none_or(|persistent| option_tokens(persistent) != option_tokens(&value))
+            && !stale_original
+        {
+            sources.push(policy_source(
+                "cpanm-environment-override",
+                Path::new(":env:"),
+                "cpanm",
+            ));
+            return Ok(());
+        }
+    }
+    if recovery_exists {
+        files.push(layout.profile.clone());
+        sources.push(policy_source(
+            "cpanm-windows-recovery-active",
+            &layout.profile,
+            "cpanm",
+        ));
+    }
+    documents.push(ConfigurationDocument {
+        path: layout.profile,
+        format: "cpanm-windows-recovery".into(),
+        contents: recovery_contents,
+    });
+    documents.push(ConfigurationDocument {
+        path: PathBuf::from(r"HKCU\Environment\PERL_CPANM_OPT"),
+        format: "cpanm-windows-registry-snapshot".into(),
+        contents: registry.as_deref().unwrap_or_default().as_bytes().to_vec(),
+    });
+    Ok(())
+}
+
+fn add_windows_cpanm_plan(
+    context: &SystemContext,
+    current: &CurrentConfiguration,
+    endpoint: &str,
+    changes: &mut Vec<PlannedFileChange>,
+) -> Result<(), AdapterError> {
+    let Some(recovery) = find_document(current, "cpanm-windows-recovery")? else {
+        return Ok(());
+    };
+    if !recovery.contents.is_empty() {
+        let state: WindowsCpanmRecoveryState =
+            serde_json::from_slice(&recovery.contents).map_err(|error| {
+                AdapterError::InvalidConfiguration(format!(
+                    "cpanm Windows recovery state is invalid: {error}"
+                ))
+            })?;
+        state.validate()?;
+        let options = parse_cpanm_options(&state.selected)?;
+        if unique_reviewed(&options.urls(), "cpanm Windows options")? != endpoint {
+            return Err(AdapterError::Unsupported(
+                "a previous cpanm Windows recovery state is active; restore it before selecting another mirror"
+                    .into(),
+            ));
+        }
+        return Ok(());
+    }
+    let registry = find_document(current, "cpanm-windows-registry-snapshot")?.ok_or_else(|| {
+        AdapterError::InvalidConfiguration("cpanm Windows registry snapshot is missing".into())
+    })?;
+    let original = if registry.contents.is_empty() {
+        None
+    } else {
+        Some(
+            std::str::from_utf8(&registry.contents)
+                .map_err(|_| {
+                    AdapterError::InvalidConfiguration(
+                        "cpanm Windows registry snapshot is not UTF-8".into(),
+                    )
+                })?
+                .to_owned(),
+        )
+    };
+    let selected = rewrite_cpanm_options(original.as_deref().unwrap_or_default(), endpoint)?;
+    let state = WindowsCpanmRecoveryState {
+        schema_version: 1,
+        original,
+        selected,
+    };
+    state.validate()?;
+    let mut contents = serde_json::to_vec_pretty(&state).map_err(|error| {
+        AdapterError::Runtime(format!(
+            "could not serialize cpanm Windows recovery state: {error}"
+        ))
+    })?;
+    contents.push(b'\n');
+    add_change(
+        context,
+        current,
+        recovery,
+        contents,
+        "record private cpanm Windows user-environment recovery state before updating PERL_CPANM_OPT",
+        changes,
+    );
+    Ok(())
+}
+
+fn windows_cpanm_apply(
+    runtime: &mut dyn Runtime,
+    plan: &ChangePlan,
+) -> Result<ApplyOutcome, AdapterError> {
+    if plan.adapter_key != "cpan" || plan.tool_id != "cpan" {
+        return Err(AdapterError::InvalidConfiguration(
+            "cpanm Windows apply received another tool's plan".into(),
+        ));
+    }
+    let state = plan.changes.iter().find_map(|change| {
+        serde_json::from_slice::<WindowsCpanmRecoveryState>(&change.new_contents).ok()
+    });
+    let Some(state) = state else {
+        return runtime.apply_plan(plan);
+    };
+    state.validate()?;
+    let outcome = runtime.apply_plan(plan)?;
+    let ApplyOutcome::Applied(receipt) = &outcome else {
+        return Ok(outcome);
+    };
+    if let Err(error) = set_windows_cpanm_options(runtime, &state.selected) {
+        let registry_restored =
+            restore_windows_cpanm_options(runtime, state.original.as_deref()).is_ok();
+        let files_restored =
+            registry_restored && runtime.restore_transaction(&receipt.transaction_id).is_ok();
+        return Err(AdapterError::Runtime(format!(
+            "cpanm Windows environment update failed: {error}; registry restored: {registry_restored}; recovery files restored: {files_restored}"
+        )));
+    }
+    Ok(outcome)
+}
+
+fn windows_cpanm_verification_failure<T>(
+    runtime: &mut dyn Runtime,
+    receipt: &TransactionReceipt,
+    reason: String,
+) -> Result<T, AdapterError> {
+    let registry_restored = if !receipt_changed_cpanm_recovery(receipt) {
+        true
+    } else {
+        match windows_cpanm_recovery_path(runtime) {
+            Ok(path) => match runtime.read(&path) {
+                Ok(None) => true,
+                Ok(Some(_)) => read_windows_cpanm_recovery(runtime).is_ok_and(|state| {
+                    restore_windows_cpanm_options(runtime, state.original.as_deref()).is_ok()
+                }),
+                Err(_) => false,
+            },
+            Err(_) => false,
+        }
+    };
+    let files_restored =
+        registry_restored && runtime.restore_transaction(&receipt.transaction_id).is_ok();
+    Err(AdapterError::Verification(format!(
+        "{reason}; registry restored: {registry_restored}; configuration restored: {files_restored}"
+    )))
+}
+
+fn windows_cpanm_restore(
+    runtime: &mut dyn Runtime,
+    receipt: &TransactionReceipt,
+) -> Result<RestoreResult, AdapterError> {
+    if receipt_changed_cpanm_recovery(receipt) {
+        let state = read_windows_cpanm_recovery(runtime)?;
+        restore_windows_cpanm_options(runtime, state.original.as_deref())?;
+    }
+    let restored = runtime.restore_transaction(&receipt.transaction_id)?;
+    Ok(RestoreResult {
+        restored: restored.verified,
+        summary: "restored CPAN.pm configuration, the previous cpanm Windows user environment, and recovery state"
+            .into(),
+    })
+}
+
+fn receipt_changed_cpanm_recovery(receipt: &TransactionReceipt) -> bool {
+    receipt
+        .changed_targets
+        .iter()
+        .any(|path| path.ends_with("MirrorSwitch/cpanm/environment-recovery.json"))
+}
+
+fn read_windows_cpanm_recovery(
+    runtime: &dyn Runtime,
+) -> Result<WindowsCpanmRecoveryState, AdapterError> {
+    let path = windows_cpanm_recovery_path(runtime)?;
+    let contents = runtime
+        .read(&path)?
+        .ok_or_else(|| AdapterError::Runtime("cpanm Windows recovery state is missing".into()))?;
+    let state: WindowsCpanmRecoveryState = serde_json::from_slice(&contents).map_err(|error| {
+        AdapterError::InvalidConfiguration(format!(
+            "cpanm Windows recovery state is invalid: {error}"
+        ))
+    })?;
+    state.validate()?;
+    Ok(state)
+}
+
+fn query_windows_cpanm_options(runtime: &dyn Runtime) -> Result<Option<String>, AdapterError> {
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "query".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            CPANM_ENV.into(),
+        ],
+    )?;
+    if output.status.code() == Some(1) {
+        return Ok(None);
+    }
+    if !output.status.success() {
+        return Err(AdapterError::Runtime(format!(
+            "reg.exe query {CPANM_ENV} failed with status {}",
+            output.status
+        )));
+    }
+    let text = String::from_utf8(output.stdout)
+        .map_err(|_| AdapterError::Runtime("reg.exe returned non-UTF-8 output".into()))?;
+    let line = text
+        .lines()
+        .map(str::trim)
+        .find(|line| line.starts_with(CPANM_ENV))
+        .ok_or_else(|| {
+            AdapterError::InvalidConfiguration(format!("reg.exe returned no {CPANM_ENV} value"))
+        })?;
+    let rest = line[CPANM_ENV.len()..].trim_start();
+    let split = rest.find(char::is_whitespace).ok_or_else(|| {
+        AdapterError::InvalidConfiguration(format!("reg.exe returned malformed {CPANM_ENV} state"))
+    })?;
+    let kind = &rest[..split];
+    let value = rest[split..].trim();
+    if kind != "REG_SZ" || rewrite_cpanm_options(value, ALIYUN).is_err() {
+        return Err(AdapterError::Unsupported(format!(
+            "cpanm Windows {CPANM_ENV} must be a safe REG_SZ option string"
+        )));
+    }
+    Ok(Some(value.into()))
+}
+
+fn set_windows_cpanm_options(runtime: &dyn Runtime, value: &str) -> Result<(), AdapterError> {
+    if !canonical_cpanm_options(value) {
+        return Err(AdapterError::InvalidConfiguration(
+            "cpanm Windows selected options are not canonical".into(),
+        ));
+    }
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "add".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            CPANM_ENV.into(),
+            "/t".into(),
+            "REG_SZ".into(),
+            "/d".into(),
+            value.into(),
+            "/f".into(),
+        ],
+    )?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(AdapterError::Runtime(format!(
+            "reg.exe add {CPANM_ENV} failed with status {}",
+            output.status
+        )))
+    }
+}
+
+fn restore_windows_cpanm_options(
+    runtime: &dyn Runtime,
+    original: Option<&str>,
+) -> Result<(), AdapterError> {
+    match original {
+        Some(value) => {
+            if rewrite_cpanm_options(value, ALIYUN).is_err() {
+                return Err(AdapterError::InvalidConfiguration(
+                    "cpanm Windows original options are unsafe".into(),
+                ));
+            }
+            let output = runtime.run(
+                "reg.exe",
+                &[
+                    "add".into(),
+                    r"HKCU\Environment".into(),
+                    "/v".into(),
+                    CPANM_ENV.into(),
+                    "/t".into(),
+                    "REG_SZ".into(),
+                    "/d".into(),
+                    value.into(),
+                    "/f".into(),
+                ],
+            )?;
+            if output.status.success() {
+                Ok(())
+            } else {
+                Err(AdapterError::Runtime(format!(
+                    "reg.exe restore {CPANM_ENV} failed with status {}",
+                    output.status
+                )))
+            }
+        }
+        None => delete_windows_cpanm_options(runtime),
+    }
+}
+
+fn delete_windows_cpanm_options(runtime: &dyn Runtime) -> Result<(), AdapterError> {
+    let output = runtime.run(
+        "reg.exe",
+        &[
+            "delete".into(),
+            r"HKCU\Environment".into(),
+            "/v".into(),
+            CPANM_ENV.into(),
+            "/f".into(),
+        ],
+    )?;
+    if output.status.success() || output.status.code() == Some(1) {
+        Ok(())
+    } else {
+        Err(AdapterError::Runtime(format!(
+            "reg.exe delete {CPANM_ENV} failed with status {}",
+            output.status
+        )))
+    }
+}
+
 fn profile_layout(
     context: &SystemContext,
     runtime: &dyn Runtime,
     home: &Path,
 ) -> Result<ProfileLayout, AdapterError> {
+    if context.os == OperatingSystem::Windows {
+        return Ok(ProfileLayout {
+            shell: ShellKind::WindowsRegistry,
+            profile: windows_cpanm_recovery_path(runtime)?,
+        });
+    }
     let shell = runtime
         .environment_variable("SHELL")
         .and_then(|value| Path::new(&value).file_name().map(|name| name.to_owned()))
@@ -913,10 +1455,33 @@ fn profile_layout(
                     |value| PathBuf::from(value).join(".zshrc"),
                 ),
             ShellKind::Fish => home.join(".config/fish/conf.d/mirrorswitch-cpanm.fish"),
+            ShellKind::WindowsRegistry => {
+                unreachable!("Windows cpanm layout returned before shell selection")
+            }
         }
     };
     validate_user_path(&profile, home, "cpanm shell profile")?;
     Ok(ProfileLayout { shell, profile })
+}
+
+fn windows_cpanm_recovery_path(runtime: &dyn Runtime) -> Result<PathBuf, AdapterError> {
+    Ok(required_environment_path(runtime, "LOCALAPPDATA")?
+        .join("MirrorSwitch/cpanm/environment-recovery.json"))
+}
+
+fn required_environment_path(
+    runtime: &dyn Runtime,
+    variable: &str,
+) -> Result<PathBuf, AdapterError> {
+    let value = runtime
+        .environment_variable(variable)
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| {
+            AdapterError::Unsupported(format!("cpanm Windows persistence requires {variable}"))
+        })?;
+    let path = PathBuf::from(value);
+    validate_path(&path, variable)?;
+    Ok(path)
 }
 
 fn parse_shell(value: &str) -> Option<ShellKind> {
@@ -1234,6 +1799,11 @@ fn profile_assignment(line: &str, shell: ShellKind) -> Result<Option<&str>, Adap
             }
             value.trim()
         }
+        ShellKind::WindowsRegistry => {
+            return Err(AdapterError::InvalidConfiguration(
+                "cpanm Windows registry is not a shell profile".into(),
+            ));
+        }
     };
     literal_value(raw).map(Some)
 }
@@ -1332,6 +1902,9 @@ fn render_managed(value: &str, newline: &str, shell: ShellKind) -> String {
     let assignment = match shell {
         ShellKind::Bash | ShellKind::Zsh => format!("export {CPANM_ENV}='{value}'"),
         ShellKind::Fish => format!("set -gx {CPANM_ENV} '{value}'"),
+        ShellKind::WindowsRegistry => {
+            unreachable!("cpanm Windows persistence does not render a shell block")
+        }
     };
     format!("{MANAGED_BEGIN}{newline}{assignment}{newline}{MANAGED_END}{newline}")
 }
@@ -1529,6 +2102,17 @@ fn option_tokens(value: &str) -> Vec<String> {
     value.split_whitespace().map(str::to_owned).collect()
 }
 
+fn canonical_cpanm_options(value: &str) -> bool {
+    let Ok(options) = parse_cpanm_options(value) else {
+        return false;
+    };
+    let Ok(endpoint) = unique_reviewed(&options.urls(), "cpanm Windows options") else {
+        return false;
+    };
+    rewrite_cpanm_options(value, &endpoint)
+        .is_ok_and(|rendered| option_tokens(&rendered) == option_tokens(value))
+}
+
 fn cpanm_environment_state(runtime: &dyn Runtime) -> &'static str {
     match runtime
         .environment_variable(CPANM_ENV)
@@ -1669,21 +2253,21 @@ fn normalized_http_base(value: &str) -> Option<String> {
 }
 
 fn verify_cpan_pm(runtime: &dyn Runtime, home: &Path, root: &Path) -> Result<(), AdapterError> {
-    let output = run_env(
+    let environment = BTreeMap::from([
+        ("HOME".into(), path_text(home, "home")?.into()),
+        ("PERL_MM_USE_DEFAULT".into(), "1".into()),
+        (
+            "MIRRORSWITCH_CPAN_VERIFY_ROOT".into(),
+            path_text(root, "CPAN verification root")?.into(),
+        ),
+    ]);
+    let output = run_isolated(
         runtime,
         None,
-        &[
-            format!("HOME={}", path_text(home, "home")?),
-            "PERL_MM_USE_DEFAULT=1".into(),
-            format!(
-                "MIRRORSWITCH_CPAN_VERIFY_ROOT={}",
-                path_text(root, "CPAN verification root")?
-            ),
-            "perl".into(),
-            "-MCPAN".into(),
-            "-e".into(),
-            CPAN_QUERY_SCRIPT.into(),
-        ],
+        "perl",
+        &["-MCPAN".into(), "-e".into(), CPAN_QUERY_SCRIPT.into()],
+        &environment,
+        &[],
         "CPAN.pm Try::Tiny query",
     )?;
     if !output.contains(&format!("MIRRORSWITCH_CPAN_FILE={TRY_TINY_PATH}")) {
@@ -1700,20 +2284,21 @@ fn verify_cpanm(
     root: &Path,
     options: &str,
 ) -> Result<(), AdapterError> {
-    let output = run_env(
+    let environment = BTreeMap::from([
+        ("HOME".into(), path_text(home, "home")?.into()),
+        (
+            "PERL_CPANM_HOME".into(),
+            path_text(&root.join("cpanm"), "cpanm verification home")?.into(),
+        ),
+        ("PERL_CPANM_OPT".into(), options.into()),
+    ]);
+    let output = run_isolated(
         runtime,
         None,
-        &[
-            format!("HOME={}", path_text(home, "home")?),
-            format!(
-                "PERL_CPANM_HOME={}",
-                path_text(&root.join("cpanm"), "cpanm verification home")?
-            ),
-            format!("PERL_CPANM_OPT={options}"),
-            "cpanm".into(),
-            "--info".into(),
-            "Try::Tiny".into(),
-        ],
+        "cpanm",
+        &["--info".into(), "Try::Tiny".into()],
+        &environment,
+        &[],
         "cpanm Try::Tiny query",
     )?;
     if !output.contains("Try-Tiny-0.32.tar.gz") {
@@ -1724,15 +2309,24 @@ fn verify_cpanm(
     Ok(())
 }
 
-fn run_env(
+fn run_isolated(
     runtime: &dyn Runtime,
     directory: Option<&Path>,
+    program: &str,
     arguments: &[String],
+    environment: &BTreeMap<String, String>,
+    removed_environment: &[String],
     label: &str,
 ) -> Result<String, AdapterError> {
     let output = match directory {
-        Some(directory) => runtime.run_in(directory, "env", arguments),
-        None => runtime.run("env", arguments),
+        Some(directory) => runtime.run_in_with_environment(
+            directory,
+            program,
+            arguments,
+            environment,
+            removed_environment,
+        ),
+        None => runtime.run_with_environment(program, arguments, environment, removed_environment),
     }?;
     if !output.status.success() {
         return Err(AdapterError::Runtime(format!(
@@ -1749,7 +2343,9 @@ fn run_env(
 
 fn has_actionable_client(current: &CurrentConfiguration) -> bool {
     current.documents.iter().any(|document| {
-        document.format == "cpan-pm-user-config" || document.format.starts_with("cpanm-selected-")
+        document.format == "cpan-pm-user-config"
+            || document.format.starts_with("cpanm-selected-")
+            || document.format == "cpanm-windows-recovery"
     })
 }
 
@@ -1866,6 +2462,38 @@ fn verification_root(home: &Path) -> PathBuf {
     home.join(".mirrorswitch/verification/cpan")
 }
 
+fn validate_cpan_user_path(
+    context: &SystemContext,
+    runtime: &dyn Runtime,
+    path: &Path,
+    home: &Path,
+    kind: &str,
+) -> Result<(), AdapterError> {
+    validate_path(path, kind)?;
+    if path.starts_with(home) && path != home {
+        return Ok(());
+    }
+    if context.os == OperatingSystem::Windows {
+        for variable in ["APPDATA", "LOCALAPPDATA"] {
+            let Some(root) = runtime
+                .environment_variable(variable)
+                .filter(|value| !value.trim().is_empty())
+                .map(PathBuf::from)
+            else {
+                continue;
+            };
+            validate_path(&root, variable)?;
+            if path.starts_with(&root) && path != root {
+                return Ok(());
+            }
+        }
+    }
+    Err(AdapterError::Unsupported(format!(
+        "CPAN {kind} {} is outside the selected user directories",
+        path.display()
+    )))
+}
+
 fn validate_user_path(path: &Path, home: &Path, kind: &str) -> Result<(), AdapterError> {
     validate_path(path, kind)?;
     if !path.starts_with(home) || path == home {
@@ -1896,7 +2524,17 @@ fn path_text<'a>(path: &'a Path, kind: &str) -> Result<&'a str, AdapterError> {
         .ok_or_else(|| AdapterError::Unsupported(format!("CPAN {kind} path is not valid UTF-8")))
 }
 
+fn preserve_bom(original: &[u8], mut rendered: Vec<u8>) -> Vec<u8> {
+    if original.starts_with(&[0xef, 0xbb, 0xbf]) {
+        rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+    }
+    rendered
+}
+
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "CPAN configuration {} is not UTF-8",

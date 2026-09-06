@@ -66,7 +66,7 @@ content remain unchanged and are reported.
 | `cabal` | user | Linux/macOS plus Windows x64 secure index/package query; native config hierarchy, encoding and read-only project state preserved ([details](adapters/cabal.md)) |
 | `stack` | user/project | Linux/macOS plus Windows x64 snapshot/Hackage/platform-toolchain query; native roots, encoding and explicit project scope preserved ([details](adapters/stack.md)) |
 | `ghcup` | user | Linux/macOS plus Windows x64 signed metadata and platform bindist checks; native paths, encoding, custom channels and keys preserved ([details](adapters/ghcup.md)) |
-| `cpan` | user | CPAN/CPANM index and distribution query; client-specific config preserved ([#67](https://github.com/vibelab-tools/MirrorSwitch/issues/67)) |
+| `cpan` | user | Linux/macOS plus Windows x64 CPAN.pm and cpanminus index/distribution query; native profiles or HKCU state, private mirrors and project files preserved ([details](adapters/cpan.md)) |
 | `cran` | user | Linux source or macOS/Windows native binary query; Rprofile.site, named repositories, Bioconductor, renv, auth, BOM/newlines and permissions preserved ([details](adapters/cran.md)) |
 | `bioconductor` | user | R/Bioc release pairing plus Linux sources or native macOS/Windows BioCsoft binaries; all repository classes and CRAN/project/auth state preserved ([details](adapters/bioconductor.md)) |
 | `tlmgr` | system/user | TeX Live remote query; release year and installation platform must match ([#65](https://github.com/vibelab-tools/MirrorSwitch/issues/65)) |

@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -49,6 +49,26 @@ fn test_context(
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: Some(Distribution {
+            id: match os {
+                OperatingSystem::Linux => "linux",
+                OperatingSystem::Macos => "macos",
+                OperatingSystem::Windows => "windows",
+            }
+            .into(),
+            version_id: None,
+            version_codename: None,
+            id_like: Vec::new(),
+        }),
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -70,27 +90,29 @@ fn install_clients(
     system_config: Option<&str>,
     query_failure: &str,
 ) {
-    executable(
+    install_clients_at(
         root,
-        "/usr/bin/env",
-        format!(
-            r#"#!/bin/sh
-while [ $# -gt 0 ]; do
-  case "$1" in
-    *=*) export "$1"; shift ;;
-    *) break ;;
-  esac
-done
-program=$1
-shift
-exec '{root}/usr/bin/'"$program" "$@"
-"#,
-            root = root.display(),
-        ),
+        cpan_pm,
+        cpanm,
+        system_config,
+        query_failure,
+        "/home/developer/.local/share/.cpan",
+        "x86_64-linux-thread-multi",
     );
+}
+
+fn install_clients_at(
+    root: &Path,
+    cpan_pm: bool,
+    cpanm: bool,
+    system_config: Option<&str>,
+    query_failure: &str,
+    cpan_home: &str,
+    archname: &str,
+) {
     let cpan_fields = if cpan_pm {
         format!(
-            ",\"cpanVersion\":\"2.38\",\"cpanHome\":\"/home/developer/.local/share/.cpan\",\"myConfig\":\"/home/developer/.local/share/.cpan/CPAN/MyConfig.pm\"{}",
+            ",\"cpanVersion\":\"2.38\",\"cpanHome\":\"{cpan_home}\",\"myConfig\":\"{cpan_home}/CPAN/MyConfig.pm\"{}",
             system_config.map_or_else(String::new, |path| {
                 format!(",\"systemConfig\":\"{path}\"")
             })
@@ -105,7 +127,7 @@ exec '{root}/usr/bin/'"$program" "$@"
             r#"#!/bin/sh
 case "$*" in
   *MIRRORSWITCH_CPAN_DISCOVERY_V1*)
-    printf '%s\n' '{{"perlVersion":"5.40.2","archname":"x86_64-linux-thread-multi"{cpan_fields}}}'
+    printf '%s\n' '{{"perlVersion":"5.40.2","archname":"{archname}"{cpan_fields}}}'
     exit 0
     ;;
   *MIRRORSWITCH_CPAN_QUERY_V1*)
@@ -119,6 +141,7 @@ esac
 exit 70
 "#,
             root = root.display(),
+            archname = archname,
             try_tiny = TRY_TINY_PATH,
         ),
     );
@@ -150,6 +173,40 @@ printf '%s\n' '{try_tiny}'
     }
 }
 
+fn install_windows_registry(root: &Path, initial: Option<&str>, mutation_exit: i32) -> PathBuf {
+    let state = root.join("windows-registry/perl-cpanm-opt");
+    fs::create_dir_all(state.parent().unwrap()).unwrap();
+    if let Some(initial) = initial {
+        fs::write(&state, initial).unwrap();
+    }
+    executable(
+        root,
+        "/usr/bin/reg.exe",
+        format!(
+            r#"#!/bin/sh
+state='{state}'
+case "$1" in
+  query)
+    [ -f "$state" ] || exit 1
+    printf '%s\n' 'HKEY_CURRENT_USER\Environment' "    PERL_CPANM_OPT    REG_SZ    $(cat "$state")"
+    ;;
+  add)
+    [ {mutation_exit} -eq 0 ] || exit {mutation_exit}
+    printf '%s' "$8" > "$state"
+    ;;
+  delete)
+    [ {mutation_exit} -eq 0 ] || exit {mutation_exit}
+    rm -f "$state"
+    ;;
+  *) exit 91 ;;
+esac
+"#,
+            state = state.display(),
+        ),
+    );
+    state
+}
+
 fn test_runtime(
     root: &Path,
     environment: BTreeMap<String, String>,
@@ -173,6 +230,20 @@ fn user_config(urls: &[&str], pushy: &str, randomize: &str) -> String {
 
 fn environment(shell: &str, cpanm_options: Option<&str>) -> BTreeMap<String, String> {
     let mut values = BTreeMap::from([("SHELL".into(), shell.into())]);
+    if let Some(options) = cpanm_options {
+        values.insert("PERL_CPANM_OPT".into(), options.into());
+    }
+    values
+}
+
+fn windows_environment(cpanm_options: Option<&str>) -> BTreeMap<String, String> {
+    let mut values = BTreeMap::from([
+        ("APPDATA".into(), "/home/developer/AppData/Roaming".into()),
+        (
+            "LOCALAPPDATA".into(),
+            "/home/developer/AppData/Local".into(),
+        ),
+    ]);
     if let Some(options) = cpanm_options {
         values.insert("PERL_CPANM_OPT".into(), options.into());
     }
@@ -324,6 +395,330 @@ fn both_clients_preserve_private_order_project_policy_and_are_reversible() {
     assert_eq!(fs::read_to_string(config).unwrap(), original_config);
     assert_eq!(fs::read_to_string(profile).unwrap(), original_profile);
     assert_eq!(fs::read(project).unwrap(), cpanfile);
+}
+
+#[test]
+fn macos_clients_preserve_native_profiles_private_state_and_project_files() {
+    for (architecture, archname) in [
+        (Architecture::X86_64, "darwin-thread-multi-2level"),
+        (Architecture::Arm64, "arm64-darwin-thread-multi"),
+    ] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_clients_at(
+            root,
+            true,
+            true,
+            None,
+            "",
+            "/home/developer/.cpan",
+            archname,
+        );
+        let original_config = user_config(
+            &["https://darkpan.example/CPAN/", "https://www.cpan.org/"],
+            "1",
+            "1",
+        );
+        let config = write(
+            root,
+            "/home/developer/.cpan/CPAN/MyConfig.pm",
+            original_config.as_bytes(),
+        );
+        fs::set_permissions(&config, fs::Permissions::from_mode(0o600)).unwrap();
+        let original_options = "--quiet --mirror https://darkpan.example/CPAN/ --mirror https://www.cpan.org/ --cascade-search";
+        let original_profile =
+            format!("# native zsh policy\nexport PERL_CPANM_OPT='{original_options}'\n");
+        let profile = write(root, "/home/developer/.zshrc", original_profile.as_bytes());
+        fs::set_permissions(&profile, fs::Permissions::from_mode(0o600)).unwrap();
+        let cpanfile = b"requires 'Private::Module', url => 'https://build:credential@packages.invalid.example/dist.tar.gz';\n";
+        let project = write(root, "/home/developer/project/cpanfile", cpanfile);
+        fs::set_permissions(&project, fs::Permissions::from_mode(0o400)).unwrap();
+        let adapter = CpanAdapter;
+        let context = native_context(root, OperatingSystem::Macos, architecture);
+        let mut runtime = test_runtime(
+            root,
+            environment("/bin/zsh", Some(original_options)),
+            Some("/home/developer/project"),
+        );
+
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let evidence = detected.evidence.join("\n");
+        assert!(evidence.contains(&format!("Macos {architecture:?}")));
+        assert!(evidence.contains("selected user home is /home/developer"));
+        assert!(evidence.contains("project directory /home/developer/project remains read-only"));
+        assert!(evidence.contains(archname));
+        assert!(
+            evidence
+                .contains("CPAN.pm user configuration is /home/developer/.cpan/CPAN/MyConfig.pm")
+        );
+        assert!(evidence.contains("cpanm selected profile is /home/developer/.zshrc"));
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(!format!("{current:?}").contains("credential"));
+        let selected = selection("tuna", TUNA);
+        let cli = adapter.plan(&context, &current, &selected).unwrap();
+        let config_plan = adapter.plan(&context, &current, &selected).unwrap();
+        let tui = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(cli, config_plan);
+        assert_eq!(config_plan, tui);
+        assert_eq!(cli.changes.len(), 2);
+
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("native macOS CPAN configurations should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        assert_eq!(fs::read(&project).unwrap(), cpanfile);
+        let expected_options = format!(
+            "--quiet --mirror https://darkpan.example/CPAN/ --mirror {TUNA} --cascade-search --mirror-only"
+        );
+        let refreshed = test_runtime(
+            root,
+            environment("/bin/zsh", Some(&expected_options)),
+            Some("/home/developer/project"),
+        );
+        let current_after = adapter
+            .read_current(&context, &refreshed, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &current_after, &selected)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read_to_string(config).unwrap(), original_config);
+        assert_eq!(fs::read_to_string(profile).unwrap(), original_profile);
+        assert_eq!(fs::read(project).unwrap(), cpanfile);
+    }
+}
+
+#[test]
+fn windows_clients_use_registry_persistence_and_restore_exact_state() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_clients_at(
+        root,
+        true,
+        true,
+        None,
+        "",
+        "/profiles/developer/roaming/.cpan",
+        "MSWin32-x64-multi-thread",
+    );
+    let original_options = "--quiet --mirror https://darkpan.example/CPAN/ --mirror https://www.cpan.org/ --cascade-search";
+    let registry = install_windows_registry(root, Some(original_options), 0);
+    let original_text = user_config(
+        &["https://darkpan.example/CPAN/", "https://www.cpan.org/"],
+        "1",
+        "1",
+    )
+    .replace('\n', "\r\n");
+    let mut original_config = vec![0xef, 0xbb, 0xbf];
+    original_config.extend_from_slice(original_text.as_bytes());
+    let config = write(
+        root,
+        "/profiles/developer/roaming/.cpan/CPAN/MyConfig.pm",
+        &original_config,
+    );
+    fs::set_permissions(&config, fs::Permissions::from_mode(0o600)).unwrap();
+    let cpanfile = b"requires 'Private::Module', url => 'https://build:credential@packages.invalid.example/dist.tar.gz';\r\n";
+    let project = write(root, "/home/developer/project/cpanfile", cpanfile);
+    fs::set_permissions(&project, fs::Permissions::from_mode(0o400)).unwrap();
+    let adapter = CpanAdapter;
+    let context = native_context(root, OperatingSystem::Windows, Architecture::X86_64);
+    let mut environment = windows_environment(None);
+    environment.insert("APPDATA".into(), "/profiles/developer/roaming".into());
+    let mut runtime = test_runtime(root, environment, Some("/home/developer/project"));
+
+    let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+    let evidence = detected.evidence.join("\n");
+    assert!(evidence.contains("Windows X86_64"));
+    assert!(evidence.contains("MSWin32-x64-multi-thread"));
+    assert!(evidence.contains("Windows user environment"));
+    assert!(evidence.contains("/profiles/developer/roaming/.cpan/CPAN/MyConfig.pm"));
+    let current = adapter
+        .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+        .unwrap();
+    assert!(!format!("{current:?}").contains("credential"));
+    let selected = selection("tuna", TUNA);
+    let cli = adapter.plan(&context, &current, &selected).unwrap();
+    let config_plan = adapter.plan(&context, &current, &selected).unwrap();
+    let tui = adapter.plan(&context, &current, &selected).unwrap();
+    assert_eq!(cli, config_plan);
+    assert_eq!(config_plan, tui);
+    assert_eq!(cli.changes.len(), 2);
+    let cpan_change = cli
+        .changes
+        .iter()
+        .find(|change| change.target.ends_with("CPAN/MyConfig.pm"))
+        .unwrap();
+    assert!(cpan_change.new_contents.starts_with(&[0xef, 0xbb, 0xbf]));
+    assert!(
+        cpan_change
+            .new_contents
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| *byte != b'\n'
+                || (index > 0 && cpan_change.new_contents[index - 1] == b'\r'))
+    );
+
+    let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+    else {
+        panic!("native Windows CPAN configurations should change")
+    };
+    assert!(
+        adapter
+            .verify(&context, &mut runtime, &receipt)
+            .unwrap()
+            .valid
+    );
+    let expected_options = format!(
+        "--quiet --mirror https://darkpan.example/CPAN/ --mirror {TUNA} --cascade-search --mirror-only"
+    );
+    assert_eq!(fs::read_to_string(&registry).unwrap(), expected_options);
+    assert_eq!(fs::read(&project).unwrap(), cpanfile);
+
+    let detected_after = adapter.detect(&context, &runtime).unwrap().unwrap();
+    let current_after = adapter
+        .read_current(
+            &context,
+            &runtime,
+            &detected_after,
+            ConfigurationScope::User,
+        )
+        .unwrap();
+    assert!(
+        adapter
+            .plan(&context, &current_after, &selected)
+            .unwrap()
+            .changes
+            .is_empty()
+    );
+    assert!(
+        adapter
+            .restore(&context, &mut runtime, &receipt)
+            .unwrap()
+            .restored
+    );
+    assert_eq!(fs::read(&config).unwrap(), original_config);
+    assert_eq!(fs::read_to_string(registry).unwrap(), original_options);
+    assert_eq!(fs::read(project).unwrap(), cpanfile);
+    assert!(
+        !root
+            .join("home/developer/AppData/Local/MirrorSwitch/cpanm/environment-recovery.json")
+            .exists()
+    );
+}
+
+#[test]
+fn windows_verification_failure_restores_registry_and_cpan_pm_config() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_clients_at(
+        root,
+        true,
+        true,
+        None,
+        "cpan-pm",
+        "/home/developer/.cpan",
+        "MSWin32-x64-multi-thread",
+    );
+    let original_options = "--mirror https://www.cpan.org/";
+    let registry = install_windows_registry(root, Some(original_options), 0);
+    let original_config = user_config(&["https://www.cpan.org/"], "1", "1");
+    let config = write(
+        root,
+        "/home/developer/.cpan/CPAN/MyConfig.pm",
+        original_config.as_bytes(),
+    );
+    let adapter = CpanAdapter;
+    let context = native_context(root, OperatingSystem::Windows, Architecture::X86_64);
+    let mut runtime = test_runtime(root, windows_environment(None), None);
+    let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+    let current = adapter
+        .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+        .unwrap();
+    let plan = adapter
+        .plan(&context, &current, &selection("nju", NJU))
+        .unwrap();
+    let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+    else {
+        panic!("Windows CPAN configuration should change")
+    };
+    let error = adapter
+        .verify(&context, &mut runtime, &receipt)
+        .unwrap_err();
+    assert!(error.to_string().contains("registry restored: true"));
+    assert!(error.to_string().contains("configuration restored: true"));
+    assert_eq!(fs::read_to_string(config).unwrap(), original_config);
+    assert_eq!(fs::read_to_string(registry).unwrap(), original_options);
+    assert!(
+        !root
+            .join("home/developer/AppData/Local/MirrorSwitch/cpanm/environment-recovery.json")
+            .exists()
+    );
+}
+
+#[test]
+fn windows_cpan_pm_only_does_not_require_registry_or_local_app_data() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_clients_at(
+        root,
+        true,
+        false,
+        None,
+        "",
+        "/home/developer/.cpan",
+        "MSWin32-x64-multi-thread",
+    );
+    let original_config = user_config(&["https://www.cpan.org/"], "1", "1");
+    let config = write(
+        root,
+        "/home/developer/.cpan/CPAN/MyConfig.pm",
+        original_config.as_bytes(),
+    );
+    let adapter = CpanAdapter;
+    let context = native_context(root, OperatingSystem::Windows, Architecture::X86_64);
+    let mut runtime = test_runtime(root, BTreeMap::new(), None);
+    let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+    let current = adapter
+        .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+        .unwrap();
+    let plan = adapter
+        .plan(&context, &current, &selection("ustc", USTC))
+        .unwrap();
+    assert_eq!(plan.changes.len(), 1);
+    let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &plan).unwrap()
+    else {
+        panic!("Windows CPAN.pm configuration should change")
+    };
+    assert!(
+        adapter
+            .verify(&context, &mut runtime, &receipt)
+            .unwrap()
+            .valid
+    );
+    assert!(
+        adapter
+            .restore(&context, &mut runtime, &receipt)
+            .unwrap()
+            .restored
+    );
+    assert_eq!(fs::read_to_string(config).unwrap(), original_config);
 }
 
 #[test]
@@ -545,6 +940,62 @@ fn failed_second_client_query_restores_both_original_configurations() {
 }
 
 #[test]
+fn unsupported_native_contexts_and_missing_registry_client_are_inert() {
+    let directory = tempdir().unwrap();
+    install_clients_at(
+        directory.path(),
+        true,
+        true,
+        None,
+        "",
+        "/home/developer/.cpan",
+        "native-test",
+    );
+    let adapter = CpanAdapter;
+    let runtime = test_runtime(directory.path(), windows_environment(None), None);
+
+    let mut mac_container = native_context(
+        directory.path(),
+        OperatingSystem::Macos,
+        Architecture::X86_64,
+    );
+    mac_container.environment = ExecutionEnvironment::Container;
+    assert!(
+        adapter
+            .detect(&mac_container, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("native host")
+    );
+
+    let windows_arm = native_context(
+        directory.path(),
+        OperatingSystem::Windows,
+        Architecture::Arm64,
+    );
+    assert!(
+        adapter
+            .detect(&windows_arm, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("no native Windows arm64 runtime")
+    );
+
+    let windows_x64 = native_context(
+        directory.path(),
+        OperatingSystem::Windows,
+        Architecture::X86_64,
+    );
+    assert!(
+        adapter
+            .detect(&windows_x64, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("reg.exe")
+    );
+}
+
+#[test]
 fn embedded_catalog_has_four_content_complete_cpan_candidates() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
@@ -568,7 +1019,11 @@ fn embedded_catalog_has_four_content_complete_cpan_candidates() {
         assert_eq!(candidate.delivery_mode, DeliveryMode::Mirror);
         assert_eq!(
             candidate.compatibility.operating_systems,
-            [OperatingSystem::Linux]
+            [
+                OperatingSystem::Linux,
+                OperatingSystem::Macos,
+                OperatingSystem::Windows,
+            ]
         );
         assert_eq!(
             candidate.compatibility.architectures,

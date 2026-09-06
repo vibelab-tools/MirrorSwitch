@@ -1,0 +1,122 @@
+name: CPAN macOS and Windows live boundary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: CPAN (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel }
+          - { name: macOS arm64, runner: macos-15 }
+          - { name: Windows x86_64, runner: windows-2025 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: "5.40"
+      - name: Validate native Perl clients on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          perl -MConfig -MCPAN -MJSON::PP -e 'print "$^V $Config::Config{archname} $CPAN::VERSION\n"'
+          cpanm --version
+      - name: Validate native Perl clients on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $perl=(Get-Command perl -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($perl) -ne '.exe'){throw "native Perl launcher is not an executable: $perl"}
+          perl -MConfig -MCPAN -MJSON::PP -e 'print "$^V $Config::Config{archname} $CPAN::VERSION\n"'; if($LASTEXITCODE -ne 0){throw 'native Perl modules are unavailable'}
+          cpanm --version; if($LASTEXITCODE -ne 0){throw 'native cpanm is unavailable'}
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic CPAN boundary
+        run: cargo test --locked --test cpan_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS CPAN.pm, cpanm profile, frontends, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-cpan-boundary"; export HOME="$boundary/home" SHELL=/bin/zsh
+          unset PROFILE ZDOTDIR BASH_ENV PERL_CPANM_OPT
+          project="$HOME/project"; profile="$HOME/.zshrc"; mkdir -p "$project"
+          cpan_home=$(PERL_MM_USE_DEFAULT=1 perl -MCPAN -MCPAN::HandleConfig -e 'print CPAN::HandleConfig::cpan_home()'|tail -n 1); config="$cpan_home/CPAN/MyConfig.pm"; mkdir -p "$(dirname "$config")"
+          chmod 0600 "$config"
+          printf '%s\n' '# native zsh policy' "export PERL_CPANM_OPT='--quiet --mirror https://www.cpan.org/ --cascade-search'" > "$profile"; chmod 0600 "$profile"
+          printf '%s\n' "requires 'Private::Module', url => 'https://build:fixture-only@packages.invalid.example/dist.tar.gz';" > "$project/cpanfile"; chmod 0400 "$project/cpanfile"
+          printf '{"version":1,"tools":[{"id":"cpan","scope":"user"}]}\n' > "$project/request.json"
+          config_before=$(shasum -a 256 "$config"|awk '{print $1}'); profile_before=$(shasum -a 256 "$profile"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/cpanfile"|awk '{print $1}'); config_mode=$(stat -f '%Lp' "$config"); profile_mode=$(stat -f '%Lp' "$profile")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool cpan --scope cpan=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - "$config" "$profile" <<'PY'
+          import json, pathlib, sys
+          status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='cpan']; assert len(tools)==1
+          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and sys.argv[2] in evidence and str(pathlib.Path.cwd()) in evidence and 'Macos' in evidence
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          assert 'fixture-only' not in pathlib.Path('status.json').read_text()+pathlib.Path('plan-cli.json').read_text()+pathlib.Path('plan-config.json').read_text()
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool cpan --scope cpan=user > tui.txt; grep -E 'mirror=(aliyun|nju|tuna|ustc)' tui.txt; ! grep -F 'fixture-only' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          grep -E 'mirrors\.(aliyun|nju|tuna|ustc)' "$config"; grep -E 'mirrors\.(aliyun|nju|tuna|ustc)' "$profile"; grep -F 'fixture-only' cpanfile
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='cpan' and r['receipt']['verified']
+          PY
+          test "$config_before" = "$(shasum -a 256 "$config"|awk '{print $1}')"; test "$profile_before" = "$(shasum -a 256 "$profile"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 cpanfile|awk '{print $1}')"; test "$config_mode" = "$(stat -f '%Lp' "$config")"; test "$profile_mode" = "$(stat -f '%Lp' "$profile")"
+      - name: Exercise Windows CPAN.pm, cpanm registry, frontends, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-cpan-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:PROFILE,Env:ZDOTDIR,Env:BASH_ENV,Env:SHELL,Env:PERL_CPANM_OPT -ErrorAction SilentlyContinue
+          $prior=[Environment]::GetEnvironmentVariable('PERL_CPANM_OPT','User'); [Environment]::SetEnvironmentVariable('PERL_CPANM_OPT','--mirror https://www.cpan.org/','User')
+          try{
+            $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $project,$env:APPDATA,$env:LOCALAPPDATA|Out-Null
+            $env:PERL_MM_USE_DEFAULT='1'; $cpanOutput=@(& perl -MCPAN -MCPAN::HandleConfig -e 'print CPAN::HandleConfig::cpan_home()'); if($LASTEXITCODE -ne 0){throw 'CPAN home discovery failed'}; $cpanHome=$cpanOutput[-1].Trim(); Remove-Item Env:PERL_MM_USE_DEFAULT; $config=Join-Path $cpanHome 'CPAN/MyConfig.pm'; New-Item -ItemType Directory -Force (Split-Path $config)|Out-Null
+            $contents=[IO.File]::ReadAllText($config).Replace("`r`n","`n").Replace("`n","`r`n"); [IO.File]::WriteAllText($config,$contents,[Text.UTF8Encoding]::new($true))
+            [IO.File]::WriteAllText((Join-Path $project 'cpanfile'),"requires 'Private::Module', url => 'https://build:fixture-only@packages.invalid.example/dist.tar.gz';`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'cpanfile') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"cpan","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+            $configBefore=(Get-FileHash $config -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'cpanfile') -Algorithm SHA256).Hash; $acl=(Get-Acl $config).Sddl
+            Push-Location $project
+            try{
+              (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool cpan --scope cpan=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+              $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'cpan'); if($tools.Count -ne 1){throw 'CPAN clients not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains($config) -or -not $evidence.Contains($project) -or -not $evidence.Contains('Windows') -or -not $evidence.Contains('Windows user environment')){throw 'native path/platform evidence missing'}
+              $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -or (Get-Content status.json,plan-cli.json,plan-config.json -Raw)-match 'fixture-only'){throw 'frontend plans differ or credential leaked'}
+              @('','n')|& $binary tui --offline --tool cpan --scope cpan=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(aliyun|nju|tuna|ustc)') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
+              (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'CPAN apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+              $configured=[IO.File]::ReadAllText($config); if(-not $configured.Contains('mirrors.') -or -not $configured.Contains("`r`n")){throw 'CPAN.pm native policy or CRLF was not preserved'}; $bytes=[IO.File]::ReadAllBytes($config); if($bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'UTF-8 BOM was not preserved'}; $persistent=[Environment]::GetEnvironmentVariable('PERL_CPANM_OPT','User'); if(-not $persistent.Contains('mirrors.') -or -not $persistent.Contains('--mirror-only')){throw 'cpanm registry policy missing'}
+              (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'cpan'){throw 'restore failed'}
+            }finally{Pop-Location}
+            $recovery=Join-Path $env:LOCALAPPDATA 'MirrorSwitch/cpanm/environment-recovery.json'; if($configBefore -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'cpanfile') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $config).Sddl -or (Test-Path $recovery) -or [Environment]::GetEnvironmentVariable('PERL_CPANM_OPT','User') -ne '--mirror https://www.cpan.org/'){throw 'CPAN state not restored exactly'}
+          }finally{[Environment]::SetEnvironmentVariable('PERL_CPANM_OPT',$prior,'User')}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cpan-native-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-cpan-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

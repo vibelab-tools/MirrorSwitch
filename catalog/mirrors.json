@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+fbd5e92be699",
-  "content_revision": 20260906033236,
-  "generated_at": "2026-09-06T03:32:36Z",
+  "content_version": "2026.08.28+e60efda8172d",
+  "content_revision": 20260906040514,
+  "generated_at": "2026-09-06T04:05:14Z",
   "providers": [
     {
       "id": "aliyun",
@@ -3078,98 +3078,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "036666d08c5f0e934d725662",
-      "provider_id": "ustc",
-      "upstream_id": "cpan--language-registry",
-      "tool_id": "cpan",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "CPAN"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/CPAN/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/CPAN/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/CPAN/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "head",
-          "path": "/modules/02packages.details.txt.gz",
-          "expected_status": [
-            200
-          ]
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.meta",
-          "expected_status": [
-            200
-          ],
-          "contains": "\"name\" : \"Try-Tiny\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/authors/id/E/ET/ETHER/CHECKSUMS",
-          "expected_status": [
-            200
-          ],
-          "contains": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
-          "expected_status": [
-            200
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
-          "expected_status": [
-            200
-          ],
-          "sha256": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/CPAN.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -9309,6 +9217,100 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "352f20679c38a3b46bd7b9c5",
+      "provider_id": "nju",
+      "upstream_id": "cpan--language-registry",
+      "tool_id": "cpan",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CPAN"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/CPAN/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/CPAN/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/CPAN/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/modules/02packages.details.txt.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.meta",
+          "expected_status": [
+            200
+          ],
+          "contains": "\"name\" : \"Try-Tiny\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/authors/id/E/ET/ETHER/CHECKSUMS",
+          "expected_status": [
+            200
+          ],
+          "contains": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "sha256": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "3534c23043a1599cde09019c",
       "provider_id": "tuna",
       "upstream_id": "void--repository-metadata",
@@ -9551,6 +9553,100 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "36e2c13aeb072738769291e0",
+      "provider_id": "ustc",
+      "upstream_id": "cpan--language-registry",
+      "tool_id": "cpan",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CPAN"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/CPAN/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/CPAN/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/CPAN/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/modules/02packages.details.txt.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.meta",
+          "expected_status": [
+            200
+          ],
+          "contains": "\"name\" : \"Try-Tiny\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/authors/id/E/ET/ETHER/CHECKSUMS",
+          "expected_status": [
+            200
+          ],
+          "contains": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "sha256": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/CPAN.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -11767,6 +11863,100 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/hackage.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "47af9ec9834b24fed70625b0",
+      "provider_id": "tuna",
+      "upstream_id": "cpan--language-registry",
+      "tool_id": "cpan",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CPAN"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/CPAN/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/CPAN/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/CPAN/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/modules/02packages.details.txt.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.meta",
+          "expected_status": [
+            200
+          ],
+          "contains": "\"name\" : \"Try-Tiny\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/authors/id/E/ET/ETHER/CHECKSUMS",
+          "expected_status": [
+            200
+          ],
+          "contains": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "sha256": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -17655,6 +17845,100 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "7a816fb69f77a5fa377212d0",
+      "provider_id": "aliyun",
+      "upstream_id": "cpan--language-registry",
+      "tool_id": "cpan",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "CPAN"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/CPAN/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/CPAN/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/CPAN/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "head",
+          "path": "/modules/02packages.details.txt.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.meta",
+          "expected_status": [
+            200
+          ],
+          "contains": "\"name\" : \"Try-Tiny\""
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/authors/id/E/ET/ETHER/CHECKSUMS",
+          "expected_status": [
+            200
+          ],
+          "contains": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
+          "expected_status": [
+            200
+          ],
+          "sha256": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "7a87a681c2cae1ad81838261",
       "provider_id": "nju",
       "upstream_id": "nix-channels--binary-cache",
@@ -20818,98 +21102,6 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "93a53db80c0aa8ea280a03da",
-      "provider_id": "aliyun",
-      "upstream_id": "cpan--language-registry",
-      "tool_id": "cpan",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "CPAN"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/CPAN/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/CPAN/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/CPAN/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "head",
-          "path": "/modules/02packages.details.txt.gz",
-          "expected_status": [
-            200
-          ]
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.meta",
-          "expected_status": [
-            200
-          ],
-          "contains": "\"name\" : \"Try-Tiny\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/authors/id/E/ET/ETHER/CHECKSUMS",
-          "expected_status": [
-            200
-          ],
-          "contains": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
-          "expected_status": [
-            200
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
-          "expected_status": [
-            200
-          ],
-          "sha256": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
-        }
-      ],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -32227,98 +32419,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "e25c26cfe1cbd22952a9a2c8",
-      "provider_id": "tuna",
-      "upstream_id": "cpan--language-registry",
-      "tool_id": "cpan",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "CPAN"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/CPAN/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/CPAN/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/CPAN/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "head",
-          "path": "/modules/02packages.details.txt.gz",
-          "expected_status": [
-            200
-          ]
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.meta",
-          "expected_status": [
-            200
-          ],
-          "contains": "\"name\" : \"Try-Tiny\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/authors/id/E/ET/ETHER/CHECKSUMS",
-          "expected_status": [
-            200
-          ],
-          "contains": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
-          "expected_status": [
-            200
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
-          "expected_status": [
-            200
-          ],
-          "sha256": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
-        }
-      ],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "e2bc988496c906f6288466b3",
       "provider_id": "nju",
       "upstream_id": "gentoo-zh--git-mirror",
@@ -34743,98 +34843,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "f4ce5d45a26c2515a91689f2",
-      "provider_id": "nju",
-      "upstream_id": "cpan--language-registry",
-      "tool_id": "cpan",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "CPAN"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/CPAN/"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/CPAN/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/CPAN/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "head",
-          "path": "/modules/02packages.details.txt.gz",
-          "expected_status": [
-            200
-          ]
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.meta",
-          "expected_status": [
-            200
-          ],
-          "contains": "\"name\" : \"Try-Tiny\""
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/authors/id/E/ET/ETHER/CHECKSUMS",
-          "expected_status": [
-            200
-          ],
-          "contains": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
-          "expected_status": [
-            200
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/authors/id/E/ET/ETHER/Try-Tiny-0.32.tar.gz",
-          "expected_status": [
-            200
-          ],
-          "sha256": "ef2d6cab0bad18e3ab1c4e6125cc5f695c7e459899f512451c8fa3ef83fa7fc0"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

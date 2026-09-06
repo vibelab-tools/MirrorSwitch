@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "105"
+CATALOG_FORMAT_REVISION = "106"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -3142,7 +3142,7 @@ def runtime_properties(
             },
         ]
     elif tool_id == "cpan" and upstream_key == CPAN_RUNTIME_UPSTREAM:
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []
