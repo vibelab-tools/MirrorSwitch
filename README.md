@@ -32,6 +32,7 @@ Windows are tracked by [v0.2.0](https://github.com/vibelab-tools/MirrorSwitch/mi
 ## Design baseline
 
 - [Linux installation and upgrades](docs/install-linux.md)
+- [macOS and Windows installation, upgrade, and recovery](docs/install-macos-windows.md)
 - [Product boundary](docs/product-boundary.md)
 - [Linux support matrix](docs/support-matrix.md)
 - [macOS and Windows mirror inventory](docs/macos-windows-inventory.md)
