@@ -1,0 +1,88 @@
+name: pyenv macOS live boundary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+  PYENV_COMMIT: 0f16606e4f906bac76a409bcab40974d579067bf
+
+jobs:
+  native:
+    name: pyenv (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel }
+          - { name: macOS arm64, runner: macos-15 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install commit-pinned pyenv
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          archive="$RUNNER_TEMP/pyenv.tar.gz"; root="$RUNNER_TEMP/pyenv-2.8.4"
+          curl -fsSL "https://codeload.github.com/pyenv/pyenv/tar.gz/$PYENV_COMMIT" -o "$archive"
+          printf '%s  %s\n' 'f803c161d138ef926837ebadbf1f87ff4e4a3b4e268547425fd5168b81f91a0c' "$archive"|shasum -a 256 -c -
+          mkdir -p "$root"; tar -xzf "$archive" --strip-components=1 -C "$root"
+          echo "$root/bin" >> "$GITHUB_PATH"; echo "PYENV_ROOT=$root" >> "$GITHUB_ENV"
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          pyenv --version
+          pyenv install --version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic pyenv boundary
+        run: cargo test --locked --test pyenv_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise native zsh profile, CPython definition, frontends, and recovery
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-pyenv-boundary"; export HOME="$boundary/home" SHELL=/bin/zsh; unset PROFILE ZDOTDIR PYTHON_BUILD_MIRROR_URL PYTHON_BUILD_MIRROR_URL_SKIP_CHECKSUM PYTHON_BUILD_SKIP_MIRROR PYTHON_BUILD_BUILD_PATH PYTHON_BUILD_DEFINITIONS
+          project="$HOME/project"; profile="$HOME/.zshrc"; mkdir -p "$project"
+          printf '%s\n' '# native zsh policy' "export PRIVATE_PYTHON_TOKEN='fixture-only'" 'export PYENV_ROOT="'$PYENV_ROOT'"' 'export PATH="$PYENV_ROOT/bin:$PATH"' 'eval "$(pyenv init -)"' > "$profile"; chmod 0600 "$profile"
+          printf '%s\n' '3.14.7' > "$project/.python-version"; chmod 0400 "$project/.python-version"
+          printf '{"version":1,"tools":[{"id":"pyenv","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$profile"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/.python-version"|awk '{print $1}'); mode=$(stat -f '%Lp' "$profile")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool pyenv --scope pyenv=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - "$profile" "$HOME" "$PYENV_ROOT" <<'PY'
+          import json, pathlib, platform, sys
+          status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='pyenv']; assert len(tools)==1
+          machine=platform.machine().lower(); expected='Arm64' if machine=='arm64' else 'X86_64'
+          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and sys.argv[2] in evidence and sys.argv[3] in evidence and str(pathlib.Path.cwd()) in evidence and 'Macos' in evidence and expected in evidence
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']; assert 'fixture-only' not in open('status.json').read()+open('plan-cli.json').read()+open('plan-config.json').read()
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool pyenv --scope pyenv=user > tui.txt; grep -E 'mirror=(huaweicloud|nju|tuna)' tui.txt; ! grep -F 'fixture-only' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          source "$profile"; printf '%s\n' "$PYTHON_BUILD_MIRROR_URL"|grep -E 'repo\.huaweicloud\.com|mirrors\.(nju|tuna)'; test "$PYTHON_BUILD_MIRROR_URL_SKIP_CHECKSUM" = 1; pyenv install --list|grep -Fx '  3.14.7'
+          test ! -e "$HOME/.mirrorswitch/verification/pyenv/Python-3.14.7.tar.xz"
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='pyenv' and r['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$profile"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 .python-version|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$profile")"; test ! -e "$HOME/.mirrorswitch/verification/pyenv/release.txt"
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pyenv-macos-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-pyenv-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

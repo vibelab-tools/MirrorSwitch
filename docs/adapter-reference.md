@@ -46,7 +46,7 @@ content remain unchanged and are reported.
 | `pnpm` | user | Linux/macOS/Windows registry metadata/tarball and `pnpm view`; native pnpm 10/11 config roots and project/auth/TLS policy preserved ([details](adapters/pnpm.md)) |
 | `yarn` | user/project | Linux/macOS/Windows Classic/Berry query; native paths, generations and configuration formats never cross ([details](adapters/yarn.md)) |
 | `conda` | user | Linux/macOS/Windows Conda/Mamba/Micromamba search; native channel/subdir completeness required ([details](adapters/conda.md)) |
-| `pyenv` | user | Exact Python release/archive query; custom definitions and runtime overrides preserved ([#69](https://github.com/vibelab-tools/MirrorSwitch/issues/69)) |
+| `pyenv` | user | Linux/macOS python-build source mirror; native profile/root/checksum command, fixed CPython definition and download verification ([details](adapters/pyenv.md)) |
 | `maven` | user | Linux/macOS/Windows fixed dependency resolution; Maven-reported home plus private mirrors/servers/proxies preserved ([details](adapters/maven.md)) |
 | `gradle` | user/project | Linux/macOS/Windows dependency and Wrapper verification; native `gradlew`/`gradlew.bat` and explicit project scope ([details](adapters/gradle.md)) |
 | `sbt` | user | Linux/macOS/Windows Maven/Ivy dependency resolution; native launcher/JVM and distinct layouts preserved ([details](adapters/sbt.md)) |

@@ -601,7 +601,7 @@ fn catalog_splits_three_inventory_roots_into_nine_independent_archive_candidates
         .selection_request(&context, &detected, &current)
         .unwrap();
     let limits = ProbeLimits::default();
-    assert_eq!(limits.max_bytes, 4 * 1024 * 1024);
+    assert_eq!(limits.max_bytes, 24 * 1024 * 1024);
     let selector = MirrorSelector::with_prober(&catalog, ArchiveProber, limits);
     let outcome = selector.select_at(&request, 123).unwrap();
     assert!(outcome.actionable);

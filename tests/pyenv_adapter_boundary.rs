@@ -1,4 +1,4 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -47,6 +47,16 @@ fn context(
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -68,6 +78,10 @@ fn definition(checksum: &str) -> String {
 }
 
 fn install_pyenv(root: &Path, version: &str, checksum: &str, download_exit: i32) {
+    install_pyenv_at(root, "/home/developer", version, checksum, download_exit);
+}
+
+fn install_pyenv_at(root: &Path, home: &str, version: &str, checksum: &str, download_exit: i32) {
     executable(
         root,
         "/usr/bin/env",
@@ -80,7 +94,7 @@ fn install_pyenv(root: &Path, version: &str, checksum: &str, download_exit: i32)
         root,
         "/usr/bin/pyenv",
         format!(
-            "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 'pyenv {version}'; exit 0; fi\nif [ \"$1\" = root ]; then echo '/home/developer/.pyenv'; exit 0; fi\nif [ \"$1 $2\" = 'install --version' ]; then echo 'python-build 2.6.18'; exit 0; fi\nif [ \"$1 $2\" = 'install --list' ]; then printf '%s\\n' 'Available versions:' '  3.13.15' '  3.14.7'; exit 0; fi\nexit 70\n"
+            "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 'pyenv {version}'; exit 0; fi\nif [ \"$1\" = root ]; then echo '{home}/.pyenv'; exit 0; fi\nif [ \"$1 $2\" = 'install --version' ]; then echo 'python-build 2.6.18'; exit 0; fi\nif [ \"$1 $2\" = 'install --list' ]; then printf '%s\\n' 'Available versions:' '  3.13.15' '  3.14.7'; exit 0; fi\nexit 70\n"
         ),
     );
     executable(
@@ -96,9 +110,24 @@ fn install_pyenv(root: &Path, version: &str, checksum: &str, download_exit: i32)
         "/usr/bin/sha256sum",
         format!("#!/bin/sh\nprintf '%s  %s\\n' '{ARCHIVE_SHA}' \"$1\"\n"),
     );
+    executable(
+        root,
+        "/usr/bin/shasum",
+        format!(
+            "#!/bin/sh\nfor argument in \"$@\"; do archive=$argument; done\nprintf '%s  %s\\n' '{ARCHIVE_SHA}' \"$archive\"\n"
+        ),
+    );
+    executable(
+        root,
+        "/usr/bin/rm",
+        format!(
+            "#!/bin/sh\npath=$2\n/bin/rm -f '{root}'\"$path\"\n",
+            root = root.display()
+        ),
+    );
     write(
         root,
-        "/home/developer/.pyenv/plugins/python-build/share/python-build/3.14.7",
+        &format!("{home}/.pyenv/plugins/python-build/share/python-build/3.14.7"),
         definition(checksum).as_bytes(),
     );
 }
@@ -106,6 +135,18 @@ fn install_pyenv(root: &Path, version: &str, checksum: &str, download_exit: i32)
 fn test_runtime(root: &Path, environment: BTreeMap<String, String>) -> OsRuntime {
     OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
         .with_home("/home/developer")
+        .with_environment(environment)
+}
+
+fn native_runtime(
+    root: &Path,
+    home: &str,
+    project: &str,
+    environment: BTreeMap<String, String>,
+) -> OsRuntime {
+    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home(home)
+        .with_project_dir(project)
         .with_environment(environment)
 }
 
@@ -259,6 +300,145 @@ fn arm64_fish_and_container_bash_use_the_same_url_mode() {
 }
 
 #[test]
+fn macos_profiles_use_native_shasum_and_preserve_project_and_text_layout() {
+    for architecture in [Architecture::X86_64, Architecture::Arm64] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        let home = "/Users/developer";
+        install_pyenv_at(root, home, "2.8.4", ARCHIVE_SHA, 0);
+        fs::remove_file(root.join("usr/bin/sha256sum")).unwrap();
+        let original = b"\xef\xbb\xbf# native zsh policy\nexport PYENV_ROOT=\"$HOME/.pyenv\"\nexport PRIVATE_PYTHON_TOKEN='fixture-only'\neval \"$(pyenv init -)\"\n";
+        let profile = write(root, "/Users/developer/.zshrc", original);
+        let mut permissions = fs::metadata(&profile).unwrap().permissions();
+        permissions.set_mode(0o600);
+        fs::set_permissions(&profile, permissions).unwrap();
+        let project = "/Users/developer/project";
+        let project_file = write(
+            root,
+            "/Users/developer/project/.python-version",
+            b"private-project-fixture\n",
+        );
+        let context = native_context(root, OperatingSystem::Macos, architecture);
+        let mut runtime = native_runtime(root, home, project, environment("/bin/zsh", None, None));
+        let adapter = PyenvAdapter;
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let evidence = detected.evidence.join("\n");
+        assert!(evidence.contains("Macos"));
+        assert!(evidence.contains(&format!("{architecture:?}")));
+        assert!(evidence.contains(home));
+        assert!(evidence.contains("/Users/developer/.pyenv"));
+        assert!(evidence.contains(project));
+        assert!(!evidence.contains("fixture-only"));
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let request = adapter
+            .selection_request(&context, &detected, &current)
+            .unwrap();
+        assert_eq!(request.context.os, OperatingSystem::Macos);
+        assert_eq!(request.context.architecture, architecture);
+        let selected = selection("tuna", TUNA);
+        let cli = adapter.plan(&context, &current, &selected).unwrap();
+        let config = adapter.plan(&context, &current, &selected).unwrap();
+        let tui = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(cli, config);
+        assert_eq!(config, tui);
+        assert_eq!(cli.changes.len(), 2);
+        let profile_change = cli
+            .changes
+            .iter()
+            .find(|change| change.target == profile)
+            .unwrap();
+        assert!(profile_change.new_contents.starts_with(&[0xef, 0xbb, 0xbf]));
+        let rendered = String::from_utf8_lossy(&profile_change.new_contents);
+        assert!(rendered.contains("fixture-only"));
+        assert!(rendered.contains(TUNA));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("native pyenv profile and manifest should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        assert_eq!(
+            fs::read(&project_file).unwrap(),
+            b"private-project-fixture\n"
+        );
+        assert_eq!(
+            fs::metadata(&profile).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        assert!(
+            !root
+                .join("Users/developer/.mirrorswitch/verification/pyenv/Python-3.14.7.tar.xz")
+                .exists()
+        );
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &current, &selected)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(&profile).unwrap(), original);
+        assert!(
+            !root
+                .join("Users/developer/.mirrorswitch/verification/pyenv/release.txt")
+                .exists()
+        );
+    }
+}
+
+#[test]
+fn windows_and_non_native_macos_contexts_are_inert() {
+    let directory = tempdir().unwrap();
+    let adapter = PyenvAdapter;
+    let runtime = native_runtime(
+        directory.path(),
+        "/Users/developer",
+        "/Users/developer/project",
+        BTreeMap::new(),
+    );
+    let windows = native_context(
+        directory.path(),
+        OperatingSystem::Windows,
+        Architecture::X86_64,
+    );
+    assert!(
+        adapter
+            .detect(&windows, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("pyenv-win")
+    );
+    let mut mac_container = native_context(
+        directory.path(),
+        OperatingSystem::Macos,
+        Architecture::Arm64,
+    );
+    mac_container.environment = ExecutionEnvironment::Container;
+    assert!(
+        adapter
+            .detect(&mac_container, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("native host")
+    );
+}
+
+#[test]
 fn custom_definition_private_skip_version_and_selection_conflicts_are_rejected() {
     let directory = tempdir().unwrap();
     let root = directory.path();
@@ -364,6 +544,11 @@ fn failed_archive_download_restores_profile_and_manifest() {
             .join("home/developer/.mirrorswitch/verification/pyenv/release.txt")
             .exists()
     );
+    assert!(
+        !root
+            .join("home/developer/.mirrorswitch/verification/pyenv/Python-3.14.7.tar.xz")
+            .exists()
+    );
 }
 
 #[test]
@@ -391,7 +576,7 @@ fn embedded_catalog_has_three_compatible_and_one_inert_candidate() {
         assert_eq!(candidate.delivery_mode, DeliveryMode::Mirror);
         assert_eq!(
             candidate.compatibility.operating_systems,
-            [OperatingSystem::Linux]
+            [OperatingSystem::Linux, OperatingSystem::Macos]
         );
         assert_eq!(
             candidate.compatibility.architectures,

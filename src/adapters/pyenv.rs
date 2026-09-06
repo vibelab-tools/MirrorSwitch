@@ -69,11 +69,11 @@ impl Adapter for PyenvAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("pyenv") {
             return Ok(None);
         }
-        for command in ["env", "curl", "sha256sum"] {
+        for command in ["env", "curl", "rm", checksum_program(context)] {
             if !runtime.command_exists(command) {
                 return Err(AdapterError::Unsupported(format!(
                     "pyenv mirror verification requires {command}"
@@ -98,11 +98,23 @@ impl Adapter for PyenvAdapter {
             evidence: vec![
                 format!("pyenv {}", snapshot.pyenv_version),
                 format!("python-build {}", snapshot.python_build_version),
+                format!(
+                    "native platform is {:?} {:?}",
+                    context.os, context.architecture
+                ),
+                runtime.home_dir().map_or_else(
+                    || "no user home was selected".into(),
+                    |path| format!("selected user home is {}", path.display()),
+                ),
                 format!("pyenv root is {}", snapshot.root.display()),
                 format!("python-build definition includes CPython {PYTHON_VERSION}"),
                 format!("definition archive checksum is {ARCHIVE_SHA256}"),
                 format!("selected shell is {}", layout.shell.name()),
                 format!("selected profile is {}", layout.profile.display()),
+                runtime.project_dir().map_or_else(
+                    || "no project directory was selected".into(),
+                    |path| format!("project directory {} remains read-only", path.display()),
+                ),
                 format!("existing active pyenv init line(s): {init_count} (preserved)"),
                 format!(
                     "PYTHON_BUILD_MIRROR_URL is {}",
@@ -123,7 +135,7 @@ impl Adapter for PyenvAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "pyenv" {
             return Err(AdapterError::InvalidConfiguration(
@@ -232,7 +244,7 @@ impl Adapter for PyenvAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         review_pyenv_version(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("pyenv version is missing".into())
@@ -269,7 +281,7 @@ impl Adapter for PyenvAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         let endpoint = selected_endpoint(selections)?;
@@ -283,17 +295,21 @@ impl Adapter for PyenvAdapter {
         let shell = shell_from_format(&profile.format)?;
         let manifest = find_document(current, "pyenv-verification-manifest")?;
         let mut changes = Vec::new();
+        let mut profile_contents = rewrite_profile(
+            utf8(&profile.path, &profile.contents)?,
+            &profile.path,
+            shell,
+            &endpoint,
+        )?
+        .into_bytes();
+        if profile.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            profile_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         add_change(
             context,
             current,
             profile,
-            rewrite_profile(
-                utf8(&profile.path, &profile.contents)?,
-                &profile.path,
-                shell,
-                &endpoint,
-            )?
-            .into_bytes(),
+            profile_contents,
             "add or retarget python-build mirror variables while preserving pyenv initialization",
             &mut changes,
         );
@@ -379,7 +395,7 @@ impl Adapter for PyenvAdapter {
                 ));
             }
             inspect_pyenv(runtime, Some(&managed.mirror))?;
-            verify_download(runtime, &layout, &managed.mirror)?;
+            verify_download(context, runtime, &layout, &managed.mirror)?;
             Ok(VerificationResult {
                 valid: true,
                 summary: format!(
@@ -489,15 +505,23 @@ impl ParsedProfile {
     }
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os == OperatingSystem::Windows {
         return Err(AdapterError::Unsupported(
-            "pyenv v0.1 supports Linux x86_64 and arm64 only".into(),
+            "pyenv-win is a different tool and cannot use the Unix pyenv adapter".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Macos && context.environment != ExecutionEnvironment::Host {
+        return Err(AdapterError::Unsupported(
+            "pyenv on macOS requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "pyenv requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -1118,6 +1142,7 @@ fn selected_endpoint(selections: &[MirrorSelection]) -> Result<String, AdapterEr
 }
 
 fn verify_download(
+    context: &SystemContext,
     runtime: &dyn Runtime,
     layout: &Layout,
     endpoint: &str,
@@ -1133,20 +1158,46 @@ fn verify_download(
         archive.into(),
         url,
     ];
-    command_output(
-        runtime.run_in(&layout.verification_root, "curl", &arguments)?,
-        "python-build mirror archive download",
-    )?;
-    let digest = command_output(
-        runtime.run("sha256sum", &[archive.into()])?,
-        "python-build archive checksum",
-    )?;
-    if digest.split_whitespace().next() != Some(ARCHIVE_SHA256) {
-        return Err(AdapterError::Verification(
-            "downloaded CPython archive checksum does not match its definition".into(),
-        ));
+    let verification = (|| {
+        command_output(
+            runtime.run_in(&layout.verification_root, "curl", &arguments)?,
+            "python-build mirror archive download",
+        )?;
+        let checksum_arguments = match context.os {
+            OperatingSystem::Macos => vec!["-a".into(), "256".into(), archive.into()],
+            OperatingSystem::Linux => vec![archive.into()],
+            OperatingSystem::Windows => unreachable!("Windows is rejected before verification"),
+        };
+        let digest = command_output(
+            runtime.run(checksum_program(context), &checksum_arguments)?,
+            "python-build archive checksum",
+        )?;
+        if digest.split_whitespace().next() != Some(ARCHIVE_SHA256) {
+            return Err(AdapterError::Verification(
+                "downloaded CPython archive checksum does not match its definition".into(),
+            ));
+        }
+        Ok(())
+    })();
+    let cleanup = runtime
+        .run("rm", &["-f".into(), archive.into()])
+        .and_then(|output| command_output(output, "python-build verification archive cleanup"));
+    match (verification, cleanup) {
+        (Ok(()), Ok(_)) => Ok(()),
+        (Err(error), Ok(_)) => Err(error),
+        (Ok(()), Err(error)) => Err(error),
+        (Err(error), Err(cleanup)) => Err(AdapterError::Verification(format!(
+            "{error}; verification archive cleanup failed: {cleanup}"
+        ))),
     }
-    Ok(())
+}
+
+fn checksum_program(context: &SystemContext) -> &'static str {
+    match context.os {
+        OperatingSystem::Macos => "shasum",
+        OperatingSystem::Linux => "sha256sum",
+        OperatingSystem::Windows => unreachable!("Windows is rejected before checksum discovery"),
+    }
 }
 
 fn normalized_base(value: &str) -> Option<String> {
@@ -1345,6 +1396,9 @@ fn path_text<'a>(path: &'a Path, kind: &str) -> Result<&'a str, AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "pyenv configuration {} is not UTF-8",

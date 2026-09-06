@@ -29,9 +29,9 @@ currently expose all three reviewed subtrees, producing nine independent
 candidates. Each candidate must pass its own `archive-contents`, fixed package,
 and metadata checks before latency comparison. GNU and NonGNU additionally
 require the published archive and package signatures; MELPA remains explicitly
-upstream-unsigned. The bounded selection response budget is 4 MiB so the
-current complete MELPA index can be inspected instead of being rejected only
-because it exceeds the earlier 1 MiB ceiling.
+upstream-unsigned. The bounded selection response budget accommodates the
+complete MELPA index, so it is inspected rather than rejected only because it
+exceeds the original small-response ceiling.
 
 After apply, Emacs runs `package-refresh-contents` in an isolated package
 directory with only the three selected endpoints and requires all three native
