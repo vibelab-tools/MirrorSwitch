@@ -8,7 +8,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -62,13 +62,21 @@ impl Adapter for GhcupAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("ghcup") {
             return Ok(None);
         }
+        let user_home = runtime
+            .home_dir()
+            .ok_or_else(|| AdapterError::Unsupported("GHCup user home is unavailable".into()))?;
+        validate_path(&user_home, "GHCup user home")?;
+        let project = runtime.project_dir();
+        if let Some(project) = &project {
+            validate_path(project, "GHCup project directory")?;
+        }
         let version = ghcup_version(runtime)?;
         reviewed_version(&version)?;
-        let path = config_path(runtime)?;
+        let path = config_path(context, runtime)?;
         let document = read_document(runtime, &path)?;
         let parsed = parse_config(&path, &document.contents)?;
         let channels = release_channels(&parsed)?;
@@ -83,6 +91,18 @@ impl Adapter for GhcupAdapter {
             version: Some(version.clone()),
             evidence: vec![
                 format!("GHCup {version}"),
+                format!(
+                    "native platform is {:?} {:?}",
+                    context.os, context.architecture
+                ),
+                format!("selected user home is {}", user_home.display()),
+                project.map_or_else(
+                    || {
+                        "no project directory was selected; project configuration remains read-only"
+                            .into()
+                    },
+                    |path| format!("project directory {} remains read-only", path.display()),
+                ),
                 format!("configuration is {}", path.display()),
                 format!("{} release channel(s) configured", channels.len()),
                 format!("metadata GPG policy is {gpg}"),
@@ -99,7 +119,7 @@ impl Adapter for GhcupAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "ghcup" {
             return Err(AdapterError::InvalidConfiguration(
@@ -112,7 +132,7 @@ impl Adapter for GhcupAdapter {
                 "GHCup version changed after detection".into(),
             ));
         }
-        let path = config_path(runtime)?;
+        let path = config_path(context, runtime)?;
         let document = read_document(runtime, &path)?;
         let parsed = parse_config(&path, &document.contents)?;
         let mut sources = release_channels(&parsed)?
@@ -167,7 +187,7 @@ impl Adapter for GhcupAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         reviewed_version(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("GHCup version is missing".into())
@@ -179,7 +199,10 @@ impl Adapter for GhcupAdapter {
             tool_version: detected.version.clone(),
             required_upstreams: vec![GHCUP_UPSTREAM.into()],
             repository_versions: BTreeMap::from([(GHCUP_UPSTREAM.into(), "0.0.9".into())]),
-            probe_contexts: BTreeMap::from([(GHCUP_UPSTREAM.into(), ghcup_probe_contexts())]),
+            probe_contexts: BTreeMap::from([(
+                GHCUP_UPSTREAM.into(),
+                ghcup_probe_contexts(context),
+            )]),
             required_compatibility_evidence: vec![
                 CompatibilityDimension::OperatingSystem,
                 CompatibilityDimension::Architecture,
@@ -200,7 +223,7 @@ impl Adapter for GhcupAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let selected = selected_endpoints(selections)?;
         let document = current
@@ -213,7 +236,10 @@ impl Adapter for GhcupAdapter {
                 )
             })?;
         let old = utf8(&document.path, &document.contents)?;
-        let rendered = rewrite_config(old, &selected.metadata_url)?.into_bytes();
+        let mut rendered = rewrite_config(old, &selected.metadata_url)?.into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let changes = (rendered != document.contents)
             .then(|| PlannedFileChange {
                 target: rooted(&context.root, &document.path),
@@ -257,7 +283,7 @@ impl Adapter for GhcupAdapter {
         receipt: &TransactionReceipt,
     ) -> Result<VerificationResult, AdapterError> {
         let result = (|| {
-            let path = config_path(runtime)?;
+            let path = config_path(context, runtime)?;
             let target = rooted(&context.root, &path);
             if !receipt.changed_targets.contains(&target) {
                 return Err(AdapterError::Verification(
@@ -374,10 +400,24 @@ struct SelectedEndpoints {
     artifact_base: String,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "GHCup adapter requires Linux".into(),
+            "GHCup on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "GHCup on Windows arm64 is unavailable because the reviewed metadata has no Windows arm64 GHC toolchain"
+                .into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "GHCup requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -386,7 +426,7 @@ fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
 fn require_scope(scope: ConfigurationScope) -> Result<(), AdapterError> {
     if scope != ConfigurationScope::User {
         return Err(AdapterError::Unsupported(
-            "GHCup supports user scope in the Linux MVP".into(),
+            "GHCup supports user scope only".into(),
         ));
     }
     Ok(())
@@ -401,12 +441,16 @@ fn require_current(current: &CurrentConfiguration) -> Result<(), AdapterError> {
     require_scope(current.scope)
 }
 
-fn config_path(runtime: &dyn Runtime) -> Result<PathBuf, AdapterError> {
+fn config_path(context: &SystemContext, runtime: &dyn Runtime) -> Result<PathBuf, AdapterError> {
     let home = runtime
         .home_dir()
         .ok_or_else(|| AdapterError::Unsupported("GHCup user home is unavailable".into()))?;
     validate_path(&home, "GHCup user home")?;
-    let path = if runtime.environment_variable("GHCUP_USE_XDG_DIRS").is_some() {
+    let path = if context.os == OperatingSystem::Windows {
+        environment_path(runtime, "GHCUP_INSTALL_BASE_PREFIX")?
+            .unwrap_or_else(|| PathBuf::from(r"C:\"))
+            .join("ghcup/config.yaml")
+    } else if runtime.environment_variable("GHCUP_USE_XDG_DIRS").is_some() {
         environment_path(runtime, "XDG_CONFIG_HOME")?
             .unwrap_or_else(|| home.join(".config"))
             .join("ghcup/config.yaml")
@@ -847,6 +891,9 @@ fn rewrite_config(text: &str, metadata_url: &str) -> Result<String, AdapterError
         }
         output.push_str(&append);
     }
+    if text.contains("\r\n") {
+        output = output.replace("\r\n", "\n").replace('\n', "\r\n");
+    }
     Ok(output)
 }
 
@@ -980,76 +1027,154 @@ fn unique_endpoint(selection: &MirrorSelection, role: EndpointRole) -> Result<&s
     Ok(&matches[0].url)
 }
 
-fn ghcup_probe_contexts() -> Vec<BTreeMap<String, String>> {
+fn ghcup_probe_contexts(context: &SystemContext) -> Vec<BTreeMap<String, String>> {
+    let values = match (context.os, context.architecture) {
+        (OperatingSystem::Linux, Architecture::X86_64) => [
+            ("ghc_file", "ghc-9.10.3-x86_64-deb12-linux.tar.xz"),
+            (
+                "ghc_sha",
+                "1ac63f04eac0ad551d45cbde38f27e0e3f43ceefd98833fae1fa3f2dbd042367",
+            ),
+            (
+                "cabal_file",
+                "cabal-install-3.14.2.0-x86_64-linux-rocky8.tar.xz",
+            ),
+            (
+                "cabal_sha",
+                "8fbdb305c455585649147f8dcd5c5921cc48afcfa4b09f456e39e11ada122617",
+            ),
+            (
+                "hls_file",
+                "haskell-language-server-2.13.0.0-x86_64-linux-rocky8.tar.xz",
+            ),
+            (
+                "hls_sha",
+                "3f0613893674783a99ffa8b5be3033d2797af632d6eb45d6f3fb0524d8c9e939",
+            ),
+            ("stack_file", "stack-3.7.1-linux-x86_64.tar.gz"),
+            (
+                "stack_sha",
+                "aae7aadfba87588f85a7b346a224ee88b4b89728251ed4c5df5d912b389c239f",
+            ),
+        ],
+        (OperatingSystem::Linux, Architecture::Arm64) => [
+            ("ghc_file", "ghc-9.10.3-aarch64-deb11-linux.tar.xz"),
+            (
+                "ghc_sha",
+                "052789dfe7f6fba6dc3822de0da272e8a5bd358c37adae17d8e82cff39bc1008",
+            ),
+            (
+                "cabal_file",
+                "cabal-install-3.14.2.0-aarch64-linux-deb10.tar.xz",
+            ),
+            (
+                "cabal_sha",
+                "cf2e19f664d34ae5edcd2d7ccb7022a7c9691607d42414c26a3de4aa252bed80",
+            ),
+            (
+                "hls_file",
+                "haskell-language-server-2.13.0.0-aarch64-linux-deb11.tar.xz",
+            ),
+            (
+                "hls_sha",
+                "eba07111ce65f082b4eef7382fce73bdb0dce73df2848f6d839ec59cb548f8cf",
+            ),
+            ("stack_file", "stack-3.7.1-linux-aarch64.tar.gz"),
+            (
+                "stack_sha",
+                "11f97204de91f249487cb74d17c6a58aba11876b0ec431ccb67152991e13404d",
+            ),
+        ],
+        (OperatingSystem::Macos, Architecture::X86_64) => [
+            ("ghc_file", "ghc-9.10.3-x86_64-apple-darwin.tar.xz"),
+            (
+                "ghc_sha",
+                "01e4ff9530c124408db0b0f9ec7e4be35b300a6aee939c5758d1acf22d51693f",
+            ),
+            (
+                "cabal_file",
+                "cabal-install-3.14.2.0-x86_64-apple-darwin.tar.xz",
+            ),
+            (
+                "cabal_sha",
+                "1a45b672939f72b88187ae1b623e42440ab37c03338484d928f47cdde0f5189f",
+            ),
+            (
+                "hls_file",
+                "haskell-language-server-2.13.0.0-x86_64-apple-darwin.tar.xz",
+            ),
+            (
+                "hls_sha",
+                "c4b52ec3eb914643d49d151ef6eeaaf941f1332a485ef9bbdd98ee961deae382",
+            ),
+            ("stack_file", "stack-3.7.1-osx-x86_64.tar.gz"),
+            (
+                "stack_sha",
+                "a45175d882373afafc3b0dc8c7cf1aab6d046f6134fe465e03b2e61a7add1098",
+            ),
+        ],
+        (OperatingSystem::Macos, Architecture::Arm64) => [
+            ("ghc_file", "ghc-9.10.3-aarch64-apple-darwin.tar.xz"),
+            (
+                "ghc_sha",
+                "9f50ddd87be5cb994c719402778d6c7fdd341934fd4fbc0fcc3ecb40d49f860c",
+            ),
+            (
+                "cabal_file",
+                "cabal-install-3.14.2.0-aarch64-apple-darwin.tar.xz",
+            ),
+            (
+                "cabal_sha",
+                "a7ce265f063030a2d3648b31419de11ba0d17c67fa5e74a6d285607f6d55d235",
+            ),
+            (
+                "hls_file",
+                "haskell-language-server-2.13.0.0-aarch64-apple-darwin.tar.xz",
+            ),
+            (
+                "hls_sha",
+                "919fb3949665a8eccfa4865b5ea3442b8f7438a069501550ef75fdd34834f040",
+            ),
+            ("stack_file", "stack-3.7.1-osx-aarch64.tar.gz"),
+            (
+                "stack_sha",
+                "c08d0e3ce2bf1518f3fa654014acd25801f921ef0d4879882ac35c075605feb0",
+            ),
+        ],
+        (OperatingSystem::Windows, Architecture::X86_64) => [
+            ("ghc_file", "ghc-9.10.3-x86_64-unknown-mingw32.tar.xz"),
+            (
+                "ghc_sha",
+                "ad17bdbee5f195d50024da1447f458071d9d8a34f90d76907c873abaf95d893f",
+            ),
+            ("cabal_file", "cabal-install-3.14.2.0-x86_64-mingw64.zip"),
+            (
+                "cabal_sha",
+                "e45f979e7c24591c6131619666be8f3345345ccf779d8bb7d19cd73ead8b940b",
+            ),
+            (
+                "hls_file",
+                "haskell-language-server-2.13.0.0-x86_64-mingw64.zip",
+            ),
+            (
+                "hls_sha",
+                "12eec35adab02016fa8bea4bcde0ffc5ccd0f1a149e8024d63e5c211ac305bdc",
+            ),
+            ("stack_file", "stack-3.7.1-windows-x86_64.tar.gz"),
+            (
+                "stack_sha",
+                "244b230db60c5f5dee70bd3d4f1f0d7097aee2254429a75369961db7060631af",
+            ),
+        ],
+        (OperatingSystem::Windows, Architecture::Arm64) => {
+            unreachable!("Windows arm64 is rejected before GHCup candidate selection")
+        }
+    };
     vec![
-        BTreeMap::from([
-            (
-                "ghc_file".into(),
-                "ghc-9.10.3-x86_64-deb12-linux.tar.xz".into(),
-            ),
-            (
-                "ghc_sha".into(),
-                "1ac63f04eac0ad551d45cbde38f27e0e3f43ceefd98833fae1fa3f2dbd042367".into(),
-            ),
-            (
-                "cabal_file".into(),
-                "cabal-install-3.14.2.0-x86_64-linux-rocky8.tar.xz".into(),
-            ),
-            (
-                "cabal_sha".into(),
-                "8fbdb305c455585649147f8dcd5c5921cc48afcfa4b09f456e39e11ada122617".into(),
-            ),
-            (
-                "hls_file".into(),
-                "haskell-language-server-2.13.0.0-x86_64-linux-rocky8.tar.xz".into(),
-            ),
-            (
-                "hls_sha".into(),
-                "3f0613893674783a99ffa8b5be3033d2797af632d6eb45d6f3fb0524d8c9e939".into(),
-            ),
-            (
-                "stack_file".into(),
-                "stack-3.7.1-linux-x86_64.tar.gz".into(),
-            ),
-            (
-                "stack_sha".into(),
-                "aae7aadfba87588f85a7b346a224ee88b4b89728251ed4c5df5d912b389c239f".into(),
-            ),
-        ]),
-        BTreeMap::from([
-            (
-                "ghc_file".into(),
-                "ghc-9.10.3-aarch64-deb11-linux.tar.xz".into(),
-            ),
-            (
-                "ghc_sha".into(),
-                "052789dfe7f6fba6dc3822de0da272e8a5bd358c37adae17d8e82cff39bc1008".into(),
-            ),
-            (
-                "cabal_file".into(),
-                "cabal-install-3.14.2.0-aarch64-linux-deb10.tar.xz".into(),
-            ),
-            (
-                "cabal_sha".into(),
-                "cf2e19f664d34ae5edcd2d7ccb7022a7c9691607d42414c26a3de4aa252bed80".into(),
-            ),
-            (
-                "hls_file".into(),
-                "haskell-language-server-2.13.0.0-aarch64-linux-deb11.tar.xz".into(),
-            ),
-            (
-                "hls_sha".into(),
-                "eba07111ce65f082b4eef7382fce73bdb0dce73df2848f6d839ec59cb548f8cf".into(),
-            ),
-            (
-                "stack_file".into(),
-                "stack-3.7.1-linux-aarch64.tar.gz".into(),
-            ),
-            (
-                "stack_sha".into(),
-                "11f97204de91f249487cb74d17c6a58aba11876b0ec431ccb67152991e13404d".into(),
-            ),
-        ]),
+        values
+            .into_iter()
+            .map(|(key, value)| (key.into(), value.into()))
+            .collect(),
     ]
 }
 
@@ -1076,6 +1201,9 @@ fn redact_channel(value: &str) -> String {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "GHCup configuration {} is not UTF-8",

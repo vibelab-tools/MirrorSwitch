@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+29bc515d7a9e",
-  "content_revision": 20260903053010,
-  "generated_at": "2026-09-03T05:30:10Z",
+  "content_version": "2026.08.28+6a5bae8a18b9",
+  "content_revision": 20260903054505,
+  "generated_at": "2026-09-03T05:45:05Z",
   "providers": [
     {
       "id": "aliyun",
@@ -3170,149 +3170,6 @@
       ],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/CPAN.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "03b069af5af2dc5dd57038c6",
-      "provider_id": "nju",
-      "upstream_id": "ghcup--release-artifacts",
-      "tool_id": "ghcup",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "ghcup"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/ghcup/yaml_v2/haskell/ghcup-metadata/master/"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirror.nju.edu.cn/ghcup/packages/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": [
-          "0.0.9"
-        ]
-      },
-      "probes": [
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/ghcup-0.0.9.yaml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "ghcupDownloads:",
-          "sha256": "2e8eb78bafb9c8434c157923c1990542c9a969b0dec4b548537e4bd64d9b1e4d"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/ghcup-0.0.9.yaml.sig",
-          "expected_status": [
-            200,
-            206
-          ],
-          "sha256": "f0b2c00cef942acd720da81bfee57401ede4985cb239ccc04d6c6b05af7e1bee"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/ghcup-0.0.9.yaml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{ghc_sha}"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/ghcup-0.0.9.yaml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{cabal_sha}"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/ghcup-0.0.9.yaml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{hls_sha}"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/ghcup-0.0.9.yaml",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{stack_sha}"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/~ghc/9.10.3/{ghc_file}",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/~ghcup/unofficial-bindists/cabal/3.14.2.0/{cabal_file}",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/~ghcup/unofficial-bindists/haskell-language-server/2.13.0.0/{hls_file}",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "head",
-          "path": "/~ghcup/unofficial-bindists/stack/3.7.1/{stack_file}",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -10005,6 +9862,151 @@
       ],
       "source_urls": [
         "https://mirror.sjtu.edu.cn/lug/v1/manager/summary"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "36c0e2c114bf6570422e0b6b",
+      "provider_id": "nju",
+      "upstream_id": "ghcup--release-artifacts",
+      "tool_id": "ghcup",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ghcup"
+      ],
+      "endpoints": [
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ghcup/yaml_v2/haskell/ghcup-metadata/master/"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirror.nju.edu.cn/ghcup/packages/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "0.0.9"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ghcup-0.0.9.yaml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "ghcupDownloads:",
+          "sha256": "2e8eb78bafb9c8434c157923c1990542c9a969b0dec4b548537e4bd64d9b1e4d"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ghcup-0.0.9.yaml.sig",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "f0b2c00cef942acd720da81bfee57401ede4985cb239ccc04d6c6b05af7e1bee"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ghcup-0.0.9.yaml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{ghc_sha}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ghcup-0.0.9.yaml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{cabal_sha}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ghcup-0.0.9.yaml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{hls_sha}"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/ghcup-0.0.9.yaml",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{stack_sha}"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/~ghc/9.10.3/{ghc_file}",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/~ghcup/unofficial-bindists/cabal/3.14.2.0/{cabal_file}",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/~ghcup/unofficial-bindists/haskell-language-server/2.13.0.0/{hls_file}",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "head",
+          "path": "/~ghcup/unofficial-bindists/stack/3.7.1/{stack_file}",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

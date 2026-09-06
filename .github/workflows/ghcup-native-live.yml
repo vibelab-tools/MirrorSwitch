@@ -1,0 +1,139 @@
+name: GHCup macOS and Windows live boundary
+
+on:
+  schedule:
+    - cron: "07 8 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: GHCup (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel, asset: x86_64-apple-darwin-ghcup-0.2.6.2, digest: e713b9f213d7da01fa4791f39e04e0892b5c5f082d5a38712281f529bab88e56 }
+          - { name: macOS arm64, runner: macos-15, asset: aarch64-apple-darwin-ghcup-0.2.6.2, digest: 4e521e008fe0813db6db4b91cfeebd0c44c80c68afb458ea32a1c94cf5c7cc1d }
+          - { name: Windows x86_64, runner: windows-2025, asset: x86_64-mingw64-ghcup-0.2.6.2.exe, digest: 94da902a2853b1de1df509d04da900a05258480759efdb4f654e66956b6f30db }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install native GHCup and metadata signing key on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          command -v gpg >/dev/null || brew install gnupg
+          bin="$RUNNER_TEMP/ghcup-bin"; gnupg="$RUNNER_TEMP/ghcup-gnupg"
+          mkdir -p "$bin" "$gnupg"; chmod 0700 "$gnupg"
+          curl -fsSL "https://github.com/haskell/ghcup-hs/releases/download/v0.2.6.2/${{ matrix.asset }}" -o "$bin/ghcup"
+          test "$(shasum -a 256 "$bin/ghcup"|awk '{print $1}')" = "${{ matrix.digest }}"
+          chmod 0755 "$bin/ghcup"
+          curl -fsSL 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C' -o "$RUNNER_TEMP/ghcup-metadata-key.asc"
+          GNUPGHOME="$gnupg" gpg --batch --import "$RUNNER_TEMP/ghcup-metadata-key.asc"
+          GNUPGHOME="$gnupg" gpg --batch --with-colons --fingerprint 7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C | grep -F '7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C'
+          echo "$bin" >> "$GITHUB_PATH"
+          echo "GNUPGHOME=$gnupg" >> "$GITHUB_ENV"
+      - name: Install native GHCup and metadata signing key on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if(-not(Get-Command gpg -ErrorAction SilentlyContinue)){
+            $gitGpg=Join-Path $env:ProgramFiles 'Git/usr/bin/gpg.exe'
+            if(Test-Path $gitGpg){$gpgDir=Split-Path $gitGpg; $env:PATH="$gpgDir;$env:PATH"; $gpgDir|Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append}
+            else{choco install gnupg -y --no-progress; $env:PATH="C:\Program Files (x86)\GnuPG\bin;$env:PATH"}
+          }
+          $bin=Join-Path $env:RUNNER_TEMP 'ghcup-bin'; $gnupg=Join-Path $env:RUNNER_TEMP 'ghcup-gnupg'; New-Item -ItemType Directory -Force $bin,$gnupg|Out-Null
+          $target=Join-Path $bin 'ghcup.exe'; Invoke-WebRequest "https://github.com/haskell/ghcup-hs/releases/download/v0.2.6.2/${{ matrix.asset }}" -OutFile $target
+          if((Get-FileHash $target -Algorithm SHA256).Hash.ToLowerInvariant() -ne '${{ matrix.digest }}'){throw 'GHCup executable checksum mismatch'}
+          $key=Join-Path $env:RUNNER_TEMP 'ghcup-metadata-key.asc'; Invoke-WebRequest 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C' -OutFile $key
+          $env:GNUPGHOME=$gnupg; gpg --batch --import $key
+          $fingerprints=(gpg --batch --with-colons --fingerprint 7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C) -join "`n"; if(-not $fingerprints.Contains('7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C')){throw 'metadata signing key fingerprint mismatch'}
+          $bin|Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "GNUPGHOME=$gnupg"|Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          ghcup --numeric-version
+          gpg --version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic GHCup boundary
+        run: cargo test --locked --test ghcup_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS metadata, bindist plans, frontends, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-ghcup-boundary"; export HOME="$boundary/home"
+          unset GHCUP_INSTALL_BASE_PREFIX GHCUP_USE_XDG_DIRS XDG_CONFIG_HOME GHCUP_GPG_OPTS
+          project="$HOME/project"; config="$HOME/.ghcup/config.yaml"; mkdir -p "$project" "$(dirname "$config")"
+          printf '%s\n' '# native GHCup policy' 'url-source:' '  - GHCupURL' 'gpg-setting: GPGStrict' 'no-verify: false' 'mirrors:' '  github.com:' '    authority:' '      host: build:fixture-only@example.invalid' 'keep-dirs: Errors' > "$config"; chmod 0600 "$config"
+          printf '%s\n' 'url-source: https://project.invalid/metadata.yaml' > "$project/ghcup.yaml"; chmod 0400 "$project/ghcup.yaml"
+          printf '{"version":1,"tools":[{"id":"ghcup","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$config"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/ghcup.yaml"|awk '{print $1}'); mode=$(stat -f '%Lp' "$config")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool ghcup --scope ghcup=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - "$config" <<'PY'
+          import json, pathlib, sys
+          status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='ghcup']; assert len(tools)==1
+          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and str(pathlib.Path.cwd()) in evidence and 'Macos' in evidence
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          assert 'fixture-only' not in pathlib.Path('status.json').read_text()+pathlib.Path('plan-cli.json').read_text()+pathlib.Path('plan-config.json').read_text()
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool ghcup --scope ghcup=user > tui.txt; grep -F 'mirror=nju' tui.txt; ! grep -F 'fixture-only' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          grep -F 'host: build:fixture-only@example.invalid' "$config"; grep -F 'gpg-setting: GPGStrict' "$config"; grep -F 'no-verify: false' "$config"
+          for pair in 'ghc 9.10.3' 'cabal 3.14.2.0' 'hls 2.13.0.0' 'stack 3.7.1'; do set -- $pair; ghcup --metadata-fetching-mode Strict list --tool "$1" --raw-format|grep -F "$2"; done
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='ghcup' and r['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$config"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 ghcup.yaml|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$config")"
+      - name: Exercise Windows metadata, bindist plans, frontends, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-ghcup-boundary'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:GHCUP_INSTALL_BASE_PREFIX=$env:USERPROFILE; Remove-Item Env:GHCUP_USE_XDG_DIRS,Env:XDG_CONFIG_HOME,Env:GHCUP_GPG_OPTS -ErrorAction SilentlyContinue
+          $project=Join-Path $env:USERPROFILE 'project'; $config=Join-Path $env:USERPROFILE 'ghcup/config.yaml'; New-Item -ItemType Directory -Force $project,(Split-Path $config)|Out-Null
+          $contents="# native GHCup policy`r`nurl-source:`r`n  - GHCupURL`r`ngpg-setting: GPGStrict`r`nno-verify: false`r`nmirrors:`r`n  github.com:`r`n    authority:`r`n      host: build:fixture-only@example.invalid`r`nkeep-dirs: Errors`r`n"; [IO.File]::WriteAllText($config,$contents,[Text.UTF8Encoding]::new($true))
+          [IO.File]::WriteAllText((Join-Path $project 'ghcup.yaml'),"url-source: https://project.invalid/metadata.yaml`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'ghcup.yaml') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"ghcup","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+          $before=(Get-FileHash $config -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'ghcup.yaml') -Algorithm SHA256).Hash; $acl=(Get-Acl $config).Sddl
+          Push-Location $project
+          try{
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool ghcup --scope ghcup=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'ghcup'); if($tools.Count -ne 1){throw 'GHCup not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains($config) -or -not $evidence.Contains($project) -or -not $evidence.Contains('Windows')){throw 'native path/platform evidence missing'}
+            $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -or (Get-Content status.json,plan-cli.json,plan-config.json -Raw)-match 'fixture-only'){throw 'frontend plans differ or credential leaked'}
+            @('','n')|& $binary tui --offline --tool ghcup --scope ghcup=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=nju') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'GHCup apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            $configured=[IO.File]::ReadAllText($config); if(-not $configured.Contains('host: build:fixture-only@example.invalid') -or -not $configured.Contains('gpg-setting: GPGStrict') -or -not $configured.Contains('no-verify: false') -or -not $configured.Contains("`r`n")){throw 'native configuration policy or CRLF was not preserved'}; $bytes=[IO.File]::ReadAllBytes($config); if($bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'UTF-8 BOM was not preserved'}
+            foreach($entry in @(@('ghc','9.10.3'),@('cabal','3.14.2.0'),@('hls','2.13.0.0'),@('stack','3.7.1'))){$listed=(& ghcup --metadata-fetching-mode Strict list --tool $entry[0] --raw-format) -join "`n"; if(-not $listed.Contains($entry[1])){throw "$($entry[0]) bindist missing"}}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'ghcup'){throw 'restore failed'}
+          }finally{Pop-Location}
+          if($before -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'ghcup.yaml') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $config).Sddl){throw 'GHCup state not restored exactly'}
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ghcup-native-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-ghcup-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7
