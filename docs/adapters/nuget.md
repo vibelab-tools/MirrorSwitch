@@ -1,9 +1,10 @@
 # NuGet adapter
 
-Issues [#56](https://github.com/vibelab-tools/MirrorSwitch/issues/56) and
-[#107](https://github.com/vibelab-tools/MirrorSwitch/issues/107) implement the
+Issues [#56](https://github.com/vibelab-tools/MirrorSwitch/issues/56),
+[#107](https://github.com/vibelab-tools/MirrorSwitch/issues/107), and
+[#142](https://github.com/vibelab-tools/MirrorSwitch/issues/142) implement the
 NuGet v3 boundary for `dotnet` SDK 6.x through 10.x and NuGet CLI 6.x/7.x on
-Linux and native Windows hosts using `x86_64` or `arm64`.
+Linux and native macOS/Windows hosts using `x86_64` or `arm64`.
 
 The adapter distinguishes the user config used by dotnet
 (`~/.nuget/NuGet/NuGet.Config`) from the Mono/NuGet CLI path
@@ -12,6 +13,13 @@ configs, and every `NuGet.Config` from the filesystem root to the current
 project in precedence order. Only the installed client's main user config is
 writable. Project configs, project files, lock files, machine configs, and
 additional user configs remain read-only.
+
+macOS keeps those two user locations separate and reads machine configuration
+from `/Library/Application Support/NuGet/Config`. When the NuGet CLI is
+installed, MirrorSwitch also requires native Mono 4.4.2 or newer and records
+its version; `dotnet` does not require Mono. The selected home, project,
+OS/architecture, client versions, user paths, and read-only configuration
+counts are reported without exposing XML or credential values.
 
 On Windows, dotnet and `nuget.exe` share
 `%APPDATA%\NuGet\NuGet.Config`; MirrorSwitch therefore plans one write even when
@@ -54,3 +62,8 @@ MirrorSwitch checks that client metadata records the selected source and that
 the result is a package archive. The catalog gate independently enforces the
 reviewed nupkg SHA-256. Any verification failure restores the configuration;
 reapplying an unchanged selection is a no-op.
+
+The manual macOS workflow installs .NET 8 plus Mono and checksum-pinned NuGet
+6.14, then exercises Intel and Apple Silicon user/machine/project hierarchies,
+both clients' source listing and fixed package retrieval, CLI/configuration/TUI
+plan equality, idempotence, encoding/permission preservation, and recovery.

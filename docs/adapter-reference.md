@@ -62,7 +62,7 @@ content remain unchanged and are reported.
 | `composer` | user | Linux/macOS/Windows native COMPOSER_HOME plus isolated diagnose/query; auth, private/project priority, TLS config, BOM/newlines and native permissions preserved ([details](adapters/composer.md)) |
 | `cocoapods` | user/project | Existing Specs Git repo or explicit Podfile source; CDN and dependency assets remain distinct ([details](adapters/cocoapods.md)) |
 | `scoop` | user | Installed official bucket origins plus architecture-specific `scoop download`; manifest assets are not rewritten ([details](adapters/scoop.md)) |
-| `nuget` | user | Linux and Windows NuGet/dotnet config hierarchy and fixed restore/install; shared Windows config, encoding, mappings and auth preserved ([details](adapters/nuget.md)) |
+| `nuget` | user | Linux/macOS/Windows NuGet/dotnet hierarchy and fixed restore/install; separate macOS dotnet/Mono paths, shared Windows config, mappings and auth preserved ([details](adapters/nuget.md)) |
 | `cabal` | user | Linux/macOS plus Windows x64 secure index/package query; native config hierarchy, encoding and read-only project state preserved ([details](adapters/cabal.md)) |
 | `stack` | user/project | Linux/macOS plus Windows x64 snapshot/Hackage/platform-toolchain query; native roots, encoding and explicit project scope preserved ([details](adapters/stack.md)) |
 | `ghcup` | user | Linux/macOS plus Windows x64 signed metadata and platform bindist checks; native paths, encoding, custom channels and keys preserved ([details](adapters/ghcup.md)) |

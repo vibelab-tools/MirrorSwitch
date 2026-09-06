@@ -11,7 +11,7 @@ use sha2::{Digest, Sha256};
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{Architecture, OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -85,6 +85,21 @@ impl Adapter for NugetAdapter {
                 )
             })
             .collect::<Vec<_>>();
+        evidence.push(format!(
+            "native platform is {:?} {:?}",
+            context.os, context.architecture
+        ));
+        evidence.push(runtime.home_dir().map_or_else(
+            || "no user home was selected".into(),
+            |path| format!("selected user home is {}", path.display()),
+        ));
+        evidence.push(runtime.project_dir().map_or_else(
+            || "no project directory was selected".into(),
+            |path| format!("project directory {} remains read-only", path.display()),
+        ));
+        if let Some(version) = &snapshot.mono_version {
+            evidence.push(format!("NuGet CLI runs through native Mono {version}"));
+        }
         evidence.push(format!(
             "{} machine, {} additional-user and {} project NuGet.Config file(s) are read-only",
             documents
@@ -555,6 +570,7 @@ struct ClientSnapshot {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct NugetSnapshot {
     clients: Vec<ClientSnapshot>,
+    mono_version: Option<String>,
     machine_configs: Vec<PathBuf>,
     project_configs: Vec<PathBuf>,
     verification_config: PathBuf,
@@ -563,11 +579,15 @@ struct NugetSnapshot {
 
 impl NugetSnapshot {
     fn version_token(&self) -> String {
-        self.clients
+        let mut versions = self
+            .clients
             .iter()
             .map(|client| format!("{}={}", client.kind.id(), client.version))
-            .collect::<Vec<_>>()
-            .join(";")
+            .collect::<Vec<_>>();
+        if let Some(version) = &self.mono_version {
+            versions.push(format!("mono={version}"));
+        }
+        versions.join(";")
     }
 }
 
@@ -711,6 +731,21 @@ fn nuget_snapshot(
             client.config_kind = config_kind;
         }
     }
+    let mono_version = if context.os == OperatingSystem::Macos
+        && clients
+            .iter()
+            .any(|client| client.kind == ClientKind::Nuget)
+    {
+        if !runtime.command_exists("mono") {
+            return Err(AdapterError::Unsupported(
+                "NuGet CLI on macOS requires a callable native Mono runtime".into(),
+            ));
+        }
+        let output = run_program(runtime, None, "mono", &["--version"], "mono --version")?;
+        Some(reviewed_mono_version(&output)?)
+    } else {
+        None
+    };
     let common = runtime
         .environment_variable("NUGET_COMMON_APPLICATION_DATA")
         .filter(|value| !value.trim().is_empty())
@@ -734,6 +769,8 @@ fn nuget_snapshot(
             environment_path(runtime, "ProgramData", &PathBuf::from(r"C:\ProgramData"))?
                 .join("NuGet/Config"),
         );
+    } else if context.os == OperatingSystem::Macos {
+        machine_directories.push(PathBuf::from("/Library/Application Support/NuGet/Config"));
     } else {
         machine_directories.push(PathBuf::from("/etc/opt/NuGet/Config"));
     }
@@ -752,6 +789,7 @@ fn nuget_snapshot(
     };
     Ok(NugetSnapshot {
         clients,
+        mono_version,
         machine_configs,
         project_configs,
         verification_config: verification_directory.join("NuGet.Config"),
@@ -1910,6 +1948,35 @@ fn reviewed_nuget_cli_version(version: &str) -> Result<(), AdapterError> {
     Ok(())
 }
 
+fn reviewed_mono_version(output: &str) -> Result<String, AdapterError> {
+    let version = output
+        .lines()
+        .find_map(|line| line.trim().strip_prefix("Mono JIT compiler version "))
+        .and_then(|value| value.split_whitespace().next())
+        .filter(|version| {
+            let parts = version.split('.').collect::<Vec<_>>();
+            parts.len() >= 2
+                && parts
+                    .iter()
+                    .all(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
+        })
+        .ok_or_else(|| AdapterError::Unsupported("Mono version is not understood".into()))?;
+    let mut parts = version
+        .split('.')
+        .map(|value| value.parse::<u64>().unwrap_or_default());
+    let normalized = (
+        parts.next().unwrap_or_default(),
+        parts.next().unwrap_or_default(),
+        parts.next().unwrap_or_default(),
+    );
+    if normalized < (4, 4, 2) {
+        return Err(AdapterError::Unsupported(format!(
+            "Mono {version} is older than the reviewed NuGet CLI minimum 4.4.2"
+        )));
+    }
+    Ok(version.into())
+}
+
 fn version_components(version: &str) -> Option<(u64, u64, u64)> {
     let version = version.trim_start_matches('v');
     let mut parts = version.split(['.', '-', '+']);
@@ -2051,17 +2118,15 @@ fn policy_source(kind: &str, path: &Path) -> ConfiguredSource {
 fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
     if !matches!(
         context.os,
-        OperatingSystem::Linux | OperatingSystem::Windows
+        OperatingSystem::Linux | OperatingSystem::Macos | OperatingSystem::Windows
     ) {
         return Err(AdapterError::Unsupported(
-            "NuGet adapter supports Linux and native Windows".into(),
+            "NuGet adapter supports Linux plus native macOS and Windows".into(),
         ));
     }
-    if context.os == OperatingSystem::Windows
-        && context.environment != crate::context::ExecutionEnvironment::Host
-    {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "NuGet Windows configuration requires a native host".into(),
+            "NuGet macOS and Windows configuration requires a native host".into(),
         ));
     }
     if !matches!(

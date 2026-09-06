@@ -1,0 +1,98 @@
+name: NuGet macOS live boundary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+
+jobs:
+  native:
+    name: NuGet (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel }
+          - { name: macOS arm64, runner: macos-15 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.419
+      - name: Install native Mono and pinned NuGet CLI
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          brew list mono >/dev/null 2>&1 || brew install mono
+          directory="$RUNNER_TEMP/nuget-cli-6.14"; mkdir -p "$directory/bin"
+          curl -fsSL https://dist.nuget.org/win-x86-commandline/v6.14.0/nuget.exe -o "$directory/nuget.exe"
+          printf '%s  %s\n' '92dbed160ddee0f64b901e907439e021211b428e57c089ecc12fc38dcc4bd9a5' "$directory/nuget.exe"|shasum -a 256 -c -
+          printf '%s\n' '#!/bin/sh' "exec mono '$directory/nuget.exe' \"\$@\"" > "$directory/bin/nuget"; chmod +x "$directory/bin/nuget"; echo "$directory/bin" >> "$GITHUB_PATH"
+          mono --version
+          "$directory/bin/nuget" help
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          dotnet --version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic NuGet boundary
+        run: cargo test --locked --test nuget_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise native dotnet/Mono hierarchy, frontends, restore, and recovery
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-nuget-boundary"; export HOME="$boundary/home"; unset NUGET_COMMON_APPLICATION_DATA
+          project="$HOME/project"; dotnet_user="$HOME/.nuget/NuGet/NuGet.Config"; cli_user="$HOME/.config/NuGet/NuGet.Config"; dotnet_extra="$HOME/.nuget/config/20-extra.Config"; cli_extra="$HOME/.config/NuGet/config/20-extra.Config"; machine='/Library/Application Support/NuGet/Config/MirrorSwitch.Native.Config'
+          test ! -e "$machine"; trap 'sudo rm -f "$machine"' EXIT
+          mkdir -p "$project" "$(dirname "$dotnet_user")" "$(dirname "$cli_user")" "$(dirname "$dotnet_extra")" "$(dirname "$cli_extra")"; sudo mkdir -p "$(dirname "$machine")"
+          printf '%s\n' '<configuration><packageSources><add key="machine-private" value="https://machine.invalid.example/v3/index.json" /></packageSources></configuration>'|sudo tee "$machine" >/dev/null
+          printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' '<configuration>' '  <packageSources><add key="private" value="https://build:fixture-only@private.invalid.example/v3/index.json" /><add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" /></packageSources>' '  <packageSourceCredentials><private><add key="ClearTextPassword" value="fixture-only" /></private></packageSourceCredentials>' '  <packageSourceMapping><packageSource key="private"><package pattern="Corp.*" /></packageSource><packageSource key="nuget.org"><package pattern="*" /></packageSource></packageSourceMapping>' '</configuration>' > "$dotnet_user"; chmod 0600 "$dotnet_user"
+          printf '%s\n' '<configuration><packageSources><add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" /></packageSources></configuration>' > "$cli_user"
+          printf '%s\n' '<configuration><packageSources><add key="dotnet-extra" value="https://extra.invalid.example/v3/index.json" /></packageSources></configuration>' > "$dotnet_extra"
+          printf '%s\n' '<configuration><packageSources><add key="mono-extra" value="https://mono.invalid.example/v3/index.json" /></packageSources></configuration>' > "$cli_extra"
+          printf '%s\n' '<configuration><packageSources><add key="project-private" value="https://project.invalid.example/v3/index.json" /></packageSources></configuration>' > "$project/NuGet.Config"; chmod 0400 "$project/NuGet.Config"; printf '%s\n' 'project-lock' > "$project/packages.lock.json"; chmod 0400 "$project/packages.lock.json"
+          printf '{"version":1,"tools":[{"id":"nuget","scope":"user"}]}\n' > "$project/request.json"
+          dotnet_before=$(shasum -a 256 "$dotnet_user"|awk '{print $1}'); cli_before=$(shasum -a 256 "$cli_user"|awk '{print $1}'); machine_before=$(shasum -a 256 "$machine"|awk '{print $1}'); dotnet_extra_before=$(shasum -a 256 "$dotnet_extra"|awk '{print $1}'); cli_extra_before=$(shasum -a 256 "$cli_extra"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/NuGet.Config"|awk '{print $1}'); lock_before=$(shasum -a 256 "$project/packages.lock.json"|awk '{print $1}'); mode=$(stat -f '%Lp' "$dotnet_user")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool nuget --scope nuget=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - "$dotnet_user" "$cli_user" "$HOME" <<'PY'
+          import json, pathlib, platform, sys
+          status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='nuget']; assert len(tools)==1
+          machine=platform.machine().lower(); expected='Arm64' if machine=='arm64' else 'X86_64'
+          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and sys.argv[2] in evidence and sys.argv[3] in evidence and str(pathlib.Path.cwd()) in evidence and 'Macos' in evidence and expected in evidence and 'native Mono' in evidence and '1 machine' in evidence
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']; assert 'fixture-only' not in open('status.json').read()+open('plan-cli.json').read()+open('plan-config.json').read()
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool nuget --scope nuget=user > tui.txt; grep -F 'mirror=huaweicloud' tui.txt; ! grep -F 'fixture-only' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          dotnet nuget list source --format Detailed --configfile "$dotnet_user"|grep -F repo.huaweicloud.com/repository/nuget/v3/index.json
+          nuget sources List -Format Detailed -NonInteractive -ForceEnglishOutput -ConfigFile "$cli_user"|grep -F repo.huaweicloud.com/repository/nuget/v3/index.json
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='nuget' and r['receipt']['verified']
+          PY
+          test "$dotnet_before" = "$(shasum -a 256 "$dotnet_user"|awk '{print $1}')"; test "$cli_before" = "$(shasum -a 256 "$cli_user"|awk '{print $1}')"; test "$machine_before" = "$(shasum -a 256 "$machine"|awk '{print $1}')"; test "$dotnet_extra_before" = "$(shasum -a 256 "$dotnet_extra"|awk '{print $1}')"; test "$cli_extra_before" = "$(shasum -a 256 "$cli_extra"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 NuGet.Config|awk '{print $1}')"; test "$lock_before" = "$(shasum -a 256 packages.lock.json|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$dotnet_user")"
+          test ! -e "$HOME/.nuget/mirrorswitch/verification/NuGet.Config"; test ! -e "$HOME/.nuget/mirrorswitch/verification/MirrorSwitch.NuGet.Verification.csproj"
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-macos-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-nuget-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

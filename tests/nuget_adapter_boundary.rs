@@ -69,6 +69,16 @@ fn windows_context(root: &Path, architecture: Architecture) -> SystemContext {
     }
 }
 
+fn macos_context(root: &Path, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os: OperatingSystem::Macos,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -185,6 +195,16 @@ esac
     );
 }
 
+fn install_mono(root: &Path, version: &str) {
+    executable(
+        root,
+        "/usr/bin/mono",
+        format!(
+            "#!/bin/sh\nif [ \"$1\" = --version ]; then printf '%s\\n' 'Mono JIT compiler version {version} (native test)'; exit 0; fi\nexit 91\n"
+        ),
+    );
+}
+
 fn runtime(root: &Path, project: Option<&str>) -> OsRuntime {
     let runtime = OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
         .with_home("/home/developer")
@@ -201,6 +221,13 @@ fn windows_runtime(root: &Path, project: Option<&str>) -> OsRuntime {
             ("ProgramFiles(x86)".into(), "/ProgramFilesX86".into()),
             ("ProgramData".into(), "/ProgramData".into()),
         ]));
+    project.map_or(runtime.clone(), |path| runtime.with_project_dir(path))
+}
+
+fn macos_runtime(root: &Path, project: Option<&str>) -> OsRuntime {
+    let runtime = OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home("/Users/developer")
+        .with_environment(BTreeMap::new());
     project.map_or(runtime.clone(), |path| runtime.with_project_dir(path))
 }
 
@@ -588,6 +615,14 @@ fn catalog_requires_service_index_registration_flat_container_and_sha_before_lat
         .unwrap();
     assert_eq!(candidate.provider_id, "huaweicloud");
     assert_eq!(candidate.delivery_mode, DeliveryMode::Proxy);
+    assert_eq!(
+        candidate.compatibility.operating_systems,
+        [
+            OperatingSystem::Linux,
+            OperatingSystem::Macos,
+            OperatingSystem::Windows,
+        ]
+    );
     assert_eq!(candidate.compatibility.repository_versions, ["v3"]);
     assert_eq!(candidate.probes.len(), 6);
     assert_eq!(
@@ -662,6 +697,203 @@ fn catalog_requires_service_index_registration_flat_container_and_sha_before_lat
             CandidateEvaluation::ProbeFailed { reason } if reason.contains("SHA-256")
         )
     }));
+}
+
+#[test]
+fn macos_clients_preserve_distinct_user_machine_project_and_mono_boundaries() {
+    for architecture in [Architecture::X86_64, Architecture::Arm64] {
+        let directory = tempdir().unwrap();
+        let root = directory.path();
+        install_dotnet(root, "8.0.419", 0);
+        install_nuget(root, "6.14.0.2", 0);
+        install_mono(root, "6.12.0.206");
+        let machine = write(
+            root,
+            "/Library/Application Support/NuGet/Config/enterprise.Config",
+            b"<configuration><packageSources><add key=\"enterprise\" value=\"https://packages.corp.example/v3/index.json\" /></packageSources></configuration>\n",
+        );
+        let additional_dotnet = write(
+            root,
+            "/Users/developer/.nuget/config/20-extra.Config",
+            b"<configuration><packageSources><add key=\"dotnet-extra\" value=\"https://extra.corp.example/v3/index.json\" /></packageSources></configuration>\n",
+        );
+        let additional_cli = write(
+            root,
+            "/Users/developer/.config/NuGet/config/20-extra.Config",
+            b"<configuration><packageSources><add key=\"mono-extra\" value=\"https://mono.corp.example/v3/index.json\" /></packageSources></configuration>\n",
+        );
+        let mut dotnet_original = vec![0xef, 0xbb, 0xbf];
+        dotnet_original.extend_from_slice(br#"<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="private" value="https://build:fixture-only@private.example/v3/index.json" />
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+  </packageSources>
+  <packageSourceCredentials><private><add key="ClearTextPassword" value="fixture-only" /></private></packageSourceCredentials>
+  <packageSourceMapping><packageSource key="private"><package pattern="Corp.*" /></packageSource><packageSource key="nuget.org"><package pattern="*" /></packageSource></packageSourceMapping>
+</configuration>
+"#);
+        let dotnet_user = write(
+            root,
+            "/Users/developer/.nuget/NuGet/NuGet.Config",
+            &dotnet_original,
+        );
+        let cli_original = br#"<configuration>
+  <packageSources><add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" /></packageSources>
+</configuration>
+"#;
+        let cli_user = write(
+            root,
+            "/Users/developer/.config/NuGet/NuGet.Config",
+            cli_original,
+        );
+        let project = write(
+            root,
+            "/Users/developer/project/NuGet.Config",
+            b"<configuration><packageSources><add key=\"project-private\" value=\"https://project.corp.example/v3/index.json\" /></packageSources></configuration>\n",
+        );
+        let lock = write(
+            root,
+            "/Users/developer/project/packages.lock.json",
+            b"project-lock\n",
+        );
+        let mut permissions = fs::metadata(&dotnet_user).unwrap().permissions();
+        permissions.set_mode(0o600);
+        fs::set_permissions(&dotnet_user, permissions).unwrap();
+        let immutable = [
+            (machine.clone(), fs::read(&machine).unwrap()),
+            (
+                additional_dotnet.clone(),
+                fs::read(&additional_dotnet).unwrap(),
+            ),
+            (additional_cli.clone(), fs::read(&additional_cli).unwrap()),
+            (project.clone(), fs::read(&project).unwrap()),
+            (lock.clone(), fs::read(&lock).unwrap()),
+        ];
+        let context = macos_context(root, architecture);
+        let adapter = NugetAdapter;
+        let mut runtime = macos_runtime(root, Some("/Users/developer/project"));
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        assert_eq!(
+            detected.version.as_deref(),
+            Some("dotnet=8.0.419;nuget-cli=6.14.0.2;mono=6.12.0.206")
+        );
+        let evidence = detected.evidence.join("\n");
+        assert!(evidence.contains("Macos"));
+        assert!(evidence.contains(&format!("{architecture:?}")));
+        assert!(evidence.contains("/Users/developer"));
+        assert!(evidence.contains("/Users/developer/project"));
+        assert!(evidence.contains("native Mono 6.12.0.206"));
+        assert!(evidence.contains("1 machine"));
+        assert!(!evidence.contains("fixture-only"));
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(!format!("{current:?}").contains("fixture-only"));
+        let request = adapter
+            .selection_request(&context, &detected, &current)
+            .unwrap();
+        assert_eq!(request.context.os, OperatingSystem::Macos);
+        assert_eq!(request.context.architecture, architecture);
+        let selected = [selection()];
+        let cli = adapter.plan(&context, &current, &selected).unwrap();
+        let config = adapter.plan(&context, &current, &selected).unwrap();
+        let tui = adapter.plan(&context, &current, &selected).unwrap();
+        assert_eq!(cli, config);
+        assert_eq!(config, tui);
+        assert_eq!(cli.changes.len(), 4);
+        assert!(
+            cli.changes
+                .iter()
+                .any(|change| change.target == dotnet_user)
+        );
+        assert!(cli.changes.iter().any(|change| change.target == cli_user));
+        let dotnet_rendered = &cli
+            .changes
+            .iter()
+            .find(|change| change.target == dotnet_user)
+            .unwrap()
+            .new_contents;
+        assert!(dotnet_rendered.starts_with(&[0xef, 0xbb, 0xbf]));
+        assert!(String::from_utf8_lossy(dotnet_rendered).contains("fixture-only"));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("macOS NuGet configurations should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        for (path, contents) in &immutable {
+            assert_eq!(&fs::read(path).unwrap(), contents);
+        }
+        assert_eq!(
+            fs::metadata(&dotnet_user).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &current, &selected)
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(&dotnet_user).unwrap(), dotnet_original);
+        assert_eq!(fs::read(&cli_user).unwrap(), cli_original);
+        for (path, contents) in &immutable {
+            assert_eq!(&fs::read(path).unwrap(), contents);
+        }
+        assert!(
+            !root
+                .join("Users/developer/.nuget/mirrorswitch/verification/NuGet.Config")
+                .exists()
+        );
+    }
+}
+
+#[test]
+fn macos_requires_native_host_and_mono_for_nuget_cli() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_nuget(root, "6.14.0.2", 0);
+    let adapter = NugetAdapter;
+    let runtime = macos_runtime(root, None);
+    let context = macos_context(root, Architecture::X86_64);
+    assert!(
+        adapter
+            .detect(&context, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("Mono")
+    );
+    install_mono(root, "4.2.0");
+    assert!(
+        adapter
+            .detect(&context, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("4.4.2")
+    );
+    let mut container = context;
+    container.environment = ExecutionEnvironment::Container;
+    assert!(
+        adapter
+            .detect(&container, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("native host")
+    );
 }
 
 #[test]
@@ -838,23 +1070,6 @@ fn unsupported_platform_versions_and_missing_clients_are_inert() {
     );
     let error = adapter.detect(&linux, &installed).unwrap_err();
     assert!(error.to_string().contains("6.x/7.x"), "{error}");
-
-    let directory = tempdir().unwrap();
-    install_dotnet(directory.path(), "8.0.419", 0);
-    let installed = runtime(directory.path(), None);
-    let mut macos = context(
-        directory.path(),
-        Architecture::X86_64,
-        ExecutionEnvironment::Host,
-    );
-    macos.os = OperatingSystem::Macos;
-    assert!(
-        adapter
-            .detect(&macos, &installed)
-            .unwrap_err()
-            .to_string()
-            .contains("Linux and native Windows")
-    );
 
     let empty = tempdir().unwrap();
     let runtime = runtime(empty.path(), None);
