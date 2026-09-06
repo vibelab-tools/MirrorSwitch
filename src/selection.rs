@@ -56,7 +56,7 @@ impl Default for ProbeLimits {
     fn default() -> Self {
         Self {
             timeout: Duration::from_secs(3),
-            max_bytes: 1024 * 1024,
+            max_bytes: 4 * 1024 * 1024,
         }
     }
 }

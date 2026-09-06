@@ -7,7 +7,7 @@ use std::{
 use crate::{
     Adapter, AdapterError, Runtime,
     catalog::{CompositionPolicy, ConfigurationScope, DeliveryMode, EndpointRole, Protocol},
-    context::{Architecture, OperatingSystem, SystemContext},
+    context::{Architecture, ExecutionEnvironment, OperatingSystem, SystemContext},
     plan::{
         ChangePlan, ConfigurationDocument, ConfiguredSource, CurrentConfiguration, DetectedTool,
         MirrorSelection, PlannedFileChange, RestoreResult, ServiceImpact, VerificationResult,
@@ -69,13 +69,13 @@ impl Adapter for ElpaAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("emacs") {
             return Ok(None);
         }
         let version = emacs_version(runtime)?;
         review_version(&version)?;
-        let layout = layout(runtime)?;
+        let layout = layout(context, runtime)?;
         let contents = runtime.read(&layout.init)?.unwrap_or_default();
         let observation = inspect_init(&layout.init, utf8(&layout.init, &contents)?)?;
         Ok(Some(DetectedTool {
@@ -84,7 +84,20 @@ impl Adapter for ElpaAdapter {
             version: Some(version.clone()),
             evidence: vec![
                 format!("GNU Emacs {version}"),
+                format!(
+                    "native platform is {:?} {:?} ({})",
+                    context.os, context.architecture, layout.system_configuration
+                ),
+                format!("Emacs home is {}", layout.emacs_home.display()),
+                format!(
+                    "user-emacs-directory is {}",
+                    layout.user_emacs_directory.display()
+                ),
                 format!("selected init file is {}", layout.init.display()),
+                runtime.project_dir().map_or_else(
+                    || "no project directory was selected".into(),
+                    |path| format!("project directory {} remains read-only", path.display()),
+                ),
                 format!(
                     "literal archive URLs observed: {}",
                     observation.archive_urls
@@ -114,7 +127,7 @@ impl Adapter for ElpaAdapter {
         detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_scope(scope)?;
         if detected.tool_id != "elpa" {
             return Err(AdapterError::InvalidConfiguration(
@@ -128,7 +141,7 @@ impl Adapter for ElpaAdapter {
                 "Emacs version changed after detection".into(),
             ));
         }
-        let layout = layout(runtime)?;
+        let layout = layout(context, runtime)?;
         let contents = runtime.read(&layout.init)?;
         let exists = contents.is_some();
         let contents = contents.unwrap_or_default();
@@ -166,7 +179,7 @@ impl Adapter for ElpaAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         review_version(detected.version.as_deref().ok_or_else(|| {
             AdapterError::InvalidConfiguration("Emacs version is missing".into())
@@ -206,12 +219,15 @@ impl Adapter for ElpaAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let endpoints = selected_archives(selections)?;
         let init = find_document(current, "emacs-init")?;
-        let rendered =
+        let mut rendered =
             rewrite_init(utf8(&init.path, &init.contents)?, &init.path, &endpoints)?.into_bytes();
+        if init.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            rendered.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let changes = if init.contents == rendered {
             Vec::new()
         } else {
@@ -253,7 +269,7 @@ impl Adapter for ElpaAdapter {
         receipt: &TransactionReceipt,
     ) -> Result<VerificationResult, AdapterError> {
         let result = (|| {
-            let layout = layout(runtime)?;
+            let layout = layout(context, runtime)?;
             let target = rooted(&context.root, &layout.init);
             if !receipt.changed_targets.contains(&target) {
                 return Err(AdapterError::Verification(
@@ -311,6 +327,9 @@ impl Adapter for ElpaAdapter {
 }
 
 struct Layout {
+    emacs_home: PathBuf,
+    user_emacs_directory: PathBuf,
+    system_configuration: String,
     init: PathBuf,
     verification_dir: PathBuf,
 }
@@ -322,15 +341,24 @@ struct InitObservation {
     managed: bool,
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "ELPA v0.1 supports Linux x86_64 and arm64 only".into(),
+            "ELPA on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "ELPA on Windows arm64 is unavailable because the reviewed GNU Emacs 30 Windows build is x86_64 only"
+                .into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "ELPA requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -354,23 +382,24 @@ fn require_current(current: &CurrentConfiguration) -> Result<(), AdapterError> {
     Ok(())
 }
 
-fn layout(runtime: &dyn Runtime) -> Result<Layout, AdapterError> {
-    let home = runtime
-        .home_dir()
-        .ok_or_else(|| AdapterError::Unsupported("ELPA requires a user home".into()))?;
-    validate_path(&home, "home")?;
-    let xdg = runtime
-        .environment_variable("XDG_CONFIG_HOME")
-        .filter(|value| !value.trim().is_empty())
-        .map(PathBuf::from)
-        .unwrap_or_else(|| home.join(".config"));
-    validate_path(&xdg, "XDG_CONFIG_HOME")?;
-    let candidates = [
-        home.join(".emacs"),
-        home.join(".emacs.el"),
-        home.join(".emacs.d/init.el"),
-        xdg.join("emacs/init.el"),
+fn layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layout, AdapterError> {
+    let native = native_layout(runtime)?;
+    review_native_platform(context, &native.system_type, &native.system_configuration)?;
+    validate_path(&native.emacs_home, "home")?;
+    validate_user_path(
+        &native.user_emacs_directory,
+        &native.emacs_home,
+        "user-emacs-directory",
+    )?;
+    let mut candidates = vec![
+        native.emacs_home.join(".emacs.el"),
+        native.emacs_home.join(".emacs"),
     ];
+    if context.os == OperatingSystem::Windows {
+        candidates.push(native.emacs_home.join("_emacs"));
+    }
+    candidates.push(native.user_emacs_directory.join("init.el"));
+    candidates.dedup();
     let mut existing = Vec::new();
     for path in candidates {
         if runtime.read(&path)?.is_some() {
@@ -382,18 +411,85 @@ fn layout(runtime: &dyn Runtime) -> Result<Layout, AdapterError> {
             "multiple Emacs init candidates exist; select one before configuring ELPA".into(),
         ));
     }
-    let init = existing.into_iter().next().unwrap_or_else(|| {
-        if runtime.environment_variable("XDG_CONFIG_HOME").is_some() {
-            xdg.join("emacs/init.el")
-        } else {
-            home.join(".emacs.d/init.el")
-        }
-    });
-    validate_user_path(&init, &home, "init file")?;
+    let init = existing
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| native.user_emacs_directory.join("init.el"));
+    validate_user_path(&init, &native.emacs_home, "init file")?;
     Ok(Layout {
+        emacs_home: native.emacs_home,
+        user_emacs_directory: native.user_emacs_directory.clone(),
+        system_configuration: native.system_configuration,
         init,
-        verification_dir: home.join(".mirrorswitch/verification/emacs/elpa"),
+        verification_dir: native
+            .user_emacs_directory
+            .join("mirrorswitch/verification/elpa"),
     })
+}
+
+struct NativeLayout {
+    emacs_home: PathBuf,
+    user_emacs_directory: PathBuf,
+    system_type: String,
+    system_configuration: String,
+}
+
+fn native_layout(runtime: &dyn Runtime) -> Result<NativeLayout, AdapterError> {
+    const SCRIPT: &str = "(progn (princ (concat \"MIRRORSWITCH_EMACS_HOME=\" (expand-file-name \"~/\") \"\\n\")) (princ (concat \"MIRRORSWITCH_EMACS_DIR=\" (expand-file-name user-emacs-directory) \"\\n\")) (princ (format \"MIRRORSWITCH_EMACS_SYSTEM=%s\\n\" system-type)) (princ (concat \"MIRRORSWITCH_EMACS_CONFIGURATION=\" system-configuration \"\\n\")))";
+    let output = run_emacs(
+        runtime,
+        &["--batch", "-Q", "--eval", SCRIPT],
+        "Emacs native layout query",
+    )?;
+    let value = |key: &str| -> Result<String, AdapterError> {
+        let prefix = format!("{key}=");
+        let values = output
+            .lines()
+            .filter_map(|line| line.strip_prefix(&prefix))
+            .collect::<Vec<_>>();
+        if values.len() != 1 || values[0].trim().is_empty() {
+            return Err(AdapterError::Unsupported(format!(
+                "Emacs native layout query did not report one {key}"
+            )));
+        }
+        Ok(values[0].trim().into())
+    };
+    Ok(NativeLayout {
+        emacs_home: PathBuf::from(value("MIRRORSWITCH_EMACS_HOME")?),
+        user_emacs_directory: PathBuf::from(value("MIRRORSWITCH_EMACS_DIR")?),
+        system_type: value("MIRRORSWITCH_EMACS_SYSTEM")?,
+        system_configuration: value("MIRRORSWITCH_EMACS_CONFIGURATION")?,
+    })
+}
+
+fn review_native_platform(
+    context: &SystemContext,
+    system_type: &str,
+    system_configuration: &str,
+) -> Result<(), AdapterError> {
+    let expected_system = match context.os {
+        OperatingSystem::Linux => "gnu/linux",
+        OperatingSystem::Macos => "darwin",
+        OperatingSystem::Windows => "windows-nt",
+    };
+    if system_type != expected_system {
+        return Err(AdapterError::Unsupported(format!(
+            "Emacs system type {system_type} does not match {:?}",
+            context.os
+        )));
+    }
+    let configuration = system_configuration.to_ascii_lowercase();
+    let native_architecture = match context.architecture {
+        Architecture::X86_64 => configuration.contains("x86_64") || configuration.contains("amd64"),
+        Architecture::Arm64 => configuration.contains("aarch64") || configuration.contains("arm64"),
+    };
+    if !native_architecture {
+        return Err(AdapterError::Unsupported(format!(
+            "Emacs system configuration {system_configuration} does not match {:?}",
+            context.architecture
+        )));
+    }
+    Ok(())
 }
 
 fn inspect_init(path: &Path, text: &str) -> Result<InitObservation, AdapterError> {
@@ -594,14 +690,14 @@ fn verification_script(
     layout: &Layout,
     endpoints: &BTreeMap<String, String>,
 ) -> Result<String, AdapterError> {
-    let directory = path_string(&layout.verification_dir)?;
+    let directory = lisp_string(&layout.verification_dir)?;
     let endpoint = |name: &str| {
         endpoints
             .get(name)
             .ok_or_else(|| AdapterError::Verification(format!("ELPA verification lacks {name}")))
     };
     Ok(format!(
-        "(progn (require 'package) (setq package-user-dir \"{directory}\" package-check-signature 'allow-unsigned package-archives '((\"gnu\" . \"{}\") (\"nongnu\" . \"{}\") (\"melpa\" . \"{}\"))) (package-refresh-contents) (dolist (name '(\"gnu\" \"nongnu\" \"melpa\")) (unless (file-exists-p (expand-file-name (concat \"archives/\" name \"/archive-contents\") package-user-dir)) (error \"archive missing: %s\" name))) (princ \"MIRRORSWITCH_ELPA_VERIFY=gnu,nongnu,melpa\"))",
+        "(progn (require 'package) (let ((package-user-dir \"{directory}\") (package-check-signature 'allow-unsigned) (package-archives '((\"gnu\" . \"{}\") (\"nongnu\" . \"{}\") (\"melpa\" . \"{}\")))) (unwind-protect (progn (package-refresh-contents) (dolist (name '(\"gnu\" \"nongnu\" \"melpa\")) (unless (file-exists-p (expand-file-name (concat \"archives/\" name \"/archive-contents\") package-user-dir)) (error \"archive missing: %s\" name))) (princ \"MIRRORSWITCH_ELPA_VERIFY=gnu,nongnu,melpa\")) (when (file-directory-p package-user-dir) (delete-directory package-user-dir t)))))",
         endpoint("gnu")?,
         endpoint("nongnu")?,
         endpoint("melpa")?,
@@ -691,10 +787,11 @@ fn policy_source(kind: &str, path: &Path) -> ConfiguredSource {
     }
 }
 
-fn path_string(path: &Path) -> Result<&str, AdapterError> {
-    path.to_str().ok_or_else(|| {
+fn lisp_string(path: &Path) -> Result<String, AdapterError> {
+    let value = path.to_str().ok_or_else(|| {
         AdapterError::InvalidConfiguration(format!("path {} is not UTF-8", path.display()))
-    })
+    })?;
+    Ok(value.replace('\\', "\\\\").replace('"', "\\\""))
 }
 
 fn validate_user_path(path: &Path, home: &Path, kind: &str) -> Result<(), AdapterError> {
@@ -723,6 +820,9 @@ fn validate_path(path: &Path, kind: &str) -> Result<(), AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!("Emacs init {} is not UTF-8", path.display()))
     })

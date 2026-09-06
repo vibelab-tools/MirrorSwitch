@@ -1,11 +1,10 @@
-#![cfg(target_os = "linux")]
+#![cfg(unix)]
 
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
-    time::Duration,
 };
 
 use mirrorswitch::{
@@ -40,6 +39,16 @@ fn context(root: &Path, architecture: Architecture) -> SystemContext {
     }
 }
 
+fn native_context(root: &Path, os: OperatingSystem, architecture: Architecture) -> SystemContext {
+    SystemContext {
+        os,
+        architecture,
+        environment: ExecutionEnvironment::Host,
+        distribution: None,
+        root: root.to_path_buf(),
+    }
+}
+
 fn write(root: &Path, path: &str, contents: &[u8]) -> PathBuf {
     let path = root.join(path.trim_start_matches('/'));
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -55,6 +64,26 @@ fn executable(root: &Path, path: &str, contents: String) {
 }
 
 fn install_emacs(root: &Path, version: &str, verification_exit: i32) {
+    install_native_emacs(
+        root,
+        version,
+        "gnu/linux",
+        "x86_64-pc-linux-gnu",
+        "/home/developer/",
+        "/home/developer/.emacs.d/",
+        verification_exit,
+    );
+}
+
+fn install_native_emacs(
+    root: &Path,
+    version: &str,
+    system_type: &str,
+    system_configuration: &str,
+    emacs_home: &str,
+    user_emacs_directory: &str,
+    verification_exit: i32,
+) {
     executable(
         root,
         "/usr/bin/emacs",
@@ -67,6 +96,15 @@ if [ "$1" = --version ]; then
 fi
 last=
 for argument in "$@"; do last=$argument; done
+case "$last" in
+  *MIRRORSWITCH_EMACS_HOME*)
+    echo 'MIRRORSWITCH_EMACS_HOME={emacs_home}'
+    echo 'MIRRORSWITCH_EMACS_DIR={user_emacs_directory}'
+    echo 'MIRRORSWITCH_EMACS_SYSTEM={system_type}'
+    echo 'MIRRORSWITCH_EMACS_CONFIGURATION={system_configuration}'
+    exit 0
+    ;;
+esac
 printf '%s' "$last" | grep -F 'package-refresh-contents' >/dev/null || exit 61
 printf '%s' "$last" | grep -F 'mirrors.ustc.edu.cn/elpa/gnu/' >/dev/null || exit 62
 printf '%s' "$last" | grep -F 'mirrors.nju.edu.cn/elpa/nongnu/' >/dev/null || exit 63
@@ -87,6 +125,13 @@ fn runtime(root: &Path, xdg: bool) -> OsRuntime {
     OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
         .with_home("/home/developer")
         .with_environment(environment)
+}
+
+fn native_runtime(root: &Path, project: &str) -> OsRuntime {
+    OsRuntime::new(root, vec![PathBuf::from("/usr/bin")])
+        .with_home("/home/developer")
+        .with_project_dir(project)
+        .with_environment(BTreeMap::new())
 }
 
 fn selections() -> Vec<MirrorSelection> {
@@ -199,7 +244,15 @@ fn user_plan_preserves_custom_archives_priorities_lisp_and_is_reversible() {
 fn arm64_xdg_missing_init_uses_explicit_xdg_layout() {
     let directory = tempdir().unwrap();
     let root = directory.path();
-    install_emacs(root, "29.4", 0);
+    install_native_emacs(
+        root,
+        "29.4",
+        "gnu/linux",
+        "aarch64-unknown-linux-gnu",
+        "/home/developer/",
+        "/home/developer/.config/emacs/",
+        0,
+    );
     let adapter = ElpaAdapter;
     let context = context(root, Architecture::Arm64);
     let runtime = runtime(root, true);
@@ -217,6 +270,132 @@ fn arm64_xdg_missing_init_uses_explicit_xdg_layout() {
         plan,
         adapter.plan(&context, &current, &selections()).unwrap()
     );
+}
+
+#[test]
+fn native_layouts_preserve_encoding_permissions_project_and_frontend_equivalence() {
+    for (os, architecture, system_type, configuration, home, directory, init_name) in [
+        (
+            OperatingSystem::Macos,
+            Architecture::X86_64,
+            "darwin",
+            "x86_64-apple-darwin24.0.0",
+            "/Users/developer/",
+            "/Users/developer/.config/emacs/",
+            "init.el",
+        ),
+        (
+            OperatingSystem::Macos,
+            Architecture::Arm64,
+            "darwin",
+            "aarch64-apple-darwin24.0.0",
+            "/Users/developer/",
+            "/Users/developer/.emacs.d/",
+            "init.el",
+        ),
+        (
+            OperatingSystem::Windows,
+            Architecture::X86_64,
+            "windows-nt",
+            "x86_64-w64-mingw32",
+            "/home/developer/AppData/Roaming/",
+            "/home/developer/AppData/Roaming/.emacs.d/",
+            "_emacs",
+        ),
+    ] {
+        let sandbox = tempdir().unwrap();
+        let root = sandbox.path();
+        install_native_emacs(root, "30.2", system_type, configuration, home, directory, 0);
+        let init_path = if init_name == "_emacs" {
+            format!("{home}{init_name}")
+        } else {
+            format!("{directory}{init_name}")
+        };
+        let original = if os == OperatingSystem::Windows {
+            b"\xef\xbb\xbf;; native configuration\r\n(setq custom-file \"C:/Users/developer/private.el\")\r\n(setq package-archives '((\"private\" . \"https://build:fixture-only@packages.invalid.example/elpa/\")))\r\n(setq package-archive-priorities '((\"private\" . 100)))\r\n".as_slice()
+        } else {
+            b";; native configuration\n(setq custom-file \"~/.emacs.d/private.el\")\n(setq package-archives '((\"private\" . \"https://build:fixture-only@packages.invalid.example/elpa/\")))\n(setq package-archive-priorities '((\"private\" . 100)))\n".as_slice()
+        };
+        let init = write(root, &init_path, original);
+        let mut permissions = fs::metadata(&init).unwrap().permissions();
+        permissions.set_mode(0o600);
+        fs::set_permissions(&init, permissions).unwrap();
+        let project = "/home/developer/project";
+        let project_file = write(
+            root,
+            "/home/developer/project/.dir-locals.el",
+            b"((nil . ((private-token . \"project-fixture-only\"))))\n",
+        );
+        let context = native_context(root, os, architecture);
+        let mut runtime = native_runtime(root, project);
+        let adapter = ElpaAdapter;
+        let detected = adapter.detect(&context, &runtime).unwrap().unwrap();
+        let evidence = detected.evidence.join("\n");
+        assert!(evidence.contains(&format!("{os:?}")));
+        assert!(evidence.contains(&format!("{architecture:?}")));
+        assert!(evidence.contains(home.trim_end_matches('/')));
+        assert!(evidence.contains(directory.trim_end_matches('/')));
+        assert!(evidence.contains(project));
+        assert!(!evidence.contains("fixture-only"));
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        let cli = adapter.plan(&context, &current, &selections()).unwrap();
+        let config = adapter.plan(&context, &current, &selections()).unwrap();
+        let tui = adapter.plan(&context, &current, &selections()).unwrap();
+        assert_eq!(cli, config);
+        assert_eq!(config, tui);
+        assert_eq!(cli.changes[0].target, init);
+        let rendered = &cli.changes[0].new_contents;
+        assert_eq!(
+            rendered.starts_with(&[0xef, 0xbb, 0xbf]),
+            os == OperatingSystem::Windows
+        );
+        assert_eq!(
+            String::from_utf8_lossy(rendered).contains("\r\n"),
+            os == OperatingSystem::Windows
+        );
+        assert!(String::from_utf8_lossy(rendered).contains("fixture-only"));
+        let ApplyOutcome::Applied(receipt) = adapter.apply(&context, &mut runtime, &cli).unwrap()
+        else {
+            panic!("native Emacs init should change")
+        };
+        assert!(
+            adapter
+                .verify(&context, &mut runtime, &receipt)
+                .unwrap()
+                .valid
+        );
+        assert_eq!(
+            fs::read(&project_file).unwrap(),
+            b"((nil . ((private-token . \"project-fixture-only\"))))\n"
+        );
+        assert_eq!(
+            fs::metadata(&init).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        let current = adapter
+            .read_current(&context, &runtime, &detected, ConfigurationScope::User)
+            .unwrap();
+        assert!(
+            adapter
+                .plan(&context, &current, &selections())
+                .unwrap()
+                .changes
+                .is_empty()
+        );
+        assert!(
+            adapter
+                .restore(&context, &mut runtime, &receipt)
+                .unwrap()
+                .restored
+        );
+        assert_eq!(fs::read(&init).unwrap(), original);
+        assert_eq!(
+            fs::metadata(&init).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+    }
 }
 
 #[test]
@@ -287,6 +466,51 @@ fn failed_batch_refresh_restores_init() {
     assert_eq!(fs::read(init).unwrap(), original);
 }
 
+#[test]
+fn unsupported_native_contexts_and_emulated_architectures_are_inert() {
+    let directory = tempdir().unwrap();
+    let root = directory.path();
+    install_native_emacs(
+        root,
+        "30.2",
+        "darwin",
+        "x86_64-apple-darwin24.0.0",
+        "/Users/developer/",
+        "/Users/developer/.emacs.d/",
+        0,
+    );
+    let adapter = ElpaAdapter;
+    let runtime = native_runtime(root, "/Users/developer/project");
+
+    let mut container = native_context(root, OperatingSystem::Macos, Architecture::X86_64);
+    container.environment = ExecutionEnvironment::Container;
+    assert!(
+        adapter
+            .detect(&container, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("native host")
+    );
+
+    let windows_arm = native_context(root, OperatingSystem::Windows, Architecture::Arm64);
+    assert!(
+        adapter
+            .detect(&windows_arm, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("x86_64 only")
+    );
+
+    let mac_arm = native_context(root, OperatingSystem::Macos, Architecture::Arm64);
+    assert!(
+        adapter
+            .detect(&mac_arm, &runtime)
+            .unwrap_err()
+            .to_string()
+            .contains("does not match Arm64")
+    );
+}
+
 struct ArchiveProber;
 
 impl CandidateProber for ArchiveProber {
@@ -340,6 +564,12 @@ fn catalog_splits_three_inventory_roots_into_nine_independent_archive_candidates
             archive
                 .iter()
                 .all(|candidate| candidate.delivery_mode == DeliveryMode::Mirror
+                    && candidate.compatibility.operating_systems
+                        == [
+                            OperatingSystem::Linux,
+                            OperatingSystem::Macos,
+                            OperatingSystem::Windows,
+                        ]
                     && candidate.compatibility.architectures
                         == [Architecture::X86_64, Architecture::Arm64])
         );
@@ -370,14 +600,9 @@ fn catalog_splits_three_inventory_roots_into_nine_independent_archive_candidates
     let request = adapter
         .selection_request(&context, &detected, &current)
         .unwrap();
-    let selector = MirrorSelector::with_prober(
-        &catalog,
-        ArchiveProber,
-        ProbeLimits {
-            timeout: Duration::from_secs(1),
-            max_bytes: 4 * 1024 * 1024,
-        },
-    );
+    let limits = ProbeLimits::default();
+    assert_eq!(limits.max_bytes, 4 * 1024 * 1024);
+    let selector = MirrorSelector::with_prober(&catalog, ArchiveProber, limits);
     let outcome = selector.select_at(&request, 123).unwrap();
     assert!(outcome.actionable);
     assert_eq!(

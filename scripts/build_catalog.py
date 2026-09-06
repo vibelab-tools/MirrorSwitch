@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "107"
+CATALOG_FORMAT_REVISION = "108"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -3687,7 +3687,7 @@ def runtime_properties(
     elif tool_id == "elpa" and entry["raw_name"].startswith("elpa/"):
         archive = entry["raw_name"].split("/", 1)[1]
         _, package = ELPA_ARCHIVES[archive]
-        compatibility["operating_systems"] = ["linux"]
+        compatibility["operating_systems"] = ["linux", "macos", "windows"]
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
         compatibility["distributions"] = []

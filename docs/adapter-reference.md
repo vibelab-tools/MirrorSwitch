@@ -74,7 +74,7 @@ content remain unchanged and are reported.
 | `flutter` | user | Linux/macOS profile or Windows HKCU pair; platform-specific Flutter storage and Pub chains must both validate before native precache/doctor/query ([details](adapters/flutter.md)) |
 | `julia` | user | Linux/macOS profile or Windows HKCU environment; native depot/registry/project discovery plus platform-specific Pkg artifact resolution ([details](adapters/julia.md)) |
 | `opam` | user | Native reported root plus paired NJU repository/SJTUG cache verification; private trust, project switches, BOM/newlines and permissions preserved ([details](adapters/opam.md)) |
-| `elpa` | user | Batch archive refresh; GNU/NonGNU/MELPA selected independently ([#80](https://github.com/vibelab-tools/MirrorSwitch/issues/80)) |
+| `elpa` | user | Linux/macOS plus Windows x64 package.el; Emacs-reported home/init hierarchy, independent GNU/NonGNU/MELPA selection, private Lisp policy and encoding preserved ([details](adapters/elpa.md)) |
 
 ## Containers and development infrastructure
 
