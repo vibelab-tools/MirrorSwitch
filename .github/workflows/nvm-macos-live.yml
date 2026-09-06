@@ -1,0 +1,85 @@
+name: nvm macOS live boundary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+  NVM_VERSION: 0.40.6
+
+jobs:
+  native:
+    name: nvm (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel }
+          - { name: macOS arm64, runner: macos-15 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install pinned nvm script
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          directory="$RUNNER_TEMP/nvm-$NVM_VERSION"; mkdir -p "$directory"
+          curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/v$NVM_VERSION/nvm.sh" -o "$directory/nvm.sh"
+          printf '%s  %s\n' 'baad94563757afa5147950e3dfa272f06b6307e1a7d92c553f8438959b5165fe' "$directory/nvm.sh"|shasum -a 256 -c -
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic nvm boundary
+        run: cargo test --locked --test nvm_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise native zsh profile, Darwin archive, frontends, and recovery
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-nvm-boundary"; export HOME="$boundary/home" SHELL=/bin/zsh NVM_DIR="$boundary/home/.nvm"; unset PROFILE ZDOTDIR NVM_NODEJS_ORG_MIRROR NVM_IOJS_ORG_MIRROR NVM_AUTH_HEADER
+          project="$HOME/project"; profile="$HOME/.zshrc"; mkdir -p "$project" "$NVM_DIR"; cp "$RUNNER_TEMP/nvm-$NVM_VERSION/nvm.sh" "$NVM_DIR/nvm.sh"
+          printf '%s\n' '# native zsh policy' "export PRIVATE_NODE_TOKEN='fixture-only'" 'export NVM_DIR="$HOME/.nvm"' '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' > "$profile"; chmod 0600 "$profile"
+          printf '%s\n' 'v24.1.0' > "$project/.nvmrc"; chmod 0400 "$project/.nvmrc"
+          printf '{"version":1,"tools":[{"id":"nvm","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$profile"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/.nvmrc"|awk '{print $1}'); mode=$(stat -f '%Lp' "$profile")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool nvm --scope nvm=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - "$profile" "$HOME" <<'PY'
+          import json, pathlib, platform, sys
+          status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='nvm']; assert len(tools)==1
+          machine=platform.machine().lower(); expected='Arm64' if machine=='arm64' else 'X86_64'
+          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and sys.argv[2] in evidence and str(pathlib.Path.cwd()) in evidence and 'Macos' in evidence and expected in evidence
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']; assert 'fixture-only' not in open('status.json').read()+open('plan-cli.json').read()+open('plan-config.json').read()
+          selections=a['plan']['tools'][0]['selection']['selections']; assert len(selections)==(1 if machine=='arm64' else 2)
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool nvm --scope nvm=user > tui.txt; grep -E 'mirror=(aliyun|huaweicloud|nju|tuna|ustc)' tui.txt; ! grep -F 'fixture-only' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          source "$profile"; nvm ls-remote --no-colors node|grep -F 'v24.1.0'
+          if test "$(uname -m)" = arm64; then ! grep -F NVM_IOJS_ORG_MIRROR "$profile"; else nvm ls-remote --no-colors iojs|grep -Fx iojs-v3.3.1; fi
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='nvm' and r['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$profile"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 .nvmrc|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$profile")"
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nvm-macos-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/mirrorswitch-nvm-boundary/home/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

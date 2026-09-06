@@ -60,7 +60,7 @@ impl Adapter for NvmAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         let Some(layout) = config_layout(context, runtime)? else {
             return Ok(None);
         };
@@ -86,10 +86,20 @@ impl Adapter for NvmAdapter {
             version: Some(version.clone()),
             evidence: vec![
                 format!("nvm {version} from {installation}"),
+                format!(
+                    "native platform is {:?} {:?}",
+                    context.os, context.architecture
+                ),
+                format!("selected user home is {}", layout.home.display()),
+                format!("NVM_DIR is {}", layout.nvm_dir.display()),
                 format!("active shell is {}", layout.shell),
                 format!(
                     "selected shell initialization is {}",
                     layout.profile.display()
+                ),
+                runtime.project_dir().map_or_else(
+                    || "no project directory was selected".into(),
+                    |path| format!("project directory {} remains read-only", path.display()),
                 ),
                 format!("current Node.js/io.js selection is {current}"),
                 format!("installed Node.js/io.js versions are {installed_summary}"),
@@ -112,7 +122,7 @@ impl Adapter for NvmAdapter {
         _detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if scope != ConfigurationScope::User {
             return Err(AdapterError::Unsupported(
                 "nvm only supports the selected user's shell initialization file".into(),
@@ -168,7 +178,7 @@ impl Adapter for NvmAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let target = detected
             .evidence
@@ -177,23 +187,26 @@ impl Adapter for NvmAdapter {
             .filter(|value| valid_node_version(value))
             .unwrap_or(REVIEWED_NODE_VERSION)
             .to_owned();
+        let mut required_upstreams = vec![NODE_UPSTREAM.into()];
+        let mut probe_contexts = BTreeMap::from([(
+            NODE_UPSTREAM.into(),
+            release_probe_contexts(context, "node", &target)?,
+        )]);
+        if requires_iojs(context) {
+            required_upstreams.push(IOJS_UPSTREAM.into());
+            probe_contexts.insert(
+                IOJS_UPSTREAM.into(),
+                release_probe_contexts(context, "iojs", REVIEWED_IOJS_VERSION)?,
+            );
+        }
         Ok(SelectionRequest {
             tool_id: "nvm".into(),
             adapter_key: "nvm".into(),
             context: context.clone(),
             tool_version: detected.version.clone(),
-            required_upstreams: vec![NODE_UPSTREAM.into(), IOJS_UPSTREAM.into()],
+            required_upstreams,
             repository_versions: BTreeMap::new(),
-            probe_contexts: BTreeMap::from([
-                (
-                    NODE_UPSTREAM.into(),
-                    release_probe_contexts("node", &target),
-                ),
-                (
-                    IOJS_UPSTREAM.into(),
-                    release_probe_contexts("iojs", REVIEWED_IOJS_VERSION),
-                ),
-            ]),
+            probe_contexts,
             required_compatibility_evidence: vec![
                 CompatibilityDimension::OperatingSystem,
                 CompatibilityDimension::Architecture,
@@ -214,11 +227,19 @@ impl Adapter for NvmAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
+        let expected_selections = if requires_iojs(context) { 2 } else { 1 };
+        if selections.len() != expected_selections {
+            return Err(AdapterError::InvalidConfiguration(format!(
+                "nvm on this platform requires {expected_selections} release selection(s)"
+            )));
+        }
         let node = selected_endpoint(selections, NODE_UPSTREAM, NODE_MIRRORS)?;
-        let iojs = selected_endpoint(selections, IOJS_UPSTREAM, IOJS_MIRRORS)?;
+        let iojs = requires_iojs(context)
+            .then(|| selected_endpoint(selections, IOJS_UPSTREAM, IOJS_MIRRORS))
+            .transpose()?;
         let document = current
             .documents
             .iter()
@@ -227,7 +248,10 @@ impl Adapter for NvmAdapter {
                 AdapterError::InvalidConfiguration("selected nvm shell profile is missing".into())
             })?;
         let old = utf8(&document.path, &document.contents)?;
-        let new_contents = rewrite_profile(old, node, iojs, &document.path)?.into_bytes();
+        let mut new_contents = rewrite_profile(old, node, iojs, &document.path)?.into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            new_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let changes = if new_contents == document.contents {
             Vec::new()
         } else {
@@ -240,7 +264,7 @@ impl Adapter for NvmAdapter {
                 old_mode: None,
                 new_contents,
                 new_mode: None,
-                summary: "add or retarget one managed Node.js/io.js mirror block in the explicitly selected user shell profile while preserving nvm initialization and unrelated shell policy".into(),
+                summary: "add or retarget one managed Node.js and platform-applicable io.js mirror block in the explicitly selected user shell profile while preserving nvm initialization and unrelated shell policy".into(),
             }]
         };
         Ok(ChangePlan {
@@ -287,15 +311,31 @@ impl Adapter for NvmAdapter {
                     "nvm shell profile gained conflicting mirror or authorization policy".into(),
                 ));
             }
-            let (node, iojs) = parsed.managed.ok_or_else(|| {
+            let managed = parsed.managed.ok_or_else(|| {
                 AdapterError::Verification("managed nvm mirror block disappeared".into())
             })?;
-            if !is_reviewed(&node, NODE_MIRRORS) || !is_reviewed(&iojs, IOJS_MIRRORS) {
+            if !is_reviewed(&managed.node, NODE_MIRRORS)
+                || managed
+                    .iojs
+                    .as_deref()
+                    .is_some_and(|iojs| !is_reviewed(iojs, IOJS_MIRRORS))
+            {
                 return Err(AdapterError::Verification(
                     "managed nvm mirror block contains an unreviewed endpoint".into(),
                 ));
             }
-            let expected = rewrite_profile(text, &node, &iojs, &layout.profile)?;
+            if requires_iojs(context) != managed.iojs.is_some() {
+                return Err(AdapterError::Verification(
+                    "managed nvm mirror block does not match the native io.js platform boundary"
+                        .into(),
+                ));
+            }
+            let expected = rewrite_profile(
+                text,
+                &managed.node,
+                managed.iojs.as_deref(),
+                &layout.profile,
+            )?;
             if expected != text {
                 return Err(AdapterError::Verification(
                     "managed nvm mirror block is not canonical".into(),
@@ -304,8 +344,8 @@ impl Adapter for NvmAdapter {
             let node_output = run_nvm(
                 runtime,
                 &layout,
-                Some((&node, &iojs)),
-                &["ls-remote", "--no-colors", REVIEWED_NODE_VERSION],
+                Some((&managed.node, managed.iojs.as_deref())),
+                &["ls-remote", "--no-colors", "node"],
             )?;
             if !node_output
                 .lines()
@@ -315,22 +355,25 @@ impl Adapter for NvmAdapter {
                     "nvm did not return {REVIEWED_NODE_VERSION} from the selected Node.js mirror"
                 )));
             }
-            let iojs_output = run_nvm(
-                runtime,
-                &layout,
-                Some((&node, &iojs)),
-                &["ls-remote", "--no-colors", "iojs"],
-            )?;
             let expected_iojs = format!("iojs-{REVIEWED_IOJS_VERSION}");
-            if !iojs_output.lines().any(|line| line.trim() == expected_iojs) {
-                return Err(AdapterError::Verification(format!(
-                    "nvm did not return {expected_iojs} from the selected io.js mirror"
-                )));
+            if let Some(iojs) = managed.iojs.as_deref() {
+                let iojs_output = run_nvm(
+                    runtime,
+                    &layout,
+                    Some((&managed.node, Some(iojs))),
+                    &["ls-remote", "--no-colors", "iojs"],
+                )?;
+                if !iojs_output.lines().any(|line| line.trim() == expected_iojs) {
+                    return Err(AdapterError::Verification(format!(
+                        "nvm did not return {expected_iojs} from the selected io.js mirror"
+                    )));
+                }
             }
             Ok(VerificationResult {
                 valid: true,
-                summary: format!(
-                    "nvm ls-remote resolved {REVIEWED_NODE_VERSION} from {node} and {expected_iojs} from {iojs}"
+                summary: managed.iojs.as_deref().map_or_else(
+                    || format!("nvm ls-remote resolved {REVIEWED_NODE_VERSION} from {}", managed.node),
+                    |iojs| format!("nvm ls-remote resolved {REVIEWED_NODE_VERSION} from {} and {expected_iojs} from {iojs}", managed.node),
                 ),
             })
         })();
@@ -361,6 +404,7 @@ impl Adapter for NvmAdapter {
 
 #[derive(Debug)]
 struct Layout {
+    home: PathBuf,
     shell: String,
     nvm_dir: PathBuf,
     nvm_script: PathBuf,
@@ -369,10 +413,16 @@ struct Layout {
 
 #[derive(Debug)]
 struct ParsedProfile {
-    managed: Option<(String, String)>,
+    managed: Option<ManagedMirrors>,
     unmanaged_mirror: bool,
     authorization_header: bool,
     sources: Vec<ConfiguredSource>,
+}
+
+#[derive(Debug)]
+struct ManagedMirrors {
+    node: String,
+    iojs: Option<String>,
 }
 
 fn config_layout(
@@ -427,6 +477,7 @@ fn config_layout(
     }
     let profile = selected_profile(context, runtime, &home, &shell)?;
     Ok(Some(Layout {
+        home,
         shell,
         nvm_dir,
         nvm_script,
@@ -499,7 +550,7 @@ fn is_nvm_loader_line(line: &str) -> bool {
 fn run_nvm(
     runtime: &dyn Runtime,
     layout: &Layout,
-    mirrors: Option<(&str, &str)>,
+    mirrors: Option<(&str, Option<&str>)>,
     arguments: &[&str],
 ) -> Result<String, AdapterError> {
     let (status, stdout) = invoke_nvm(runtime, layout, mirrors, arguments)?;
@@ -515,7 +566,7 @@ fn run_nvm(
 fn invoke_nvm(
     runtime: &dyn Runtime,
     layout: &Layout,
-    mirrors: Option<(&str, &str)>,
+    mirrors: Option<(&str, Option<&str>)>,
     arguments: &[&str],
 ) -> Result<(std::process::ExitStatus, String), AdapterError> {
     let mut command = format!(
@@ -524,10 +575,15 @@ fn invoke_nvm(
     );
     if let Some((node, iojs)) = mirrors {
         command.push_str(&format!(
-            "export NVM_NODEJS_ORG_MIRROR={}; export NVM_IOJS_ORG_MIRROR={}; ",
-            shell_quote(node),
-            shell_quote(iojs)
+            "export NVM_NODEJS_ORG_MIRROR={}; ",
+            shell_quote(node)
         ));
+        if let Some(iojs) = iojs {
+            command.push_str(&format!(
+                "export NVM_IOJS_ORG_MIRROR={}; ",
+                shell_quote(iojs)
+            ));
+        }
     }
     command.push_str(&format!(
         ". {}; nvm",
@@ -593,24 +649,35 @@ fn valid_iojs_version(value: &str) -> bool {
     value.strip_prefix("iojs-").is_some_and(valid_node_version)
 }
 
-fn release_probe_contexts(prefix: &str, version: &str) -> Vec<BTreeMap<String, String>> {
-    [Architecture::X86_64, Architecture::Arm64]
-        .into_iter()
-        .map(|architecture| {
-            BTreeMap::from([
-                ("artifact_prefix".into(), prefix.into()),
-                ("version".into(), version.into()),
-                (
-                    "architecture".into(),
-                    match architecture {
-                        Architecture::X86_64 => "x64",
-                        Architecture::Arm64 => "arm64",
-                    }
-                    .into(),
-                ),
-            ])
-        })
-        .collect()
+fn release_probe_contexts(
+    context: &SystemContext,
+    prefix: &str,
+    version: &str,
+) -> Result<Vec<BTreeMap<String, String>>, AdapterError> {
+    let architecture = match context.architecture {
+        Architecture::X86_64 => "x64",
+        Architecture::Arm64 => "arm64",
+    };
+    let suffix = match context.os {
+        OperatingSystem::Linux => format!("linux-{architecture}.tar.xz"),
+        OperatingSystem::Macos => format!("darwin-{architecture}.tar.gz"),
+        OperatingSystem::Windows => {
+            return Err(AdapterError::Unsupported(
+                "nvm-windows is a different tool and cannot use the Unix nvm adapter".into(),
+            ));
+        }
+    };
+    Ok(vec![BTreeMap::from([
+        ("version".into(), version.into()),
+        (
+            "artifact_filename".into(),
+            format!("{prefix}-{version}-{suffix}"),
+        ),
+    ])])
+}
+
+fn requires_iojs(context: &SystemContext) -> bool {
+    context.os == OperatingSystem::Linux || context.architecture == Architecture::X86_64
 }
 
 fn parse_profile(text: &str, path: &Path) -> Result<ParsedProfile, AdapterError> {
@@ -636,12 +703,7 @@ fn parse_profile(text: &str, path: &Path) -> Result<ParsedProfile, AdapterError>
                 path.display()
             ))
         })?;
-        let iojs = values.remove("NVM_IOJS_ORG_MIRROR").ok_or_else(|| {
-            AdapterError::InvalidConfiguration(format!(
-                "managed nvm block in {} is missing NVM_IOJS_ORG_MIRROR",
-                path.display()
-            ))
-        })?;
+        let iojs = values.remove("NVM_IOJS_ORG_MIRROR");
         if !values.is_empty() {
             return Err(AdapterError::InvalidConfiguration(format!(
                 "managed nvm block in {} contains unexpected assignments",
@@ -654,13 +716,15 @@ fn parse_profile(text: &str, path: &Path) -> Result<ParsedProfile, AdapterError>
             "managed-shell-profile",
             path,
         ));
-        sources.push(configured_source(
-            IOJS_UPSTREAM,
-            iojs.clone(),
-            "managed-shell-profile",
-            path,
-        ));
-        Some((node, iojs))
+        if let Some(iojs) = &iojs {
+            sources.push(configured_source(
+                IOJS_UPSTREAM,
+                iojs.clone(),
+                "managed-shell-profile",
+                path,
+            ));
+        }
+        Some(ManagedMirrors { node, iojs })
     } else {
         None
     };
@@ -769,7 +833,7 @@ fn line_spans(text: &str) -> impl Iterator<Item = (usize, &str)> {
 fn rewrite_profile(
     text: &str,
     node: &str,
-    iojs: &str,
+    iojs: Option<&str>,
     path: &Path,
 ) -> Result<String, AdapterError> {
     let newline = if text.contains("\r\n") { "\r\n" } else { "\n" };
@@ -795,9 +859,12 @@ fn rewrite_profile(
     Ok(result)
 }
 
-fn render_managed(node: &str, iojs: &str, newline: &str) -> String {
+fn render_managed(node: &str, iojs: Option<&str>, newline: &str) -> String {
+    let iojs = iojs.map_or_else(String::new, |iojs| {
+        format!("export NVM_IOJS_ORG_MIRROR='{iojs}'{newline}")
+    });
     format!(
-        "{MANAGED_BEGIN}{newline}export NVM_NODEJS_ORG_MIRROR='{node}'{newline}export NVM_IOJS_ORG_MIRROR='{iojs}'{newline}{MANAGED_END}{newline}"
+        "{MANAGED_BEGIN}{newline}export NVM_NODEJS_ORG_MIRROR='{node}'{newline}{iojs}{MANAGED_END}{newline}"
     )
 }
 
@@ -917,15 +984,23 @@ fn environment_state(runtime: &dyn Runtime, variable: &str) -> &'static str {
     }
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os == OperatingSystem::Windows {
         return Err(AdapterError::Unsupported(
-            "nvm v0.1 supports Linux x86_64 and arm64 only".into(),
+            "nvm-windows is a different tool and cannot use the Unix nvm adapter".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Macos && context.environment != ExecutionEnvironment::Host {
+        return Err(AdapterError::Unsupported(
+            "nvm on macOS requires a native host".into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "nvm requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -970,6 +1045,9 @@ fn shell_quote(value: &str) -> String {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "nvm shell profile {} is not UTF-8",

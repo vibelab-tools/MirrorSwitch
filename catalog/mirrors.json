@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+04ee6f97ebc6",
-  "content_revision": 20260906051606,
-  "generated_at": "2026-09-06T05:16:06Z",
+  "content_version": "2026.08.28+1da31636743f",
+  "content_revision": 20260906053458,
+  "generated_at": "2026-09-06T05:34:58Z",
   "providers": [
     {
       "id": "aliyun",
@@ -3441,6 +3441,74 @@
         "repository_versions": []
       },
       "probes": [],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "06bb4d477f064f5a1280f575",
+      "provider_id": "huaweicloud",
+      "upstream_id": "nodejs--release-artifacts",
+      "tool_id": "nvm",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nodejs"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/nodejs/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/index.tab",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/{version}/SHASUMS256.txt",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{artifact_filename}"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/{version}/{artifact_filename}",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
       ],
@@ -8213,6 +8281,74 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "2a1fe5b7e8257938c673af9a",
+      "provider_id": "ustc",
+      "upstream_id": "nodejs--release-artifacts",
+      "tool_id": "nvm",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "node"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/node/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/index.tab",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/{version}/SHASUMS256.txt",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{artifact_filename}"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/{version}/{artifact_filename}",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/node.html"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "2a2694d0c1a11b3af725f13b",
       "provider_id": "tuna",
       "upstream_id": "archlinuxarm--repository-metadata",
@@ -8683,73 +8819,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.ustc.edu.cn/help/epel.html"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "2fbf46e16600f2312b9405e0",
-      "provider_id": "tuna",
-      "upstream_id": "nodejs--release-artifacts",
-      "tool_id": "nvm",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "nodejs-release"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/index.tab",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "get",
-          "path": "/{version}/SHASUMS256.txt",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{artifact_prefix}-{version}-linux-{architecture}.tar.xz"
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/{version}/{artifact_prefix}-{version}-linux-{architecture}.tar.xz",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -12464,6 +12533,74 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "4bd1fb62e4667e3b036f3e7a",
+      "provider_id": "tuna",
+      "upstream_id": "nodejs--release-artifacts",
+      "tool_id": "nvm",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nodejs-release"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/index.tab",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/{version}/SHASUMS256.txt",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{artifact_filename}"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/{version}/{artifact_filename}",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "4bdf24c5adf10144a7a45dd2",
       "provider_id": "tuna",
       "upstream_id": "opensuse--repository-metadata",
@@ -13275,73 +13412,6 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "56d40d0a0f5c12f8ed10bd53",
-      "provider_id": "huaweicloud",
-      "upstream_id": "nodejs--release-artifacts",
-      "tool_id": "nvm",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "nodejs"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/nodejs/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/index.tab",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "get",
-          "path": "/{version}/SHASUMS256.txt",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{artifact_prefix}-{version}-linux-{architecture}.tar.xz"
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/{version}/{artifact_prefix}-{version}-linux-{architecture}.tar.xz",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -22144,73 +22214,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "9c2459724a0c7763057667af",
-      "provider_id": "aliyun",
-      "upstream_id": "nodejs--release-artifacts",
-      "tool_id": "nvm",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "nodejs-release"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/nodejs-release/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/index.tab",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "get",
-          "path": "/{version}/SHASUMS256.txt",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{artifact_prefix}-{version}-linux-{architecture}.tar.xz"
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/{version}/{artifact_prefix}-{version}-linux-{architecture}.tar.xz",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "9c2e25b08095c984653d8ef2",
       "provider_id": "huaweicloud",
       "upstream_id": "dart-pub--language-registry",
@@ -23518,73 +23521,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "a7a5e29d182960a9e38be39a",
-      "provider_id": "huaweicloud",
-      "upstream_id": "iojs--release-artifacts",
-      "tool_id": "nvm",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "iojs"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/iojs/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/index.tab",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "get",
-          "path": "/{version}/SHASUMS256.txt",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{artifact_prefix}-{version}-linux-{architecture}.tar.xz"
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/{version}/{artifact_prefix}-{version}-linux-{architecture}.tar.xz",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "a85353fd53bfb513a86668f7",
       "provider_id": "nju",
       "upstream_id": "opam-repository--git-mirror",
@@ -23927,73 +23863,6 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "ab59e66f451a386ecf4a6c59",
-      "provider_id": "nju",
-      "upstream_id": "nodejs--release-artifacts",
-      "tool_id": "nvm",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "nodejs-release"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/nodejs-release/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/index.tab",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "get",
-          "path": "/{version}/SHASUMS256.txt",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{artifact_prefix}-{version}-linux-{architecture}.tar.xz"
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/{version}/{artifact_prefix}-{version}-linux-{architecture}.tar.xz",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -26081,73 +25950,6 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "b7d5f62b15a563bc7df9ce3e",
-      "provider_id": "ustc",
-      "upstream_id": "nodejs--release-artifacts",
-      "tool_id": "nvm",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "node"
-      ],
-      "endpoints": [
-        {
-          "role": "releases",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/node/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/index.tab",
-          "expected_status": [
-            200,
-            206
-          ]
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "get",
-          "path": "/{version}/SHASUMS256.txt",
-          "expected_status": [
-            200,
-            206
-          ],
-          "contains": "{artifact_prefix}-{version}-linux-{architecture}.tar.xz"
-        },
-        {
-          "endpoint_role": "releases",
-          "method": "head",
-          "path": "/{version}/{artifact_prefix}-{version}-linux-{architecture}.tar.xz",
-          "expected_status": [
-            200,
-            206
-          ]
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/node.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -28692,6 +28494,74 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.huaweicloud.com/v1/repositories"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "c9084d53eb346228a149772d",
+      "provider_id": "aliyun",
+      "upstream_id": "nodejs--release-artifacts",
+      "tool_id": "nvm",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nodejs-release"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/nodejs-release/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/index.tab",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/{version}/SHASUMS256.txt",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{artifact_filename}"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/{version}/{artifact_filename}",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -34387,6 +34257,74 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "f013929104aae6e0430080ed",
+      "provider_id": "nju",
+      "upstream_id": "nodejs--release-artifacts",
+      "tool_id": "nvm",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "nodejs-release"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/nodejs-release/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/index.tab",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/{version}/SHASUMS256.txt",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{artifact_filename}"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/{version}/{artifact_filename}",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "f0343691b46cba642c807435",
       "provider_id": "nju",
       "upstream_id": "nginx-org--repository-metadata",
@@ -35750,6 +35688,74 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "fa1634666ecf7cffb20a4971",
+      "provider_id": "huaweicloud",
+      "upstream_id": "iojs--release-artifacts",
+      "tool_id": "nvm",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "iojs"
+      ],
+      "endpoints": [
+        {
+          "role": "releases",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/iojs/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/index.tab",
+          "expected_status": [
+            200,
+            206
+          ]
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "get",
+          "path": "/{version}/SHASUMS256.txt",
+          "expected_status": [
+            200,
+            206
+          ],
+          "contains": "{artifact_filename}"
+        },
+        {
+          "endpoint_role": "releases",
+          "method": "head",
+          "path": "/{version}/{artifact_filename}",
+          "expected_status": [
+            200,
+            206
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

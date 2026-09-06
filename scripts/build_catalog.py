@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "109"
+CATALOG_FORMAT_REVISION = "110"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -3039,7 +3039,9 @@ def runtime_properties(
         and upstream_key == NODE_DISTRIBUTION_UPSTREAM
     ) or (tool_id == "nvm" and upstream_key == IOJS_RELEASE_UPSTREAM):
         compatibility["operating_systems"] = (
-            ["linux", "macos", "windows"] if tool_id == "fnm" else ["linux"]
+            ["linux", "macos", "windows"]
+            if tool_id == "fnm"
+            else ["linux", "macos"]
         )
         compatibility["architectures"] = ["x86_64", "arm64"]
         compatibility["environments"] = ["container", "host"]
@@ -3057,20 +3059,12 @@ def runtime_properties(
                 "method": "get",
                 "path": "/{version}/SHASUMS256.txt",
                 "expected_status": [200, 206],
-                "contains": (
-                    "{artifact_filename}"
-                    if tool_id == "fnm"
-                    else "{artifact_prefix}-{version}-linux-{architecture}.tar.xz"
-                ),
+                "contains": "{artifact_filename}",
             },
             {
                 "endpoint_role": "releases",
                 "method": "head",
-                "path": (
-                    "/{version}/{artifact_filename}"
-                    if tool_id == "fnm"
-                    else "/{version}/{artifact_prefix}-{version}-linux-{architecture}.tar.xz"
-                ),
+                "path": "/{version}/{artifact_filename}",
                 "expected_status": [200, 206],
             },
         ]
