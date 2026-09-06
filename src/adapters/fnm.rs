@@ -57,7 +57,7 @@ impl Adapter for FnmAdapter {
         context: &SystemContext,
         runtime: &dyn Runtime,
     ) -> Result<Option<DetectedTool>, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if !runtime.command_exists("fnm") {
             return Ok(None);
         }
@@ -82,10 +82,20 @@ impl Adapter for FnmAdapter {
             version: Some(version.clone()),
             evidence: vec![
                 format!("fnm {version}"),
+                format!(
+                    "native platform is {:?} {:?}",
+                    context.os, context.architecture
+                ),
+                format!("selected user home is {}", layout.home.display()),
                 format!("active shell is {}", layout.shell.name()),
+                format!("native shell executable is {}", layout.shell_executable),
                 format!(
                     "selected shell initialization is {}",
                     layout.profile.display()
+                ),
+                runtime.project_dir().map_or_else(
+                    || "no project directory was selected".into(),
+                    |path| format!("project directory {} remains read-only", path.display()),
                 ),
                 format!("current Node.js selection is {current}"),
                 format!("installed Node.js versions are {installed_summary}"),
@@ -107,7 +117,7 @@ impl Adapter for FnmAdapter {
         _detected: &DetectedTool,
         scope: ConfigurationScope,
     ) -> Result<CurrentConfiguration, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         if scope != ConfigurationScope::User {
             return Err(AdapterError::Unsupported(
                 "fnm only supports one selected user shell initialization file".into(),
@@ -153,7 +163,7 @@ impl Adapter for FnmAdapter {
         detected: &DetectedTool,
         current: &CurrentConfiguration,
     ) -> Result<SelectionRequest, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         let target = detected
             .evidence
@@ -170,7 +180,7 @@ impl Adapter for FnmAdapter {
             repository_versions: BTreeMap::new(),
             probe_contexts: BTreeMap::from([(
                 NODE_UPSTREAM.into(),
-                release_probe_contexts(&target),
+                release_probe_contexts(context, &target)?,
             )]),
             required_compatibility_evidence: vec![
                 CompatibilityDimension::OperatingSystem,
@@ -192,7 +202,7 @@ impl Adapter for FnmAdapter {
         current: &CurrentConfiguration,
         selections: &[MirrorSelection],
     ) -> Result<ChangePlan, AdapterError> {
-        require_linux(context)?;
+        require_supported_context(context)?;
         require_current(current)?;
         validate_policy(current)?;
         let endpoint = selected_endpoint(selections)?;
@@ -205,7 +215,10 @@ impl Adapter for FnmAdapter {
             })?;
         let shell = shell_from_format(&document.format)?;
         let old = utf8(&document.path, &document.contents)?;
-        let new_contents = rewrite_profile(old, endpoint, &document.path, shell)?.into_bytes();
+        let mut new_contents = rewrite_profile(old, endpoint, &document.path, shell)?.into_bytes();
+        if document.contents.starts_with(&[0xef, 0xbb, 0xbf]) {
+            new_contents.splice(..0, [0xef, 0xbb, 0xbf]);
+        }
         let changes = if new_contents == document.contents {
             Vec::new()
         } else {
@@ -290,6 +303,8 @@ impl Adapter for FnmAdapter {
                     "--latest",
                     "--node-dist-mirror",
                     &endpoint,
+                    "--arch",
+                    fnm_architecture(context)?,
                 ],
             )?;
             if !output
@@ -336,6 +351,7 @@ enum ShellKind {
     Bash,
     Zsh,
     Fish,
+    PowerShell,
 }
 
 impl ShellKind {
@@ -344,13 +360,16 @@ impl ShellKind {
             Self::Bash => "bash",
             Self::Zsh => "zsh",
             Self::Fish => "fish",
+            Self::PowerShell => "powershell",
         }
     }
 }
 
 #[derive(Debug)]
 struct Layout {
+    home: PathBuf,
     shell: ShellKind,
+    shell_executable: String,
     profile: PathBuf,
 }
 
@@ -367,17 +386,40 @@ fn config_layout(context: &SystemContext, runtime: &dyn Runtime) -> Result<Layou
         .home_dir()
         .ok_or_else(|| AdapterError::Unsupported("fnm requires a detected user home".into()))?;
     validate_path(&home, "home")?;
-    let shell = runtime
-        .environment_variable("SHELL")
-        .and_then(|value| Path::new(&value).file_name().map(|name| name.to_owned()))
-        .and_then(|name| name.to_str().and_then(parse_shell))
-        .ok_or_else(|| {
+    let (shell, shell_executable) = if context.os == OperatingSystem::Windows {
+        let executable = if runtime.command_exists("pwsh") {
+            "pwsh"
+        } else if runtime.command_exists("powershell") {
+            "powershell"
+        } else {
+            return Err(AdapterError::Unsupported(
+                "fnm on Windows requires PowerShell or PowerShell 7 for profile discovery".into(),
+            ));
+        };
+        (ShellKind::PowerShell, executable.into())
+    } else {
+        let executable = runtime.environment_variable("SHELL").ok_or_else(|| {
             AdapterError::Unsupported(
                 "fnm requires SHELL to select bash, zsh, or fish initialization".into(),
             )
         })?;
-    let profile = selected_profile(context, runtime, &home, shell)?;
-    Ok(Layout { shell, profile })
+        let shell = Path::new(&executable)
+            .file_name()
+            .and_then(|name| name.to_str().and_then(parse_shell))
+            .ok_or_else(|| {
+                AdapterError::Unsupported(
+                    "fnm requires SHELL to select bash, zsh, or fish initialization".into(),
+                )
+            })?;
+        (shell, executable)
+    };
+    let profile = selected_profile(context, runtime, &home, shell, &shell_executable)?;
+    Ok(Layout {
+        home,
+        shell,
+        shell_executable,
+        profile,
+    })
 }
 
 fn parse_shell(value: &str) -> Option<ShellKind> {
@@ -394,6 +436,7 @@ fn selected_profile(
     runtime: &dyn Runtime,
     home: &Path,
     shell: ShellKind,
+    shell_executable: &str,
 ) -> Result<PathBuf, AdapterError> {
     if let Some(value) = runtime
         .environment_variable("PROFILE")
@@ -433,7 +476,9 @@ fn selected_profile(
             }
         }
         ShellKind::Fish => home.join(".config/fish/conf.d/fnm.fish"),
+        ShellKind::PowerShell => powershell_profile(runtime, shell_executable)?,
     };
+    validate_user_profile(&path, home)?;
     let contents = runtime.read(&path)?.ok_or_else(|| {
         AdapterError::Unsupported(format!(
             "{} does not exist; set PROFILE to select a persistent fnm environment explicitly",
@@ -450,9 +495,41 @@ fn selected_profile(
     Ok(path)
 }
 
+fn powershell_profile(
+    runtime: &dyn Runtime,
+    shell_executable: &str,
+) -> Result<PathBuf, AdapterError> {
+    let output = runtime.run(
+        shell_executable,
+        &[
+            "-NoLogo".into(),
+            "-NoProfile".into(),
+            "-NonInteractive".into(),
+            "-Command".into(),
+            "[Console]::Out.Write($PROFILE.CurrentUserCurrentHost)".into(),
+        ],
+    )?;
+    if !output.status.success() {
+        return Err(AdapterError::Runtime(format!(
+            "{shell_executable} profile discovery failed with status {}",
+            output.status
+        )));
+    }
+    let stdout = String::from_utf8(output.stdout).map_err(|_| {
+        AdapterError::Runtime("PowerShell returned a non-UTF-8 profile path".into())
+    })?;
+    let profile = PathBuf::from(stdout.trim());
+    if profile.as_os_str().is_empty() {
+        return Err(AdapterError::Unsupported(
+            "PowerShell did not report CurrentUserCurrentHost profile".into(),
+        ));
+    }
+    Ok(profile)
+}
+
 fn is_fnm_loader_line(line: &str) -> bool {
     let line = line.trim();
-    !line.starts_with('#') && line.contains("fnm env")
+    !line.starts_with('#') && line.to_ascii_lowercase().contains("fnm env")
 }
 
 fn run_fnm(runtime: &dyn Runtime, arguments: &[&str]) -> Result<String, AdapterError> {
@@ -551,17 +628,34 @@ fn normalized_node_version(value: &str) -> Option<String> {
     .then(|| format!("v{version}"))
 }
 
-fn release_probe_contexts(version: &str) -> Vec<BTreeMap<String, String>> {
-    ["x64", "arm64"]
-        .into_iter()
-        .map(|architecture| {
-            BTreeMap::from([
-                ("artifact_prefix".into(), "node".into()),
-                ("version".into(), version.into()),
-                ("architecture".into(), architecture.into()),
-            ])
-        })
-        .collect()
+fn release_probe_contexts(
+    context: &SystemContext,
+    version: &str,
+) -> Result<Vec<BTreeMap<String, String>>, AdapterError> {
+    let architecture = fnm_architecture(context)?;
+    let suffix = match context.os {
+        OperatingSystem::Linux => format!("linux-{architecture}.tar.xz"),
+        OperatingSystem::Macos => format!("darwin-{architecture}.tar.gz"),
+        OperatingSystem::Windows => format!("win-{architecture}.zip"),
+    };
+    Ok(vec![BTreeMap::from([
+        ("version".into(), version.into()),
+        (
+            "artifact_filename".into(),
+            format!("node-{version}-{suffix}"),
+        ),
+    ])])
+}
+
+fn fnm_architecture(context: &SystemContext) -> Result<&'static str, AdapterError> {
+    match (context.os, context.architecture) {
+        (OperatingSystem::Windows, Architecture::Arm64) => Err(AdapterError::Unsupported(
+            "fnm on Windows arm64 is unavailable because fnm 1.39.0 publishes one x64 Windows binary"
+                .into(),
+        )),
+        (_, Architecture::X86_64) => Ok("x64"),
+        (_, Architecture::Arm64) => Ok("arm64"),
+    }
 }
 
 fn parse_profile(text: &str, path: &Path, shell: ShellKind) -> Result<ParsedProfile, AdapterError> {
@@ -656,6 +750,15 @@ fn assignment(line: &str, shell: ShellKind) -> Result<Option<&str>, AdapterError
             }
             value
         }
+        ShellKind::PowerShell => {
+            let Some((key, value)) = line.split_once('=') else {
+                return Ok(None);
+            };
+            if !key.trim().eq_ignore_ascii_case("$env:FNM_NODE_DIST_MIRROR") {
+                return Ok(None);
+            }
+            value.trim()
+        }
     };
     literal_value(raw).map(Some)
 }
@@ -748,6 +851,7 @@ fn render_managed(endpoint: &str, newline: &str, shell: ShellKind) -> String {
             format!("export FNM_NODE_DIST_MIRROR='{endpoint}'")
         }
         ShellKind::Fish => format!("set -gx FNM_NODE_DIST_MIRROR '{endpoint}'"),
+        ShellKind::PowerShell => format!("$env:FNM_NODE_DIST_MIRROR = '{endpoint}'"),
     };
     format!("{MANAGED_BEGIN}{newline}{assignment}{newline}{MANAGED_END}{newline}")
 }
@@ -847,10 +951,15 @@ fn policy_source(kind: &str, path: &Path, shell: ShellKind) -> ConfiguredSource 
 }
 
 fn shell_from_format(format: &str) -> Result<ShellKind, AdapterError> {
-    [ShellKind::Bash, ShellKind::Zsh, ShellKind::Fish]
-        .into_iter()
-        .find(|shell| format == format!("fnm-selected-{}-profile", shell.name()))
-        .ok_or_else(|| AdapterError::InvalidConfiguration("unknown fnm profile format".into()))
+    [
+        ShellKind::Bash,
+        ShellKind::Zsh,
+        ShellKind::Fish,
+        ShellKind::PowerShell,
+    ]
+    .into_iter()
+    .find(|shell| format == format!("fnm-selected-{}-profile", shell.name()))
+    .ok_or_else(|| AdapterError::InvalidConfiguration("unknown fnm profile format".into()))
 }
 
 fn environment_state(runtime: &dyn Runtime, variable: &str) -> &'static str {
@@ -864,15 +973,24 @@ fn environment_state(runtime: &dyn Runtime, variable: &str) -> &'static str {
     }
 }
 
-fn require_linux(context: &SystemContext) -> Result<(), AdapterError> {
-    if context.os != OperatingSystem::Linux
-        || !matches!(
-            context.architecture,
-            Architecture::X86_64 | Architecture::Arm64
-        )
-    {
+fn require_supported_context(context: &SystemContext) -> Result<(), AdapterError> {
+    if context.os != OperatingSystem::Linux && context.environment != ExecutionEnvironment::Host {
         return Err(AdapterError::Unsupported(
-            "fnm v0.1 supports Linux x86_64 and arm64 only".into(),
+            "fnm on macOS and Windows requires a native host".into(),
+        ));
+    }
+    if context.os == OperatingSystem::Windows && context.architecture == Architecture::Arm64 {
+        return Err(AdapterError::Unsupported(
+            "fnm on Windows arm64 is unavailable because fnm 1.39.0 publishes one x64 Windows binary"
+                .into(),
+        ));
+    }
+    if !matches!(
+        context.architecture,
+        Architecture::X86_64 | Architecture::Arm64
+    ) {
+        return Err(AdapterError::Unsupported(
+            "fnm requires x86_64 or arm64".into(),
         ));
     }
     Ok(())
@@ -913,6 +1031,9 @@ fn validate_path(path: &Path, kind: &str) -> Result<(), AdapterError> {
 }
 
 fn utf8<'a>(path: &Path, contents: &'a [u8]) -> Result<&'a str, AdapterError> {
+    let contents = contents
+        .strip_prefix(&[0xef, 0xbb, 0xbf])
+        .unwrap_or(contents);
     std::str::from_utf8(contents).map_err(|_| {
         AdapterError::InvalidConfiguration(format!(
             "fnm shell profile {} is not UTF-8",

@@ -1,0 +1,127 @@
+name: fnm macOS and Windows live boundary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.88.0
+  FNM_VERSION: 1.39.0
+
+jobs:
+  native:
+    name: fnm (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS x86_64, runner: macos-15-intel }
+          - { name: macOS arm64, runner: macos-15 }
+          - { name: Windows x86_64, runner: windows-2025 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install pinned universal macOS fnm
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          directory="$RUNNER_TEMP/fnm-$FNM_VERSION"; mkdir -p "$directory"
+          curl -fsSL "https://github.com/Schniz/fnm/releases/download/v$FNM_VERSION/fnm-macos.zip" -o "$directory/fnm.zip"
+          printf '%s  %s\n' 'f046483e85c53b3278efe49a3620c8680f22efa58a8dabfd03eafc6b59b31a25' "$directory/fnm.zip"|shasum -a 256 -c -
+          unzip -q "$directory/fnm.zip" -d "$directory"; chmod +x "$directory/fnm"; echo "$directory" >> "$GITHUB_PATH"
+          file "$directory/fnm"|grep -E 'universal binary.*x86_64.*arm64'
+      - name: Install pinned Windows x64 fnm
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $directory=Join-Path $env:RUNNER_TEMP "fnm-$env:FNM_VERSION"; New-Item -ItemType Directory -Force $directory|Out-Null; $archive=Join-Path $directory 'fnm.zip'
+          Invoke-WebRequest "https://github.com/Schniz/fnm/releases/download/v$env:FNM_VERSION/fnm-windows.zip" -OutFile $archive
+          if((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne '8183bed4348cb78fdfd8abb3d1247fbeab7b2082f941363929c61e747c001e10'){throw 'fnm Windows archive checksum mismatch'}
+          Expand-Archive $archive -DestinationPath $directory -Force; $directory|Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          & (Join-Path $directory 'fnm.exe') --version; if($LASTEXITCODE -ne 0){throw 'native fnm executable failed'}
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          fnm --version
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+      - name: Run deterministic fnm boundary
+        run: cargo test --locked --test fnm_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
+      - name: Build native release executable
+        run: cargo build --locked --release --bin mirrorswitch
+      - name: Exercise macOS zsh profile, native archive, frontends, and recovery
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-fnm-boundary"; export HOME="$boundary/home" SHELL=/bin/zsh; unset PROFILE ZDOTDIR FNM_NODE_DIST_MIRROR FNM_DIR FNM_ARCH
+          project="$HOME/project"; profile="$HOME/.zshrc"; mkdir -p "$project"
+          printf '%s\n' '# native zsh policy' "export PRIVATE_NODE_TOKEN='fixture-only'" 'eval "$(fnm env --use-on-cd --shell zsh)"' > "$profile"; chmod 0600 "$profile"
+          printf '%s\n' 'private-project-fixture' > "$project/.node-version"; chmod 0400 "$project/.node-version"
+          printf '{"version":1,"tools":[{"id":"fnm","scope":"user"}]}\n' > "$project/request.json"
+          before=$(shasum -a 256 "$profile"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/.node-version"|awk '{print $1}'); mode=$(stat -f '%Lp' "$profile")
+          cd "$project"
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool fnm --scope fnm=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          python3 - "$profile" "$HOME" <<'PY'
+          import json, pathlib, platform, sys
+          status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='fnm']; assert len(tools)==1
+          machine=platform.machine().lower(); expected='Arm64' if machine=='arm64' else 'X86_64'
+          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and sys.argv[2] in evidence and str(pathlib.Path.cwd()) in evidence and 'Macos' in evidence and expected in evidence
+          a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']; assert 'fixture-only' not in open('status.json').read()+open('plan-cli.json').read()+open('plan-config.json').read()
+          selections=a['plan']['tools'][0]['selection']['selections']; assert len(selections)==1
+          PY
+          printf '\nn\n'|"$binary" tui --offline --tool fnm --scope fnm=user > tui.txt; grep -E 'mirror=(aliyun|huaweicloud|nju|tuna|ustc)' tui.txt; ! grep -F 'fixture-only' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > apply.json
+          id=$(python3 - <<'PY'
+          import json
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          PY
+          )
+          source "$profile"; printf '%s\n' "$FNM_NODE_DIST_MIRROR"|grep -E 'mirrors\.(aliyun|nju|tuna|ustc)|repo\.huaweicloud\.com'
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('idempotent.json'))['result']; r=json.load(open('restore.json')); assert a['successful'] and not [t for t in a['tools'] if t['status']=='applied']; assert r['adapter_key']=='fnm' and r['receipt']['verified']
+          PY
+          test "$before" = "$(shasum -a 256 "$profile"|awk '{print $1}')"; test "$project_before" = "$(shasum -a 256 .node-version|awk '{print $1}')"; test "$mode" = "$(stat -f '%Lp' "$profile")"
+      - name: Exercise Windows PowerShell profile, native archive, frontends, and recovery
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; Remove-Item Env:PROFILE,Env:FNM_NODE_DIST_MIRROR,Env:FNM_DIR,Env:FNM_ARCH -ErrorAction SilentlyContinue
+          $launcher=(Get-Command fnm -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -ne '.exe'){throw "native fnm launcher is not an executable: $launcher"}
+          $profilePath=$PROFILE.CurrentUserCurrentHost; $profileExisted=Test-Path $profilePath; $profileBackup=if($profileExisted){[IO.File]::ReadAllBytes($profilePath)}else{$null}; New-Item -ItemType Directory -Force (Split-Path $profilePath)|Out-Null
+          $project=Join-Path $env:RUNNER_TEMP 'mirrorswitch-fnm-boundary/project'; New-Item -ItemType Directory -Force $project|Out-Null
+          try{
+            $contents="# native PowerShell policy`r`n`$env:PRIVATE_NODE_TOKEN = 'fixture-only'`r`nfnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression`r`n"; [IO.File]::WriteAllText($profilePath,$contents,[Text.UTF8Encoding]::new($true))
+            [IO.File]::WriteAllText((Join-Path $project '.node-version'),'private-project-fixture',[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project '.node-version') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"fnm","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+            $before=(Get-FileHash $profilePath -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project '.node-version') -Algorithm SHA256).Hash; $acl=(Get-Acl $profilePath).Sddl
+            Push-Location $project
+            try{
+              (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool fnm --scope fnm=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+              $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'fnm'); if($tools.Count -ne 1){throw 'fnm not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains($profilePath) -or -not $evidence.Contains($env:USERPROFILE) -or -not $evidence.Contains($project) -or -not $evidence.Contains('Windows') -or -not $evidence.Contains('X86_64') -or -not $evidence.Contains('pwsh')){throw 'native path/platform evidence missing'}
+              $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or ($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -ne ($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress) -or (Get-Content status.json,plan-cli.json,plan-config.json -Raw)-match 'fixture-only'){throw 'frontend plans differ or private policy leaked'}
+              @('','n')|& $binary tui --offline --tool fnm --scope fnm=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(aliyun|huaweicloud|nju|tuna|ustc)') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
+              (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'fnm apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+              . $profilePath; if($env:FNM_NODE_DIST_MIRROR -notmatch 'mirrors\.(aliyun|nju|tuna|ustc)|repo\.huaweicloud\.com'){throw 'PowerShell did not load selected mirror'}
+              (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'fnm'){throw 'restore failed'}
+            }finally{Pop-Location}
+            $bytes=[IO.File]::ReadAllBytes($profilePath); if($before -ne (Get-FileHash $profilePath -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project '.node-version') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $profilePath).Sddl -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'fnm state not restored exactly'}
+          }finally{
+            if($profileExisted){[IO.File]::WriteAllBytes($profilePath,$profileBackup)}else{Remove-Item $profilePath -Force -ErrorAction SilentlyContinue}
+          }
+      - name: Save redacted boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fnm-native-${{ matrix.name }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/mirrorswitch-fnm-boundary/home/project/*.json
+            ${{ runner.temp }}/mirrorswitch-fnm-boundary/project/*.json
+          if-no-files-found: warn
+          retention-days: 7

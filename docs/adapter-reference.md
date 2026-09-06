@@ -53,7 +53,7 @@ content remain unchanged and are reported.
 | `leiningen` | user | Linux/macOS/Windows Clojars/Maven dependency resolution; native launcher, profiles and credentials preserved ([details](adapters/leiningen.md)) |
 | `bazel` | system/user | Bazelisk release or signed APT path; project files and checksum policy preserved ([#70](https://github.com/vibelab-tools/MirrorSwitch/issues/70)) |
 | `nvm` | user | Remote version query; one initialized shell profile and Node/io.js roots ([details](adapters/nvm.md)) |
-| `fnm` | user | Remote protocol query; persistent shell environment must be explicit ([details](adapters/fnm.md)) |
+| `fnm` | user | Linux/macOS shell or Windows x64 PowerShell profile; exact platform archive and native `list-remote --arch` verification ([details](adapters/fnm.md)) |
 | `go` | user | Linux/macOS/Windows fixed module download with checksum; reported GOENV plus GOPROXY fallback/private rules preserved ([details](adapters/go.md)) |
 | `cargo` | user | Linux/macOS/Windows sparse/git index and checksum/archive query; native CARGO_HOME and private registries preserved ([details](adapters/cargo.md)) |
 | `rustup` | user | Linux/macOS shell or Windows HKCU environment plus `rustup check`; platform triples and dist/update roots stay paired ([details](adapters/rustup.md)) |
