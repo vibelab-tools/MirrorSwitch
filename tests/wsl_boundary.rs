@@ -196,6 +196,21 @@ fn wsl_inventory_uses_native_registered_distribution_names_when_available() {
 }
 
 #[test]
+fn wsl_inventory_probes_the_launcher_when_the_registered_list_is_empty() {
+    let runtime = WslRuntime {
+        calls: RefCell::new(Vec::new()),
+        system_path_only: false,
+        list_on_stderr: false,
+        registered_names: Some(Vec::new()),
+    };
+
+    let distributions = discover(&runtime).unwrap();
+
+    assert_eq!(distributions.len(), 2);
+    assert_eq!(runtime.calls.borrow()[0], ["--list", "--quiet"]);
+}
+
+#[test]
 fn tui_shows_wsl_as_a_separate_explicit_target_hierarchy() {
     let runtime = WslRuntime {
         calls: RefCell::new(Vec::new()),

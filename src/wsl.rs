@@ -11,8 +11,8 @@ use std::{os::windows::ffi::OsStrExt, ptr::null_mut};
 use windows_sys::Win32::{
     Foundation::{ERROR_FILE_NOT_FOUND, ERROR_NO_MORE_ITEMS, ERROR_SUCCESS},
     System::Registry::{
-        HKEY, HKEY_CURRENT_USER, KEY_READ, REG_SZ, RegCloseKey, RegEnumKeyExW, RegOpenKeyExW,
-        RegQueryValueExW,
+        HKEY, HKEY_CURRENT_USER, KEY_READ, KEY_WOW64_32KEY, KEY_WOW64_64KEY, REG_SZ, RegCloseKey,
+        RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW,
     },
 };
 
@@ -36,26 +36,27 @@ pub fn discover(runtime: &dyn Runtime) -> Result<Vec<WslDistribution>, AdapterEr
     let Some(program) = wsl_program(runtime) else {
         return Ok(Vec::new());
     };
-    let names = if let Some(names) = runtime.wsl_distribution_names()? {
-        names
-    } else {
-        let output = runtime.run(&program, &["--list".into(), "--quiet".into()])?;
-        if !output.status.success() {
-            return Err(AdapterError::Runtime(format!(
-                "wsl.exe --list --quiet failed with status {}",
-                output.status
-            )));
+    let names = match runtime.wsl_distribution_names()? {
+        Some(names) if !names.is_empty() => names,
+        _ => {
+            let output = runtime.run(&program, &["--list".into(), "--quiet".into()])?;
+            if !output.status.success() {
+                return Err(AdapterError::Runtime(format!(
+                    "wsl.exe --list --quiet failed with status {}",
+                    output.status
+                )));
+            }
+            decode_output(if output.stdout.is_empty() {
+                &output.stderr
+            } else {
+                &output.stdout
+            })?
+            .lines()
+            .map(str::trim)
+            .filter(|name| !name.is_empty())
+            .map(str::to_owned)
+            .collect()
         }
-        decode_output(if output.stdout.is_empty() {
-            &output.stderr
-        } else {
-            &output.stdout
-        })?
-        .lines()
-        .map(str::trim)
-        .filter(|name| !name.is_empty())
-        .map(str::to_owned)
-        .collect()
     };
     let mut distributions = Vec::new();
     for name in names {
@@ -100,8 +101,27 @@ pub(crate) fn registered_distribution_names() -> Result<Vec<String>, AdapterErro
     const DISTRIBUTION_NAME: &str = "DistributionName";
 
     let path = wide(LXSS_PATH);
+    let mut names = Vec::new();
+    for view in [KEY_WOW64_64KEY, KEY_WOW64_32KEY] {
+        names.extend(registered_distribution_names_in_view(
+            &path,
+            DISTRIBUTION_NAME,
+            KEY_READ | view,
+        )?);
+    }
+    names.sort();
+    names.dedup();
+    Ok(names)
+}
+
+#[cfg(windows)]
+fn registered_distribution_names_in_view(
+    path: &[u16],
+    distribution_name: &str,
+    access: u32,
+) -> Result<Vec<String>, AdapterError> {
     let mut root = null_mut();
-    let result = unsafe { RegOpenKeyExW(HKEY_CURRENT_USER, path.as_ptr(), 0, KEY_READ, &mut root) };
+    let result = unsafe { RegOpenKeyExW(HKEY_CURRENT_USER, path.as_ptr(), 0, access, &mut root) };
     if result == ERROR_FILE_NOT_FOUND {
         return Ok(Vec::new());
     }
@@ -133,16 +153,13 @@ pub(crate) fn registered_distribution_names() -> Result<Vec<String>, AdapterErro
         let mut subkey = null_mut();
         let mut subkey_name = subkey_name[..length as usize].to_vec();
         subkey_name.push(0);
-        let result =
-            unsafe { RegOpenKeyExW(root.0, subkey_name.as_ptr(), 0, KEY_READ, &mut subkey) };
+        let result = unsafe { RegOpenKeyExW(root.0, subkey_name.as_ptr(), 0, access, &mut subkey) };
         win32_result(result, "open a WSL distribution registry entry")?;
         let subkey = RegistryKey(subkey);
-        if let Some(name) = query_registry_string(subkey.0, DISTRIBUTION_NAME)? {
+        if let Some(name) = query_registry_string(subkey.0, distribution_name)? {
             names.push(name);
         }
     }
-    names.sort();
-    names.dedup();
     Ok(names)
 }
 
