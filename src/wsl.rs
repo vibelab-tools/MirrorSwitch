@@ -98,7 +98,7 @@ pub(crate) fn captured_distribution_names() -> Result<Vec<String>, AdapterError>
             "/D",
             "/U",
             "/C",
-            r#""%SystemRoot%\System32\wsl.exe" --list --quiet > "%MIRRORSWITCH_WSL_LIST%" 2>&1"#,
+            r#"wsl.exe --list --quiet > "%MIRRORSWITCH_WSL_LIST%" 2>&1"#,
         ])
         .env("MIRRORSWITCH_WSL_LIST", &path)
         .status()
