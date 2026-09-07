@@ -31,6 +31,9 @@ pub trait Runtime {
     fn environment_variable(&self, _name: &str) -> Option<String> {
         None
     }
+    fn wsl_distribution_names(&self) -> Result<Option<Vec<String>>, AdapterError> {
+        Ok(None)
+    }
     fn read(&self, path: &Path) -> Result<Option<Vec<u8>>, AdapterError>;
     fn list_files(&self, directory: &Path) -> Result<Vec<PathBuf>, AdapterError> {
         Err(AdapterError::Unsupported(format!(

@@ -632,6 +632,17 @@ impl Runtime for OsRuntime {
         )
     }
 
+    fn wsl_distribution_names(&self) -> Result<Option<Vec<String>>, AdapterError> {
+        #[cfg(windows)]
+        {
+            crate::wsl::registered_distribution_names().map(Some)
+        }
+        #[cfg(not(windows))]
+        {
+            Ok(None)
+        }
+    }
+
     fn read(&self, path: &Path) -> Result<Option<Vec<u8>>, AdapterError> {
         match fs::read(physical_path(&self.root, path)) {
             Ok(contents) => Ok(Some(contents)),
