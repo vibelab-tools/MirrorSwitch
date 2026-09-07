@@ -1799,9 +1799,9 @@ fn verify_with_dotnet(
     let config = path_string(&snapshot.verification_config)?;
     let packages = directory.join("packages/dotnet");
     let packages_arg = path_string(&packages)?;
-    run_program(
+    run_verification_program(
         runtime,
-        Some(directory),
+        directory,
         "dotnet",
         &[
             "restore",
@@ -1846,9 +1846,9 @@ fn verify_with_nuget(
     let packages = directory.join("packages/cli");
     let packages_arg = path_string(&packages)?;
     let config = path_string(&snapshot.verification_config)?;
-    run_program(
+    run_verification_program(
         runtime,
-        Some(directory),
+        directory,
         "nuget",
         &[
             "install",
@@ -1891,6 +1891,41 @@ fn run_program(
         None => runtime.run(program, &arguments),
     }?;
     output_text(output, operation)
+}
+
+fn run_verification_program(
+    runtime: &dyn Runtime,
+    directory: &Path,
+    program: &str,
+    arguments: &[&str],
+    operation: &str,
+) -> Result<String, AdapterError> {
+    let arguments = arguments
+        .iter()
+        .map(|argument| (*argument).to_owned())
+        .collect::<Vec<_>>();
+    let output = runtime.run_in(directory, program, &arguments)?;
+    if output.status.success() {
+        return output_text(output, operation);
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let detail = stderr
+        .split_whitespace()
+        .chain(stdout.split_whitespace())
+        .take(80)
+        .collect::<Vec<_>>()
+        .join(" ");
+    let detail = detail.chars().take(512).collect::<String>();
+    Err(AdapterError::Runtime(format!(
+        "{operation} failed with status {}{}",
+        output.status,
+        if detail.is_empty() {
+            String::new()
+        } else {
+            format!(": {detail}")
+        }
+    )))
 }
 
 fn output_text(output: Output, operation: &str) -> Result<String, AdapterError> {

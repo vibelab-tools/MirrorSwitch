@@ -133,7 +133,10 @@ case "$*" in
     printf '%s\n' 'E  mirrorswitch [https://repo.huaweicloud.com/repository/nuget/v3/index.json]'
     ;;
   "restore "*)
-    [ {restore_exit} -eq 0 ] || exit {restore_exit}
+    if [ {restore_exit} -ne 0 ]; then
+      printf '%s\n' 'synthetic dotnet restore failure' >&2
+      exit {restore_exit}
+    fi
     packages=''
     previous=''
     for argument in "$@"; do
@@ -531,6 +534,11 @@ fn failed_real_restore_rolls_back_user_and_managed_verification_files() {
     let error = adapter
         .verify(&context, &mut runtime, &receipt)
         .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("synthetic dotnet restore failure")
+    );
     assert!(error.to_string().contains("configuration restored: true"));
     assert_eq!(fs::read(user).unwrap(), original);
     assert!(
