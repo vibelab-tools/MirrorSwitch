@@ -258,6 +258,7 @@ pub struct TargetSelection {
 #[serde(rename_all = "kebab-case")]
 pub enum SelectionReason {
     Automatic,
+    ExplicitOnly,
     ConfigurationEnabled,
     ConfigurationDisabled,
     TuiEnabled,
@@ -516,24 +517,27 @@ fn detect_adapters(
                 continue;
             }
         };
-        if adapter.supported_scopes().contains(&default_scope)
-            && matches!(
+        if adapter.supported_scopes().contains(&default_scope) {
+            let selected = matches!(
                 default_scope,
                 ConfigurationScope::System | ConfigurationScope::User
-            )
-        {
+            );
             selections.push(TargetSelection {
                 adapter_key: adapter.key().into(),
                 tool_id: adapter.tool_id().into(),
                 scope: default_scope,
-                selected: true,
-                reason: SelectionReason::Automatic,
+                selected,
+                reason: if selected {
+                    SelectionReason::Automatic
+                } else {
+                    SelectionReason::ExplicitOnly
+                },
             });
         } else {
             notices.push(DetectionNotice {
                 subject: adapter.key().into(),
                 code: NoticeCode::InvalidDefaultScope,
-                message: "adapter default must be a declared system or user scope".into(),
+                message: "adapter default must be one of its declared scopes".into(),
             });
         }
 

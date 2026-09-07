@@ -6,8 +6,9 @@ use mirrorswitch::{
     context::{Architecture, ExecutionEnvironment, SystemContext},
     detection::{
         ContainerKind, DetectionError, LinuxDetectionOptions, NoticeCode, OverrideSource,
-        detect_linux,
+        SelectionReason, detect_linux,
     },
+    frontend::{FrontendSource, RequestInput, normalize_request},
     plan::{
         ChangePlan, ConfiguredSource, CurrentConfiguration, DetectedTool, MirrorSelection,
         RestoreResult, VerificationResult,
@@ -65,12 +66,14 @@ fn container_detection_and_adapter_inventory_are_read_only_and_machine_readable(
         command: "pip3",
         config: Some("/home/developer/.config/pip/pip.conf"),
         read_failure: None,
+        project_only: false,
     };
     let uv = FixtureAdapter {
         key: "uv",
         command: "uv",
         config: None,
         read_failure: None,
+        project_only: false,
     };
 
     let mut report = detect_linux(&options, &[&pip, &uv]).unwrap();
@@ -218,18 +221,21 @@ fn unsafe_configuration_failures_are_distinct_and_not_operable() {
         command: "tool",
         config: None,
         read_failure: Some(ReadFailure::Permission),
+        project_only: false,
     };
     let parse = FixtureAdapter {
         key: "parse-tool",
         command: "tool",
         config: None,
         read_failure: Some(ReadFailure::Parse),
+        project_only: false,
     };
     let format = FixtureAdapter {
         key: "format-tool",
         command: "tool",
         config: None,
         read_failure: Some(ReadFailure::Format),
+        project_only: false,
     };
 
     let report = detect_linux(&options, &[&permission, &parse, &format]).unwrap();
@@ -247,11 +253,62 @@ fn unsafe_configuration_failures_are_distinct_and_not_operable() {
     }));
 }
 
+#[test]
+fn project_only_adapter_is_available_but_never_selected_implicitly() {
+    let fixture = TempDir::new().unwrap();
+    let root = fixture.path();
+    fs::create_dir_all(root.join("etc")).unwrap();
+    fs::create_dir_all(root.join("usr/bin")).unwrap();
+    fs::create_dir_all(root.join("work/project")).unwrap();
+    fs::write(root.join("etc/os-release"), b"ID=debian\nVERSION_ID=13\n").unwrap();
+    make_executable(&root.join("usr/bin/project-tool"));
+    let options = LinuxDetectionOptions {
+        root: root.into(),
+        home: PathBuf::from("/home/developer"),
+        project_dir: Some(PathBuf::from("/work/project")),
+        executable_path: vec![PathBuf::from("/usr/bin")],
+        architecture: "x86_64".into(),
+        effective_uid: 1000,
+        container_hint: None,
+    };
+    let adapter = FixtureAdapter {
+        key: "project-tool",
+        command: "project-tool",
+        config: None,
+        read_failure: None,
+        project_only: true,
+    };
+
+    let report = detect_linux(&options, &[&adapter]).unwrap();
+
+    assert_eq!(report.selections.len(), 1);
+    assert_eq!(report.selections[0].scope, ConfigurationScope::Project);
+    assert!(!report.selections[0].selected);
+    assert_eq!(report.selections[0].reason, SelectionReason::ExplicitOnly);
+    assert!(
+        normalize_request(&report, &RequestInput::default(), FrontendSource::Cli)
+            .unwrap()
+            .tools
+            .is_empty()
+    );
+    let explicit = RequestInput {
+        tools: ["project-tool".into()].into_iter().collect(),
+        scopes: [("project-tool".into(), ConfigurationScope::Project)]
+            .into_iter()
+            .collect(),
+        ..RequestInput::default()
+    };
+    let normalized = normalize_request(&report, &explicit, FrontendSource::Cli).unwrap();
+    assert_eq!(normalized.tools.len(), 1);
+    assert_eq!(normalized.tools[0].scope, ConfigurationScope::Project);
+}
+
 struct FixtureAdapter {
     key: &'static str,
     command: &'static str,
     config: Option<&'static str>,
     read_failure: Option<ReadFailure>,
+    project_only: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -271,15 +328,23 @@ impl Adapter for FixtureAdapter {
     }
 
     fn supported_scopes(&self) -> &'static [ConfigurationScope] {
-        &[
-            ConfigurationScope::System,
-            ConfigurationScope::User,
-            ConfigurationScope::Project,
-        ]
+        if self.project_only {
+            &[ConfigurationScope::Project]
+        } else {
+            &[
+                ConfigurationScope::System,
+                ConfigurationScope::User,
+                ConfigurationScope::Project,
+            ]
+        }
     }
 
     fn default_scope(&self) -> ConfigurationScope {
-        ConfigurationScope::User
+        if self.project_only {
+            ConfigurationScope::Project
+        } else {
+            ConfigurationScope::User
+        }
     }
 
     fn composition_policy(&self) -> CompositionPolicy {
