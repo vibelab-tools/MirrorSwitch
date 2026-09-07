@@ -128,7 +128,7 @@ jobs:
           $env:PDM_CONFIG_FILE = $userConfig
           New-Item -ItemType Directory -Force (Split-Path $userConfig), $env:ProgramData, $project | Out-Null
           $text = "[pypi]`r`nurl = `"https://pypi.org/simple`"`r`nverify_ssl = true`r`n"
-          [IO.File]::WriteAllText($userConfig, $text, [Text.UTF8Encoding]::new($true))
+          [IO.File]::WriteAllText($userConfig, $text, [Text.UTF8Encoding]::new($false))
           "[project]`r`nname = `"native-probe`"`r`nversion = `"0.1.0`"`r`nrequires-python = `">=3.13`"`r`ndependencies = []`r`n" | Set-Content -Encoding utf8 (Join-Path $project 'pyproject.toml')
           python -m venv (Join-Path $project '.venv')
           (Join-Path $project '.venv/Scripts/python.exe') | Set-Content -Encoding ascii (Join-Path $project '.pdm-python')
