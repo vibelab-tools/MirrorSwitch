@@ -64,13 +64,27 @@ pub fn discover(runtime: &dyn Runtime) -> Result<Vec<WslDistribution>, AdapterEr
 }
 
 fn list_distributions(runtime: &dyn Runtime, program: &str) -> Result<Output, AdapterError> {
-    let powershell = if runtime.command_exists("pwsh") {
-        Some("pwsh")
-    } else if runtime.command_exists("powershell") {
-        Some("powershell")
-    } else {
-        None
-    };
+    let system_powershell = runtime
+        .environment_variable("SystemRoot")
+        .filter(|value| !value.trim().is_empty())
+        .map(|root| {
+            PathBuf::from(root)
+                .join("System32")
+                .join("WindowsPowerShell")
+                .join("v1.0")
+                .join("powershell.exe")
+                .display()
+                .to_string()
+        });
+    let powershell = system_powershell.or_else(|| {
+        if runtime.command_exists("pwsh") {
+            Some("pwsh".into())
+        } else if runtime.command_exists("powershell") {
+            Some("powershell".into())
+        } else {
+            None
+        }
+    });
     let Some(powershell) = powershell else {
         return runtime.run(program, &["--list".into(), "--quiet".into()]);
     };
@@ -79,7 +93,7 @@ fn list_distributions(runtime: &dyn Runtime, program: &str) -> Result<Output, Ad
         "$raw = & '{program}' --list --quiet 2>&1 | Out-String; $code = $LASTEXITCODE; [Console]::Out.Write($raw.Replace([string][char]0, '')); exit $code"
     );
     runtime.run(
-        powershell,
+        &powershell,
         &[
             "-NoLogo".into(),
             "-NoProfile".into(),

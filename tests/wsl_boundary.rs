@@ -66,14 +66,17 @@ impl Runtime for WslRuntime {
     }
 
     fn run(&self, program: &str, arguments: &[String]) -> Result<Output, AdapterError> {
-        if program == "pwsh" {
-            assert!(self.powershell_list);
+        let normalized_program = program.replace('\\', "/");
+        if program == "pwsh"
+            || normalized_program.ends_with("/WindowsPowerShell/v1.0/powershell.exe")
+        {
+            assert!(self.powershell_list || self.system_path_only);
             assert_eq!(arguments[3], "-Command");
             assert!(arguments[4].contains("--list --quiet"));
             return Ok(output(b"Ubuntu\r\nDebian\r\n".to_vec()));
         }
         if self.system_path_only {
-            assert!(program.replace('\\', "/").ends_with("/System32/wsl.exe"));
+            assert!(normalized_program.ends_with("/System32/wsl.exe"));
         } else {
             assert_eq!(program, "wsl.exe");
         }
