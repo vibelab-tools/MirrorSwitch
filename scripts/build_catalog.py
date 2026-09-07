@@ -4364,28 +4364,28 @@ def runtime_properties(
         probes = [
             {
                 "endpoint_role": "index",
-                "method": "get",
+                "method": "head",
                 "path": "/pkgs/main/noarch/repodata.json.zst",
                 "expected_status": [200, 206],
                 "expected_content_type": "application/octet-stream",
             },
             {
                 "endpoint_role": "index",
-                "method": "get",
+                "method": "head",
                 "path": "/pkgs/main/{subdir}/repodata.json.zst",
                 "expected_status": [200, 206],
                 "expected_content_type": "application/octet-stream",
             },
             {
                 "endpoint_role": "index",
-                "method": "get",
+                "method": "head",
                 "path": "/cloud/conda-forge/noarch/repodata.json.zst",
                 "expected_status": [200, 206],
                 "expected_content_type": "application/octet-stream",
             },
             {
                 "endpoint_role": "index",
-                "method": "get",
+                "method": "head",
                 "path": "/cloud/conda-forge/{subdir}/repodata.json.zst",
                 "expected_status": [200, 206],
                 "expected_content_type": "application/octet-stream",

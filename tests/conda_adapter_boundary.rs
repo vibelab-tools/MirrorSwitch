@@ -505,10 +505,10 @@ fn embedded_catalog_has_three_arch_complete_conda_candidates() {
                 ]
             && candidate.compatibility.architectures == [Architecture::X86_64, Architecture::Arm64]
             && candidate.probes.len() == 5
-            && candidate
-                .probes
+            && candidate.probes[..4]
                 .iter()
-                .all(|probe| probe.method == HttpMethod::Get)
+                .all(|probe| probe.method == HttpMethod::Head)
+            && candidate.probes[4].method == HttpMethod::Get
             && candidate.probes[1].path.contains("{subdir}")
             && candidate.probes[4]
                 .path
