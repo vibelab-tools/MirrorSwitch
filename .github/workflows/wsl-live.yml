@@ -97,6 +97,17 @@ jobs:
           $env:PATH = "$env:SystemRoot\System32;$env:PATH"
           $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
 
+          $registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss'
+          $registryPresent = Test-Path $registryPath
+          $registryNames = @()
+          if ($registryPresent) {
+            $registryNames = @(Get-ChildItem $registryPath | ForEach-Object { $_.GetValue('DistributionName') } | Where-Object { $_ })
+          }
+          [ordered]@{ present = $registryPresent; names = $registryNames } |
+            ConvertTo-Json -Depth 3 |
+            Set-Content -Encoding utf8 wsl-registry.json
+          & cmd.exe /d /u /c 'wsl.exe --list --quiet > wsl-cmd-list.txt 2>&1'
+
           (& "$env:SystemRoot\System32\wsl.exe" --list --quiet 2>&1) | Set-Content -Encoding utf8 wsl-list.txt
           (& $binary status --offline --json) | Set-Content -Encoding utf8 host-status.json
           $hostStatus = Get-Content host-status.json -Raw | ConvertFrom-Json
@@ -163,5 +174,7 @@ jobs:
             ubuntu-restore.json
             wsl-tui.txt
             wsl-list.txt
+            wsl-cmd-list.txt
+            wsl-registry.json
           if-no-files-found: warn
           retention-days: 7
