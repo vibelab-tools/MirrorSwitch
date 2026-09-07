@@ -94,6 +94,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          $env:PATH = "$env:SystemRoot\System32;$env:PATH"
           $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
 
           (& $binary status --offline --json) | Set-Content -Encoding utf8 host-status.json
@@ -138,6 +139,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          $env:PATH = "$env:SystemRoot\System32;$env:PATH"
           $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
           (& $binary status --offline --json) | Set-Content -Encoding utf8 host-status.json
           $hostStatus = Get-Content host-status.json -Raw | ConvertFrom-Json
