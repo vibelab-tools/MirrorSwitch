@@ -44,6 +44,7 @@ fn utf16(value: &str) -> Vec<u8> {
 struct WslRuntime {
     calls: RefCell<Vec<Vec<String>>>,
     system_path_only: bool,
+    list_on_stderr: bool,
 }
 
 impl Runtime for WslRuntime {
@@ -71,7 +72,15 @@ impl Runtime for WslRuntime {
         }
         self.calls.borrow_mut().push(arguments.to_vec());
         if arguments == ["--list", "--quiet"] {
-            return Ok(output(utf16("Ubuntu\r\nDebian\r\n")));
+            let names = utf16("Ubuntu\r\nDebian\r\n");
+            if self.list_on_stderr {
+                return Ok(Output {
+                    status: success_status(),
+                    stdout: Vec::new(),
+                    stderr: names,
+                });
+            }
+            return Ok(output(names));
         }
         let name = arguments.get(1).map(String::as_str).unwrap();
         match name {
@@ -93,6 +102,7 @@ fn wsl_inventory_decodes_utf16_and_keeps_each_distribution_unselected() {
     let runtime = WslRuntime {
         calls: RefCell::new(Vec::new()),
         system_path_only: false,
+        list_on_stderr: false,
     };
 
     let distributions = discover(&runtime).unwrap();
@@ -128,6 +138,22 @@ fn wsl_inventory_falls_back_to_the_native_system32_launcher() {
     let runtime = WslRuntime {
         calls: RefCell::new(Vec::new()),
         system_path_only: true,
+        list_on_stderr: false,
+    };
+
+    let distributions = discover(&runtime).unwrap();
+
+    assert_eq!(distributions.len(), 2);
+    assert_eq!(distributions[0].name, "Debian");
+    assert_eq!(distributions[1].name, "Ubuntu");
+}
+
+#[test]
+fn wsl_inventory_accepts_redirected_names_from_stderr() {
+    let runtime = WslRuntime {
+        calls: RefCell::new(Vec::new()),
+        system_path_only: false,
+        list_on_stderr: true,
     };
 
     let distributions = discover(&runtime).unwrap();
@@ -142,6 +168,7 @@ fn tui_shows_wsl_as_a_separate_explicit_target_hierarchy() {
     let runtime = WslRuntime {
         calls: RefCell::new(Vec::new()),
         system_path_only: false,
+        list_on_stderr: false,
     };
     let report = DetectionReport {
         context: SystemContext {

@@ -97,6 +97,7 @@ jobs:
           $env:PATH = "$env:SystemRoot\System32;$env:PATH"
           $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
 
+          (& "$env:SystemRoot\System32\wsl.exe" --list --quiet 2>&1) | Set-Content -Encoding utf8 wsl-list.txt
           (& $binary status --offline --json) | Set-Content -Encoding utf8 host-status.json
           $hostStatus = Get-Content host-status.json -Raw | ConvertFrom-Json
           if ($hostStatus.context.os -ne 'windows') { throw 'host context is not Windows' }
@@ -161,5 +162,6 @@ jobs:
             debian-restore.json
             ubuntu-restore.json
             wsl-tui.txt
+            wsl-list.txt
           if-no-files-found: warn
           retention-days: 7

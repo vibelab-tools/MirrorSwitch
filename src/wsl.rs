@@ -32,7 +32,11 @@ pub fn discover(runtime: &dyn Runtime) -> Result<Vec<WslDistribution>, AdapterEr
             output.status
         )));
     }
-    let names = decode_output(&output.stdout)?;
+    let names = decode_output(if output.stdout.is_empty() {
+        &output.stderr
+    } else {
+        &output.stdout
+    })?;
     let mut distributions = Vec::new();
     for name in names.lines().map(str::trim).filter(|name| !name.is_empty()) {
         validate_distribution_name(name)?;
