@@ -46,6 +46,7 @@ struct WslRuntime {
     system_path_only: bool,
     list_on_stderr: bool,
     powershell_list: bool,
+    program_files_powershell: bool,
 }
 
 impl Runtime for WslRuntime {
@@ -58,7 +59,11 @@ impl Runtime for WslRuntime {
     }
 
     fn environment_variable(&self, name: &str) -> Option<String> {
-        (self.system_path_only && name == "SystemRoot").then(|| r"C:\Windows".into())
+        if self.program_files_powershell && name == "ProgramFiles" {
+            Some(r"C:\Program Files".into())
+        } else {
+            (self.system_path_only && name == "SystemRoot").then(|| r"C:\Windows".into())
+        }
     }
 
     fn read(&self, _path: &Path) -> Result<Option<Vec<u8>>, AdapterError> {
@@ -68,9 +73,10 @@ impl Runtime for WslRuntime {
     fn run(&self, program: &str, arguments: &[String]) -> Result<Output, AdapterError> {
         let normalized_program = program.replace('\\', "/");
         if program == "pwsh"
+            || normalized_program.ends_with("/PowerShell/7/pwsh.exe")
             || normalized_program.ends_with("/WindowsPowerShell/v1.0/powershell.exe")
         {
-            assert!(self.powershell_list || self.system_path_only);
+            assert!(self.powershell_list || self.program_files_powershell || self.system_path_only);
             assert_eq!(arguments[3], "-Command");
             assert!(arguments[4].contains("--list --quiet"));
             return Ok(output(b"Ubuntu\r\nDebian\r\n".to_vec()));
@@ -114,6 +120,7 @@ fn wsl_inventory_decodes_utf16_and_keeps_each_distribution_unselected() {
         system_path_only: false,
         list_on_stderr: false,
         powershell_list: false,
+        program_files_powershell: false,
     };
 
     let distributions = discover(&runtime).unwrap();
@@ -151,6 +158,7 @@ fn wsl_inventory_falls_back_to_the_native_system32_launcher() {
         system_path_only: true,
         list_on_stderr: false,
         powershell_list: false,
+        program_files_powershell: false,
     };
 
     let distributions = discover(&runtime).unwrap();
@@ -167,6 +175,7 @@ fn wsl_inventory_accepts_redirected_names_from_stderr() {
         system_path_only: false,
         list_on_stderr: true,
         powershell_list: false,
+        program_files_powershell: false,
     };
 
     let distributions = discover(&runtime).unwrap();
@@ -183,6 +192,24 @@ fn wsl_inventory_uses_powershell_to_normalize_redirected_output() {
         system_path_only: false,
         list_on_stderr: false,
         powershell_list: true,
+        program_files_powershell: false,
+    };
+
+    let distributions = discover(&runtime).unwrap();
+
+    assert_eq!(distributions.len(), 2);
+    assert_eq!(distributions[0].name, "Debian");
+    assert_eq!(distributions[1].name, "Ubuntu");
+}
+
+#[test]
+fn wsl_inventory_uses_the_program_files_powershell_fallback() {
+    let runtime = WslRuntime {
+        calls: RefCell::new(Vec::new()),
+        system_path_only: false,
+        list_on_stderr: false,
+        powershell_list: false,
+        program_files_powershell: true,
     };
 
     let distributions = discover(&runtime).unwrap();
@@ -199,6 +226,7 @@ fn tui_shows_wsl_as_a_separate_explicit_target_hierarchy() {
         system_path_only: false,
         list_on_stderr: false,
         powershell_list: false,
+        program_files_powershell: false,
     };
     let report = DetectionReport {
         context: SystemContext {
