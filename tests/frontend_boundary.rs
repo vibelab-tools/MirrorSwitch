@@ -219,6 +219,7 @@ fn binary_exposes_stable_read_only_commands_and_confirmation_gate() {
     assert_eq!(value["ok"], true);
     assert_eq!(value["catalog"]["source"], "embedded-baseline");
     assert!(value["context"]["environment"].is_string());
+    assert!(value["wsl_distributions"].is_array());
 
     let detect = Command::new(binary)
         .args(["detect", "--offline", "--json", "--category", "system"])

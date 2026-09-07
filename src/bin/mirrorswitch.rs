@@ -118,6 +118,7 @@ fn run() -> Result<u8, CliError> {
                 "permissions": report.permissions,
                 "detected_tools": report.tools,
                 "selections": report.selections,
+                "wsl_distributions": report.wsl_distributions,
                 "notices": report.notices,
             }),
         );
