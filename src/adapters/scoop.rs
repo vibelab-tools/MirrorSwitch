@@ -686,7 +686,10 @@ fn scoop_architecture(architecture: Architecture) -> &'static str {
     }
 }
 fn normalize_url(url: &str) -> String {
-    url.trim().trim_end_matches('/').to_ascii_lowercase()
+    url.trim()
+        .trim_end_matches('/')
+        .trim_end_matches(".git")
+        .to_ascii_lowercase()
 }
 
 fn selected_endpoint<'a>(

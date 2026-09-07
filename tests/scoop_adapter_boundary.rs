@@ -20,7 +20,7 @@ use serde_json::json;
 
 const MAIN_OFFICIAL: &str = "https://github.com/ScoopInstaller/Main.git";
 const MAIN_MIRROR: &str = "https://mirrors.nju.edu.cn/git/scoop-main.git";
-const EXTRAS_OFFICIAL: &str = "https://github.com/ScoopInstaller/Extras.git";
+const EXTRAS_OFFICIAL: &str = "https://github.com/ScoopInstaller/Extras";
 const EXTRAS_MIRROR: &str = "https://mirrors.nju.edu.cn/git/scoop-extras.git";
 
 #[cfg(unix)]
