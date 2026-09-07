@@ -5,9 +5,6 @@ use std::{
 
 use serde::Serialize;
 
-#[cfg(windows)]
-use std::fs;
-
 use crate::{AdapterError, Runtime};
 
 const PROBE_SCRIPT: &str = r#"printf 'kernel=%s\n' "$(uname -r)"; printf 'uid=%s\n' "$(id -u)"; printf 'home=%s\n' "$HOME"; if command -v mirrorswitch >/dev/null 2>&1; then printf 'mirrorswitch=%s\n' "$(mirrorswitch --version)"; else printf 'mirrorswitch=\n'; fi"#;
@@ -88,35 +85,26 @@ fn wsl_program(runtime: &dyn Runtime) -> Option<String> {
 }
 
 #[cfg(windows)]
-pub(crate) fn captured_distribution_names() -> Result<Vec<String>, AdapterError> {
-    let directory = tempfile::tempdir().map_err(|error| {
-        AdapterError::Runtime(format!("could not stage WSL inventory: {error}"))
-    })?;
-    let path = directory.path().join("wsl-list.txt");
-    let status = Command::new("cmd.exe")
-        .current_dir(directory.path())
+pub(crate) fn registered_distribution_names() -> Result<Vec<String>, AdapterError> {
+    let output = Command::new("reg.exe")
         .args([
-            "/D",
-            "/U",
-            "/C",
-            "wsl.exe --list --quiet > wsl-list.txt 2>&1",
+            "query",
+            r"HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss",
+            "/s",
+            "/v",
+            "DistributionName",
         ])
-        .status()
+        .output()
         .map_err(|error| {
-            AdapterError::Runtime(format!("could not capture WSL inventory: {error}"))
+            AdapterError::Runtime(format!("could not query WSL registrations: {error}"))
         })?;
-    if !status.success() {
-        return Err(AdapterError::Runtime(format!(
-            "wsl.exe --list --quiet failed with status {status}"
-        )));
+    if !output.status.success() {
+        return Ok(Vec::new());
     }
-    let bytes = fs::read(&path).map_err(|error| {
-        AdapterError::Runtime(format!("could not read captured WSL inventory: {error}"))
-    })?;
-    let mut names = decode_output(&bytes)?
+    let mut names = decode_output(&output.stdout)?
         .lines()
-        .map(str::trim)
-        .filter(|name| !name.is_empty())
+        .filter_map(|line| line.split_once("REG_SZ").map(|(_, value)| value.trim()))
+        .filter(|value| !value.is_empty())
         .map(str::to_owned)
         .collect::<Vec<_>>();
     names.sort();
