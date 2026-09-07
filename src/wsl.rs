@@ -5,17 +5,6 @@ use std::{
 
 use serde::Serialize;
 
-#[cfg(windows)]
-use std::{os::windows::ffi::OsStrExt, ptr::null_mut};
-#[cfg(windows)]
-use windows_sys::Win32::{
-    Foundation::{ERROR_FILE_NOT_FOUND, ERROR_NO_MORE_ITEMS, ERROR_SUCCESS},
-    System::Registry::{
-        HKEY, HKEY_CURRENT_USER, KEY_READ, KEY_WOW64_32KEY, KEY_WOW64_64KEY, REG_SZ, RegCloseKey,
-        RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW,
-    },
-};
-
 use crate::{AdapterError, Runtime};
 
 const PROBE_SCRIPT: &str = r#"printf 'kernel=%s\n' "$(uname -r)"; printf 'uid=%s\n' "$(id -u)"; printf 'home=%s\n' "$HOME"; if command -v mirrorswitch >/dev/null 2>&1; then printf 'mirrorswitch=%s\n' "$(mirrorswitch --version)"; else printf 'mirrorswitch=\n'; fi"#;
@@ -96,147 +85,52 @@ fn wsl_program(runtime: &dyn Runtime) -> Option<String> {
 }
 
 #[cfg(windows)]
-pub(crate) fn registered_distribution_names() -> Result<Vec<String>, AdapterError> {
-    const LXSS_PATH: &str = r"Software\Microsoft\Windows\CurrentVersion\Lxss";
-    const DISTRIBUTION_NAME: &str = "DistributionName";
-
-    let path = wide(LXSS_PATH);
-    let mut names = Vec::new();
-    for view in [KEY_WOW64_64KEY, KEY_WOW64_32KEY] {
-        names.extend(registered_distribution_names_in_view(
-            &path,
-            DISTRIBUTION_NAME,
-            KEY_READ | view,
-        )?);
+pub(crate) fn registered_distribution_names(
+    runtime: &dyn Runtime,
+) -> Result<Vec<String>, AdapterError> {
+    let powershell = runtime
+        .environment_variable("SystemRoot")
+        .filter(|value| !value.trim().is_empty())
+        .map(|root| {
+            PathBuf::from(root)
+                .join("System32")
+                .join("WindowsPowerShell")
+                .join("v1.0")
+                .join("powershell.exe")
+                .display()
+                .to_string()
+        })
+        .unwrap_or_else(|| "powershell.exe".into());
+    let script = r#"$path = 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Lxss'; $names = @(if (Test-Path -LiteralPath $path) { Get-ChildItem -LiteralPath $path | ForEach-Object { $_.GetValue('DistributionName') } | Where-Object { $_ } }); $text = $names -join "`n"; $bytes = [Text.UTF8Encoding]::new($false).GetBytes($text); $stdout = [Console]::OpenStandardOutput(); $stdout.Write($bytes, 0, $bytes.Length)"#;
+    let output = runtime.run(
+        &powershell,
+        &[
+            "-NoLogo".into(),
+            "-NoProfile".into(),
+            "-NonInteractive".into(),
+            "-Command".into(),
+            script.into(),
+        ],
+    )?;
+    if !output.status.success() {
+        return Err(AdapterError::Runtime(format!(
+            "PowerShell WSL registry query failed with status {}",
+            output.status
+        )));
     }
+    let mut names = decode_output(if output.stdout.is_empty() {
+        &output.stderr
+    } else {
+        &output.stdout
+    })?
+    .lines()
+    .map(str::trim)
+    .filter(|name| !name.is_empty())
+    .map(str::to_owned)
+    .collect::<Vec<_>>();
     names.sort();
     names.dedup();
     Ok(names)
-}
-
-#[cfg(windows)]
-fn registered_distribution_names_in_view(
-    path: &[u16],
-    distribution_name: &str,
-    access: u32,
-) -> Result<Vec<String>, AdapterError> {
-    let mut root = null_mut();
-    let result = unsafe { RegOpenKeyExW(HKEY_CURRENT_USER, path.as_ptr(), 0, access, &mut root) };
-    if result == ERROR_FILE_NOT_FOUND {
-        return Ok(Vec::new());
-    }
-    win32_result(result, "open the WSL registry root")?;
-    let root = RegistryKey(root);
-    let mut names = Vec::new();
-    let mut index = 0;
-    loop {
-        let mut subkey_name = [0u16; 260];
-        let mut length = subkey_name.len() as u32;
-        let result = unsafe {
-            RegEnumKeyExW(
-                root.0,
-                index,
-                subkey_name.as_mut_ptr(),
-                &mut length,
-                null_mut(),
-                null_mut(),
-                null_mut(),
-                null_mut(),
-            )
-        };
-        if result == ERROR_NO_MORE_ITEMS {
-            break;
-        }
-        win32_result(result, "enumerate WSL registry entries")?;
-        index += 1;
-
-        let mut subkey = null_mut();
-        let mut subkey_name = subkey_name[..length as usize].to_vec();
-        subkey_name.push(0);
-        let result = unsafe { RegOpenKeyExW(root.0, subkey_name.as_ptr(), 0, access, &mut subkey) };
-        win32_result(result, "open a WSL distribution registry entry")?;
-        let subkey = RegistryKey(subkey);
-        if let Some(name) = query_registry_string(subkey.0, distribution_name)? {
-            names.push(name);
-        }
-    }
-    Ok(names)
-}
-
-#[cfg(windows)]
-struct RegistryKey(HKEY);
-
-#[cfg(windows)]
-impl Drop for RegistryKey {
-    fn drop(&mut self) {
-        unsafe {
-            RegCloseKey(self.0);
-        }
-    }
-}
-
-#[cfg(windows)]
-fn query_registry_string(key: HKEY, name: &str) -> Result<Option<String>, AdapterError> {
-    let name = wide(name);
-    let mut kind = 0;
-    let mut byte_length = 0;
-    let result = unsafe {
-        RegQueryValueExW(
-            key,
-            name.as_ptr(),
-            null_mut(),
-            &mut kind,
-            null_mut(),
-            &mut byte_length,
-        )
-    };
-    if result == ERROR_FILE_NOT_FOUND {
-        return Ok(None);
-    }
-    win32_result(result, "read a WSL distribution name")?;
-    if kind != REG_SZ || byte_length % 2 != 0 {
-        return Err(AdapterError::Runtime(
-            "WSL DistributionName registry value is not a UTF-16 string".into(),
-        ));
-    }
-    let mut value = vec![0u16; byte_length as usize / 2];
-    let result = unsafe {
-        RegQueryValueExW(
-            key,
-            name.as_ptr(),
-            null_mut(),
-            null_mut(),
-            value.as_mut_ptr().cast(),
-            &mut byte_length,
-        )
-    };
-    win32_result(result, "read a WSL distribution name")?;
-    value.truncate(byte_length as usize / 2);
-    while value.last() == Some(&0) {
-        value.pop();
-    }
-    String::from_utf16(&value)
-        .map(Some)
-        .map_err(|_| AdapterError::Runtime("WSL DistributionName is invalid UTF-16".into()))
-}
-
-#[cfg(windows)]
-fn wide(value: &str) -> Vec<u16> {
-    std::ffi::OsStr::new(value)
-        .encode_wide()
-        .chain(Some(0))
-        .collect()
-}
-
-#[cfg(windows)]
-fn win32_result(result: u32, action: &str) -> Result<(), AdapterError> {
-    if result == ERROR_SUCCESS {
-        Ok(())
-    } else {
-        Err(AdapterError::Runtime(format!(
-            "could not {action}: Windows error {result}"
-        )))
-    }
 }
 
 pub fn run_distribution(
