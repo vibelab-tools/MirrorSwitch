@@ -114,7 +114,9 @@ pub(crate) fn registered_distribution_names() -> Result<Vec<String>, AdapterErro
             AdapterError::Runtime(format!("could not query WSL registrations: {error}"))
         })?;
     if !status.success() {
-        return Ok(Vec::new());
+        return Err(AdapterError::Runtime(format!(
+            "reg.exe WSL query failed with status {status}"
+        )));
     }
     let bytes = fs::read(&path).map_err(|error| {
         AdapterError::Runtime(format!("could not read WSL registry output: {error}"))
@@ -127,6 +129,12 @@ pub(crate) fn registered_distribution_names() -> Result<Vec<String>, AdapterErro
         .collect::<Vec<_>>();
     names.sort();
     names.dedup();
+    if names.is_empty() {
+        return Err(AdapterError::Runtime(format!(
+            "reg.exe WSL query returned {} bytes without distribution names",
+            bytes.len()
+        )));
+    }
     Ok(names)
 }
 
