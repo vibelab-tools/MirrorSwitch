@@ -33,6 +33,7 @@ jobs:
           rustup toolchain install $env:RUST_TOOLCHAIN --profile minimal
           rustup default $env:RUST_TOOLCHAIN
       - name: Prepare existing WinGet agreement state
+        if: matrix.arch == 'x86_64'
         shell: pwsh
         run: |
           winget --version
@@ -51,6 +52,7 @@ jobs:
       - name: Build native release executable
         run: cargo build --locked --release --bin mirrorswitch
       - name: Apply, verify, and explicitly restore a real WinGet plan
+        if: matrix.arch == 'x86_64'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -84,6 +86,19 @@ jobs:
 
           winget source export --disable-interactivity | Set-Content -Encoding utf8 source-after.jsonl
           if ((Get-Content source-before.jsonl -Raw) -ne (Get-Content source-after.jsonl -Raw)) { throw 'WinGet source export was not restored exactly' }
+      - name: Confirm the native ARM64 availability boundary
+        if: matrix.arch == 'arm64'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (Get-Command winget -ErrorAction SilentlyContinue) { throw 'WinGet became available on the native ARM64 runner; enable its real source boundary' }
+
+          $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
+          (& $binary status --offline --json) | Set-Content -Encoding utf8 status.json
+          $status = Get-Content status.json -Raw | ConvertFrom-Json
+          if (@($status.detected_tools | Where-Object adapter_key -eq 'winget').Count -ne 0) { throw 'WinGet adapter was unexpectedly detected' }
+          $notices = @($status.notices | Where-Object { $_.subject -eq 'winget' -and $_.code -eq 'tool-not-detected' })
+          if ($notices.Count -ne 1) { throw 'WinGet ARM64 availability boundary was not reported explicitly' }
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

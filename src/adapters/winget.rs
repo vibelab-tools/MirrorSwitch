@@ -737,10 +737,10 @@ fn verify_source(
 }
 
 fn powershell(runtime: &dyn Runtime) -> Result<&'static str, AdapterError> {
-    if runtime.command_exists("powershell") {
-        Ok("powershell")
-    } else if runtime.command_exists("pwsh") {
+    if runtime.command_exists("pwsh") {
         Ok("pwsh")
+    } else if runtime.command_exists("powershell") {
+        Ok("powershell")
     } else {
         Err(AdapterError::Unsupported(
             "WinGet verification requires PowerShell".into(),
@@ -936,9 +936,16 @@ fn command_success(output: std::process::Output, label: &str) -> Result<(), Adap
     if output.status.success() {
         Ok(())
     } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let detail = stderr.trim();
         Err(AdapterError::Runtime(format!(
-            "{label} failed with status {}",
-            output.status
+            "{label} failed with status {}{}",
+            output.status,
+            if detail.is_empty() {
+                String::new()
+            } else {
+                format!(": {detail}")
+            }
         )))
     }
 }
