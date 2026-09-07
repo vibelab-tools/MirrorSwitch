@@ -35,10 +35,13 @@ jobs:
           if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate) { throw "Cygwin setup signature is invalid: $($signature.Status)" }
           $fingerprint = $signature.SignerCertificate.GetCertHashString([System.Security.Cryptography.HashAlgorithmName]::SHA256).ToLowerInvariant()
           if ($fingerprint -ne '2ce11da3a675a9d631e06a28ddfd6f730b9cc6989b43bd30ad7cc79d219cf2bd') { throw "unexpected Cygwin signer certificate: $fingerprint" }
-          & $env:CYGWIN_SETUP --quiet-mode --wait --no-admin --no-shortcuts --no-desktop --no-startmenu `
-            --root $env:CYGWIN_ROOT --local-package-dir C:\cygwin-cache `
-            --site https://mirrors.kernel.org/sourceware/cygwin --packages dash
-          if ($LASTEXITCODE -ne 0) { throw "Cygwin setup failed: $LASTEXITCODE" }
+          $arguments = @(
+            '--quiet-mode', '--wait', '--no-admin', '--no-shortcuts', '--no-desktop', '--no-startmenu',
+            '--root', $env:CYGWIN_ROOT, '--local-package-dir', 'C:\cygwin-cache',
+            '--site', 'https://mirrors.kernel.org/sourceware/cygwin', '--packages', 'dash'
+          )
+          $process = Start-Process -FilePath $env:CYGWIN_SETUP -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+          if ($process.ExitCode -ne 0) { throw "Cygwin setup failed: $($process.ExitCode)" }
       - name: Restore shared Rust dependency cache
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
