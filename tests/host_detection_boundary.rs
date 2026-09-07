@@ -46,6 +46,11 @@ fn runtime_executes_the_native_command_convention() {
     let directory = tempdir().unwrap();
     #[cfg(windows)]
     let executable = {
+        fs::write(
+            directory.path().join("mirrorswitch-probe"),
+            b"#!/bin/sh\necho wrong-command\n",
+        )
+        .unwrap();
         let path = directory.path().join("mirrorswitch-probe.cmd");
         fs::write(&path, b"@echo off\r\necho native-command\r\n").unwrap();
         path

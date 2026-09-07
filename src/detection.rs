@@ -1173,10 +1173,6 @@ fn windows_elevated() -> bool {
 }
 
 fn find_command_in(directory: &Path, command: &str, root: &Path) -> Option<PathBuf> {
-    let logical = directory.join(command);
-    if executable(&physical_path(root, &logical)) {
-        return Some(logical);
-    }
     #[cfg(windows)]
     if Path::new(command).extension().is_none() {
         let extensions = std::env::var_os("PATHEXT")
@@ -1188,6 +1184,10 @@ fn find_command_in(directory: &Path, command: &str, root: &Path) -> Option<PathB
                 return Some(candidate);
             }
         }
+    }
+    let logical = directory.join(command);
+    if executable(&physical_path(root, &logical)) {
+        return Some(logical);
     }
     None
 }
