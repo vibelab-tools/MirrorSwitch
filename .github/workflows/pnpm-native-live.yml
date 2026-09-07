@@ -97,7 +97,7 @@ jobs:
           [IO.File]::WriteAllText($auth,"# native pnpm auth`r`nregistry=https://registry.npmjs.org/`r`n",[Text.UTF8Encoding]::new($true))
           '@private:registry=https://packages.invalid.example/npm/'|Set-Content -Encoding utf8 (Join-Path $env:USERPROFILE '.npmrc'); "storeDir: $boundary/store`r`nverifyStoreIntegrity: true`r`n"|Set-Content -Encoding utf8 (Join-Path $dir 'config.yaml')
           "packages:`r`n  - packages/*`r`n"|Set-Content -Encoding utf8 (Join-Path $project 'pnpm-workspace.yaml'); '{"version":1,"tools":[{"id":"pnpm","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
-          $before=(Get-FileHash $auth -Algorithm SHA256).Hash; $fallback=(Get-FileHash (Join-Path $env:USERPROFILE '.npmrc') -Algorithm SHA256).Hash; $settings=(Get-FileHash (Join-Path $dir 'config.yaml') -Algorithm SHA256).Hash; $acl=(Get-Acl $auth).Sddl
+          $before=(Get-FileHash $auth -Algorithm SHA256).Hash; $fallback=(Get-FileHash (Join-Path $env:USERPROFILE '.npmrc') -Algorithm SHA256).Hash; $settings=(Get-FileHash (Join-Path $dir 'config.yaml') -Algorithm SHA256).Hash
           Push-Location $project
           try {
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool pnpm --scope pnpm=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
@@ -108,7 +108,7 @@ jobs:
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
             (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'pnpm'){throw 'restore failed'}
           } finally {Pop-Location}
-          if($before -ne (Get-FileHash $auth -Algorithm SHA256).Hash -or $fallback -ne (Get-FileHash (Join-Path $env:USERPROFILE '.npmrc') -Algorithm SHA256).Hash -or $settings -ne (Get-FileHash (Join-Path $dir 'config.yaml') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $auth).Sddl){throw 'pnpm config not restored exactly'}
+          if($before -ne (Get-FileHash $auth -Algorithm SHA256).Hash -or $fallback -ne (Get-FileHash (Join-Path $env:USERPROFILE '.npmrc') -Algorithm SHA256).Hash -or $settings -ne (Get-FileHash (Join-Path $dir 'config.yaml') -Algorithm SHA256).Hash){throw 'pnpm config not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

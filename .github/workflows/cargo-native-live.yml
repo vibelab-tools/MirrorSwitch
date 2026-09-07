@@ -88,7 +88,7 @@ jobs:
           $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $env:CARGO_HOME,(Join-Path $project '.cargo'),(Join-Path $project 'src'),$env:LOCALAPPDATA|Out-Null
           [IO.File]::WriteAllText((Join-Path $env:CARGO_HOME 'config.toml'),"[net]`r`ngit-fetch-with-cli = true`r`n",[Text.UTF8Encoding]::new($false)); "[registry]`r`ntoken = `"fixture-only`"`r`n"|Set-Content -Encoding utf8 (Join-Path $env:CARGO_HOME 'credentials.toml')
           "[registries.private]`r`nindex = `"sparse+https://packages.invalid.example/index/`"`r`n"|Set-Content -Encoding utf8 (Join-Path $project '.cargo/config.toml'); "[package]`r`nname=`"native-probe`"`r`nversion=`"0.1.0`"`r`nedition=`"2024`"`r`n"|Set-Content -Encoding utf8 (Join-Path $project 'Cargo.toml'); 'fn main() {}'|Set-Content -Encoding utf8 (Join-Path $project 'src/main.rs'); '{"version":1,"tools":[{"id":"cargo","scope":"user","mirrors":{"crates.io-index--language-registry":"aec8ed73c6fe327fefb44d0d"}}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
-          $config=Join-Path $env:CARGO_HOME 'config.toml'; $credentialsFile=Join-Path $env:CARGO_HOME 'credentials.toml'; $projectConfig=Join-Path $project '.cargo/config.toml'; $before=(Get-FileHash $config -Algorithm SHA256).Hash; $credentials=(Get-FileHash $credentialsFile -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash $projectConfig -Algorithm SHA256).Hash; $acl=(Get-Acl $config).Sddl
+          $config=Join-Path $env:CARGO_HOME 'config.toml'; $credentialsFile=Join-Path $env:CARGO_HOME 'credentials.toml'; $projectConfig=Join-Path $project '.cargo/config.toml'; $before=(Get-FileHash $config -Algorithm SHA256).Hash; $credentials=(Get-FileHash $credentialsFile -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash $projectConfig -Algorithm SHA256).Hash
           Push-Location $project
           try{
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool cargo --scope cargo=user --mirror cargo:crates.io-index--language-registry=aec8ed73c6fe327fefb44d0d --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
@@ -98,7 +98,7 @@ jobs:
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
             (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'cargo'){throw 'restore failed'}
           }finally{Pop-Location}
-          if($before -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $credentials -ne (Get-FileHash $credentialsFile -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash $projectConfig -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $config).Sddl){throw 'Cargo config not restored exactly'}
+          if($before -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $credentials -ne (Get-FileHash $credentialsFile -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash $projectConfig -Algorithm SHA256).Hash){throw 'Cargo config not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

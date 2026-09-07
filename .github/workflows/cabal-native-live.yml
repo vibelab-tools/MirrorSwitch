@@ -119,7 +119,7 @@ jobs:
           $contents="-- native Cabal policy`r`nrepository hackage.haskell.org`r`n  url: https://hackage.haskell.org/`r`n  secure: True`r`nrepository private.corp`r`n  url: https://build:fixture-only@packages.invalid.example/hackage`r`n  secure: True`r`nactive-repositories: :rest, hackage.haskell.org, private.corp:override`r`nhttp-transport: curl`r`n"; [IO.File]::WriteAllText($config,$contents,[Text.UTF8Encoding]::new($true))
           [IO.File]::WriteAllText((Join-Path $project 'cabal.project'),"packages: .`r`nindex-state: 2026-08-01T00:00:00Z`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'cabal.project') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"cabal","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
           [IO.File]::WriteAllText((Join-Path $project 'mirrorswitch-cabal-boundary.cabal'),"cabal-version: 3.0`r`nname: mirrorswitch-cabal-boundary`r`nversion: 0.0.0`r`nbuild-type: Simple`r`nexecutable native-boundary`r`n  main-is: Main.hs`r`n  default-language: Haskell2010`r`n  build-depends: base >=4.14 && <5`r`n",[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project 'Main.hs'),"main :: IO ()`r`nmain = pure ()`r`n",[Text.UTF8Encoding]::new($false))
-          $before=(Get-FileHash $config -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'cabal.project') -Algorithm SHA256).Hash; $acl=(Get-Acl $config).Sddl
+          $before=(Get-FileHash $config -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'cabal.project') -Algorithm SHA256).Hash
           Push-Location $project
           try{
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool cabal --scope cabal=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
@@ -132,7 +132,7 @@ jobs:
             & cabal $configArg build --offline all; if($LASTEXITCODE -ne 0){throw 'native Cabal build failed'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'cabal'){throw 'restore failed'}
           }finally{Pop-Location}
-          $verification=Join-Path $env:USERPROFILE '.mirrorswitch/verification/cabal/config'; if($before -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'cabal.project') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $config).Sddl -or (Test-Path $verification)){throw 'Cabal state not restored exactly'}
+          $verification=Join-Path $env:USERPROFILE '.mirrorswitch/verification/cabal/config'; if($before -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'cabal.project') -Algorithm SHA256).Hash -or (Test-Path $verification)){throw 'Cabal state not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

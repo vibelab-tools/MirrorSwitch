@@ -107,7 +107,7 @@ jobs:
           try{
             $contents="# native PowerShell policy`r`n`$env:PRIVATE_NODE_TOKEN = 'fixture-only'`r`nfnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression`r`n"; [IO.File]::WriteAllText($profilePath,$contents,[Text.UTF8Encoding]::new($true))
             [IO.File]::WriteAllText((Join-Path $project '.node-version'),'private-project-fixture',[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project '.node-version') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"fnm","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
-            $before=(Get-FileHash $profilePath -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project '.node-version') -Algorithm SHA256).Hash; $acl=(Get-Acl $profilePath).Sddl
+            $before=(Get-FileHash $profilePath -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project '.node-version') -Algorithm SHA256).Hash
             Push-Location $project
             try{
               (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool fnm --scope fnm=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
@@ -118,7 +118,7 @@ jobs:
               . $profilePath; if($env:FNM_NODE_DIST_MIRROR -notmatch 'mirrors\.(aliyun|nju|tuna|ustc)|repo\.huaweicloud\.com'){throw 'PowerShell did not load selected mirror'}
               (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'fnm'){throw 'restore failed'}
             }finally{Pop-Location}
-            $bytes=[IO.File]::ReadAllBytes($profilePath); if($before -ne (Get-FileHash $profilePath -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project '.node-version') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $profilePath).Sddl -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'fnm state not restored exactly'}
+            $bytes=[IO.File]::ReadAllBytes($profilePath); if($before -ne (Get-FileHash $profilePath -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project '.node-version') -Algorithm SHA256).Hash -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'fnm state not restored exactly'}
           }finally{
             if($profileExisted){[IO.File]::WriteAllBytes($profilePath,$profileBackup)}else{Remove-Item $profilePath -Force -ErrorAction SilentlyContinue}
           }

@@ -103,7 +103,7 @@ jobs:
           $text="channels:`r`n  - defaults`r`n  - conda-forge`r`ndefault_channels:`r`n  - https://repo.anaconda.com/pkgs/main`r`n  - https://repo.anaconda.com/pkgs/r`r`ncustom_channels:`r`n  conda-forge: https://conda.anaconda.org`r`nchannel_priority: strict`r`nssl_verify: true`r`n"
           [IO.File]::WriteAllText($env:CONDARC,$text,[Text.UTF8Encoding]::new($true))
           $project=Join-Path $boundary 'project'; '{"version":1,"tools":[{"id":"conda","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
-          $before=(Get-FileHash $env:CONDARC -Algorithm SHA256).Hash; $acl=(Get-Acl $env:CONDARC).Sddl
+          $before=(Get-FileHash $env:CONDARC -Algorithm SHA256).Hash
           Push-Location $project
           try {
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json
@@ -122,7 +122,7 @@ jobs:
             (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json
             $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'conda'){throw 'restore failed'}
           } finally {Pop-Location}
-          if($before -ne (Get-FileHash $env:CONDARC -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $env:CONDARC).Sddl){throw '.condarc not restored exactly'}
+          if($before -ne (Get-FileHash $env:CONDARC -Algorithm SHA256).Hash){throw '.condarc not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

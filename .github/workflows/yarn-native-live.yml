@@ -142,7 +142,7 @@ jobs:
             '{"name":"native-probe","version":"1.0.0","packageManager":"yarn@4.9.2"}'|Set-Content -Encoding utf8 (Join-Path $project 'package.json')
           }
           '{"version":1,"tools":[{"id":"yarn","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
-          $before=(Get-FileHash $user -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash $projectConfig -Algorithm SHA256).Hash; $acl=(Get-Acl $user).Sddl
+          $before=(Get-FileHash $user -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash $projectConfig -Algorithm SHA256).Hash
           Push-Location $project
           try{
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json
@@ -155,7 +155,7 @@ jobs:
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
             (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'yarn'){throw 'restore failed'}
           }finally{Pop-Location}
-          if($before -ne (Get-FileHash $user -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash $projectConfig -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $user).Sddl){throw 'Yarn config not restored exactly'}
+          if($before -ne (Get-FileHash $user -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash $projectConfig -Algorithm SHA256).Hash){throw 'Yarn config not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

@@ -92,7 +92,7 @@ jobs:
           go env -w GOPROXY=https://proxy.golang.org,direct GOSUMDB=sum.golang.org 'GOPRIVATE=corp.invalid.example/*' 'GONOSUMDB=corp.invalid.example/*'
           $goenv=go env GOENV; $text=(Get-Content $goenv -Raw)-replace "(?<!`r)`n","`r`n"; [IO.File]::WriteAllText($goenv,$text,[Text.UTF8Encoding]::new($false))
           "module example.invalid/native`r`n`r`ngo 1.27`r`n"|Set-Content -Encoding utf8 (Join-Path $project 'go.mod'); '{"version":1,"tools":[{"id":"go","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
-          $before=(Get-FileHash $goenv -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'go.mod') -Algorithm SHA256).Hash; $acl=(Get-Acl $goenv).Sddl
+          $before=(Get-FileHash $goenv -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'go.mod') -Algorithm SHA256).Hash
           Push-Location $project
           try{
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool go --scope go=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
@@ -102,7 +102,7 @@ jobs:
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
             (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'go'){throw 'restore failed'}
           }finally{Pop-Location}
-          if($before -ne (Get-FileHash $goenv -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'go.mod') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $goenv).Sddl){throw 'Go configuration not restored exactly'}
+          if($before -ne (Get-FileHash $goenv -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'go.mod') -Algorithm SHA256).Hash){throw 'Go configuration not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

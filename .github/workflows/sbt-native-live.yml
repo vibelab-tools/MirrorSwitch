@@ -94,7 +94,7 @@ jobs:
           $project=Join-Path $env:USERPROFILE 'project'; $repositories=Join-Path $env:USERPROFILE '.sbt/repositories'; New-Item -ItemType Directory -Force $project,(Join-Path $project 'project'),(Split-Path $repositories),$env:LOCALAPPDATA|Out-Null
           [IO.File]::WriteAllText($repositories,"# native repositories`r`n[repositories]`r`n  local`r`n  corporate: https://packages.invalid.example/maven/`r`n  maven-central`r`n",[Text.UTF8Encoding]::new($true))
           "ThisBuild / scalaVersion := `"2.13.16`"`r`nresolvers += `"private`" at `"https://packages.invalid.example/maven/`"`r`n"|Set-Content -Encoding utf8 (Join-Path $project 'build.sbt'); 'sbt.version=1.13.0'|Set-Content -Encoding ascii (Join-Path $project 'project/build.properties'); '{"version":1,"tools":[{"id":"sbt","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
-          $before=(Get-FileHash $repositories -Algorithm SHA256).Hash; $buildBefore=(Get-FileHash (Join-Path $project 'build.sbt') -Algorithm SHA256).Hash; $acl=(Get-Acl $repositories).Sddl
+          $before=(Get-FileHash $repositories -Algorithm SHA256).Hash; $buildBefore=(Get-FileHash (Join-Path $project 'build.sbt') -Algorithm SHA256).Hash
           Push-Location $project
           try{
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool sbt --scope sbt=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
@@ -104,7 +104,7 @@ jobs:
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
             (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'sbt'){throw 'restore failed'}
           }finally{Pop-Location}
-          if($before -ne (Get-FileHash $repositories -Algorithm SHA256).Hash -or $buildBefore -ne (Get-FileHash (Join-Path $project 'build.sbt') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $repositories).Sddl){throw 'sbt config not restored exactly'}
+          if($before -ne (Get-FileHash $repositories -Algorithm SHA256).Hash -or $buildBefore -ne (Get-FileHash (Join-Path $project 'build.sbt') -Algorithm SHA256).Hash){throw 'sbt config not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

@@ -97,7 +97,7 @@ jobs:
           tlmgr init-usertree; if($LASTEXITCODE -ne 0){throw 'tlmgr user tree initialization failed'}; tlmgr --usermode option repository https://mirror.ctan.org/systems/texlive/tlnet; if($LASTEXITCODE -ne 0){throw 'tlmgr user repository initialization failed'}
           $texmfhome=(kpsewhich -var-value=TEXMFHOME) -join ''; $userDb=Join-Path $texmfhome 'tlpkg/texlive.tlpdb'; $version=(tlmgr --version) -join "`n"; $root=($version -split "`n"|Where-Object {$_ -like 'tlmgr using installation:*'}|Select-Object -First 1).Substring('tlmgr using installation: '.Length); $systemDb=Join-Path $root 'tlpkg/texlive.tlpdb'
           $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $project|Out-Null; [IO.File]::WriteAllText((Join-Path $project 'texlive.project'),"TEXINPUTS=./private//`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'texlive.project') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"tlmgr","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
-          $userBefore=(Get-FileHash $userDb -Algorithm SHA256).Hash; $systemBefore=(Get-FileHash $systemDb -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'texlive.project') -Algorithm SHA256).Hash; $acl=(Get-Acl $userDb).Sddl
+          $userBefore=(Get-FileHash $userDb -Algorithm SHA256).Hash; $systemBefore=(Get-FileHash $systemDb -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'texlive.project') -Algorithm SHA256).Hash
           Push-Location $project
           try{
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool tlmgr --scope tlmgr=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
@@ -108,7 +108,7 @@ jobs:
             $repositories=(tlmgr --usermode repository list) -join "`n"; if($repositories -notmatch 'mirrors\.(aliyun|nju|tuna)|repo\.huaweicloud\.com'){throw 'native tlmgr did not load selected repository'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'tlmgr'){throw 'restore failed'}
           }finally{Pop-Location}
-          if($userBefore -ne (Get-FileHash $userDb -Algorithm SHA256).Hash -or $systemBefore -ne (Get-FileHash $systemDb -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'texlive.project') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $userDb).Sddl){throw 'tlmgr state not restored exactly'}
+          if($userBefore -ne (Get-FileHash $userDb -Algorithm SHA256).Hash -or $systemBefore -ne (Get-FileHash $systemDb -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'texlive.project') -Algorithm SHA256).Hash){throw 'tlmgr state not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

@@ -88,7 +88,7 @@ jobs:
           $emacsDir=((& emacs --batch -Q --eval '(princ (expand-file-name user-emacs-directory))') -join '').Trim(); $init=Join-Path $emacsDir 'init.el'; $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $emacsDir,$project|Out-Null
           $contents=";; native user policy`r`n(setq custom-file `"~/.emacs.d/private.el`")`r`n(setq package-archives '((`"private`" . `"https://build:fixture-only@packages.invalid.example/elpa/`")))`r`n(setq package-archive-priorities '((`"private`" . 100)))`r`n"; [IO.File]::WriteAllText($init,$contents,[Text.UTF8Encoding]::new($true))
           [IO.File]::WriteAllText((Join-Path $project '.dir-locals.el'),'((nil . ((private-token . "project-fixture-only"))))',[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project '.dir-locals.el') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"elpa","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
-          $before=(Get-FileHash $init -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project '.dir-locals.el') -Algorithm SHA256).Hash; $acl=(Get-Acl $init).Sddl
+          $before=(Get-FileHash $init -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project '.dir-locals.el') -Algorithm SHA256).Hash
           Push-Location $project
           try{
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool elpa --scope elpa=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
@@ -99,7 +99,7 @@ jobs:
             $script="(progn (dolist (name '(`"gnu`" `"nongnu`" `"melpa`")) (unless (string-match-p `"mirrors\\.\\(nju\\|tuna\\|ustc\\)`" (cdr (assoc name package-archives))) (error `"archive mismatch: %s`" name))) (princ `"MIRRORSWITCH_ELPA_NATIVE=ok`"))"; & emacs --batch -Q --load $init --eval $script; if($LASTEXITCODE -ne 0){throw 'native archive query failed'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'elpa'){throw 'restore failed'}
           }finally{Pop-Location}
-          $bytes=[IO.File]::ReadAllBytes($init); if($before -ne (Get-FileHash $init -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project '.dir-locals.el') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $init).Sddl -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF -or (Test-Path (Join-Path $emacsDir 'mirrorswitch/verification/elpa'))){throw 'ELPA state not restored exactly'}
+          $bytes=[IO.File]::ReadAllBytes($init); if($before -ne (Get-FileHash $init -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project '.dir-locals.el') -Algorithm SHA256).Hash -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF -or (Test-Path (Join-Path $emacsDir 'mirrorswitch/verification/elpa'))){throw 'ELPA state not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

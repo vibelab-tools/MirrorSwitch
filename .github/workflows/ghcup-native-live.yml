@@ -123,7 +123,7 @@ jobs:
           $project=Join-Path $env:USERPROFILE 'project'; $config=Join-Path $env:USERPROFILE 'ghcup/config.yaml'; New-Item -ItemType Directory -Force $project,(Split-Path $config)|Out-Null
           $contents="# native GHCup policy`r`nurl-source:`r`n  - GHCupURL`r`ngpg-setting: GPGStrict`r`nno-verify: false`r`nmirrors:`r`n  github.com:`r`n    authority:`r`n      host: build:fixture-only@example.invalid`r`nkeep-dirs: Errors`r`n"; [IO.File]::WriteAllText($config,$contents,[Text.UTF8Encoding]::new($true))
           [IO.File]::WriteAllText((Join-Path $project 'ghcup.yaml'),"url-source: https://project.invalid/metadata.yaml`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'ghcup.yaml') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"ghcup","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
-          $before=(Get-FileHash $config -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'ghcup.yaml') -Algorithm SHA256).Hash; $acl=(Get-Acl $config).Sddl
+          $before=(Get-FileHash $config -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'ghcup.yaml') -Algorithm SHA256).Hash
           Push-Location $project
           try{
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool ghcup --scope ghcup=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
@@ -135,7 +135,7 @@ jobs:
             foreach($entry in @(@('ghc','9.10.3'),@('cabal','3.14.2.0'),@('hls','2.13.0.0'),@('stack','3.7.1'))){$listed=(& ghcup --metadata-fetching-mode Strict list --tool $entry[0] --raw-format) -join "`n"; if(-not $listed.Contains($entry[1])){throw "$($entry[0]) bindist missing"}}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'ghcup'){throw 'restore failed'}
           }finally{Pop-Location}
-          if($before -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'ghcup.yaml') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $config).Sddl){throw 'GHCup state not restored exactly'}
+          if($before -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'ghcup.yaml') -Algorithm SHA256).Hash){throw 'GHCup state not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

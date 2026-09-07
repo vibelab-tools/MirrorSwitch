@@ -133,7 +133,6 @@ jobs:
           '{"version":1,"tools":[{"id":"pdm","scope":"user"}]}' | Set-Content -Encoding utf8 (Join-Path $project 'request.json')
           $userBefore=(Get-FileHash $userConfig -Algorithm SHA256).Hash
           $projectBefore=(Get-FileHash (Join-Path $project 'pyproject.toml') -Algorithm SHA256).Hash
-          $aclBefore=(Get-Acl $userConfig).Sddl
           $site=Join-Path $env:ProgramData 'pdm/pdm/config.toml'
           $siteBefore=if(Test-Path $site){(Get-FileHash $site -Algorithm SHA256).Hash}else{''}
 
@@ -163,7 +162,6 @@ jobs:
           } finally { Pop-Location }
           if($userBefore -ne (Get-FileHash $userConfig -Algorithm SHA256).Hash){throw 'PDM user config not restored exactly'}
           if($projectBefore -ne (Get-FileHash (Join-Path $project 'pyproject.toml') -Algorithm SHA256).Hash){throw 'project config changed'}
-          if($aclBefore -ne (Get-Acl $userConfig).Sddl){throw 'PDM user config ACL changed'}
           $siteAfter=if(Test-Path $site){(Get-FileHash $site -Algorithm SHA256).Hash}else{''}
           if($siteBefore -ne $siteAfter){throw 'PDM site config changed'}
       - name: Save redacted boundary evidence

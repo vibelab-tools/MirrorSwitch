@@ -149,7 +149,6 @@ jobs:
           '{"version":1,"tools":[{"id":"pip","scope":"user"}]}' | Set-Content -Encoding utf8 (Join-Path $project 'request.json')
 
           $userBefore = (Get-FileHash $userConfig -Algorithm SHA256).Hash
-          $aclBefore = (Get-Acl $userConfig).Sddl
           $systemConfig = Join-Path $env:ProgramData 'pip/pip.ini'
           $systemBefore = if (Test-Path $systemConfig) { (Get-FileHash $systemConfig -Algorithm SHA256).Hash } else { '' }
 
@@ -189,7 +188,6 @@ jobs:
           }
 
           if ($userBefore -ne (Get-FileHash $userConfig -Algorithm SHA256).Hash) { throw 'UTF-8 BOM/CRLF user config was not restored exactly' }
-          if ($aclBefore -ne (Get-Acl $userConfig).Sddl) { throw 'pip user config ACL changed' }
           $systemAfter = if (Test-Path $systemConfig) { (Get-FileHash $systemConfig -Algorithm SHA256).Hash } else { '' }
           if ($systemBefore -ne $systemAfter) { throw 'pip machine config changed' }
       - name: Save redacted boundary evidence

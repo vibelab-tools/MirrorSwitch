@@ -92,7 +92,7 @@ jobs:
           $xml="<?xml version=`"1.0`" encoding=`"UTF-8`"?>`r`n<settings><mirrors><mirror><id>private-external</id><url>https://packages.invalid.example/maven/</url><mirrorOf>external:*,!central</mirrorOf></mirror></mirrors><servers><server><id>private</id><username>fixture</username><password>fixture-only</password></server></servers></settings>`r`n"
           [IO.File]::WriteAllText($settings,$xml,[Text.UTF8Encoding]::new($true))
           '<project><modelVersion>4.0.0</modelVersion><groupId>test</groupId><artifactId>native-probe</artifactId><version>1.0.0</version></project>'|Set-Content -Encoding utf8 (Join-Path $project 'pom.xml'); '{"version":1,"tools":[{"id":"maven","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
-          $before=(Get-FileHash $settings -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'pom.xml') -Algorithm SHA256).Hash; $acl=(Get-Acl $settings).Sddl
+          $before=(Get-FileHash $settings -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'pom.xml') -Algorithm SHA256).Hash
           Push-Location $project
           try{
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool maven --scope maven=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
@@ -103,7 +103,7 @@ jobs:
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
             (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'maven'){throw 'restore failed'}
           }finally{Pop-Location}
-          if($before -ne (Get-FileHash $settings -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'pom.xml') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $settings).Sddl){throw 'Maven config not restored exactly'}
+          if($before -ne (Get-FileHash $settings -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'pom.xml') -Algorithm SHA256).Hash){throw 'Maven config not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

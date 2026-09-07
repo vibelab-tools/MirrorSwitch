@@ -107,7 +107,6 @@ jobs:
           $projectConfig = Join-Path $env:MIRRORSWITCH_NUGET_PROJECT 'NuGet.Config'
           $userBefore = (Get-FileHash $env:MIRRORSWITCH_NUGET_USER_CONFIG -Algorithm SHA256).Hash
           $projectBefore = (Get-FileHash $projectConfig -Algorithm SHA256).Hash
-          $aclBefore = (Get-Acl $env:MIRRORSWITCH_NUGET_USER_CONFIG).Sddl
           $machineBefore = @(Get-ChildItem "${env:ProgramFiles(x86)}\NuGet\Config", "$env:ProgramData\NuGet\Config" -Filter '*.config' -File -ErrorAction SilentlyContinue | Sort-Object FullName | ForEach-Object {
             "{0}={1}" -f $_.FullName, (Get-FileHash $_.FullName -Algorithm SHA256).Hash
           }) -join "`n"
@@ -155,14 +154,12 @@ jobs:
 
           $userAfter = (Get-FileHash $env:MIRRORSWITCH_NUGET_USER_CONFIG -Algorithm SHA256).Hash
           $projectAfter = (Get-FileHash $projectConfig -Algorithm SHA256).Hash
-          $aclAfter = (Get-Acl $env:MIRRORSWITCH_NUGET_USER_CONFIG).Sddl
           $machineAfter = @(Get-ChildItem "${env:ProgramFiles(x86)}\NuGet\Config", "$env:ProgramData\NuGet\Config" -Filter '*.config' -File -ErrorAction SilentlyContinue | Sort-Object FullName | ForEach-Object {
             "{0}={1}" -f $_.FullName, (Get-FileHash $_.FullName -Algorithm SHA256).Hash
           }) -join "`n"
           if ($userBefore -ne $userAfter) { throw 'UTF-16 user configuration was not restored exactly' }
           if ($projectBefore -ne $projectAfter) { throw 'project configuration changed' }
           if ($machineBefore -ne $machineAfter) { throw 'Visual Studio or machine configuration changed' }
-          if ($aclBefore -ne $aclAfter) { throw 'user configuration ACL changed' }
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

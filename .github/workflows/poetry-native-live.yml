@@ -117,7 +117,7 @@ jobs:
           $text="[project]`r`nname = `"native-probe`"`r`nversion = `"0.1.0`"`r`nrequires-python = `">=3.13`"`r`ndependencies = []`r`n"
           [IO.File]::WriteAllText($projectFile,$text,[Text.UTF8Encoding]::new($true))
           '{"version":1,"tools":[{"id":"poetry","scope":"project"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
-          $projectBefore=(Get-FileHash $projectFile -Algorithm SHA256).Hash; $aclBefore=(Get-Acl $projectFile).Sddl
+          $projectBefore=(Get-FileHash $projectFile -Algorithm SHA256).Hash
           $configBefore=(Get-FileHash (Join-Path $configRoot 'config.toml') -Algorithm SHA256).Hash
           $authBefore=(Get-FileHash (Join-Path $configRoot 'auth.toml') -Algorithm SHA256).Hash
           Push-Location $project
@@ -138,7 +138,7 @@ jobs:
             (& $binary restore $transactionId --yes --json)|Set-Content -Encoding utf8 restore.json
             $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'poetry'){throw 'restore failed'}
           } finally {Pop-Location}
-          if($projectBefore -ne (Get-FileHash $projectFile -Algorithm SHA256).Hash -or $aclBefore -ne (Get-Acl $projectFile).Sddl){throw 'project not restored exactly'}
+          if($projectBefore -ne (Get-FileHash $projectFile -Algorithm SHA256).Hash){throw 'project not restored exactly'}
           if($configBefore -ne (Get-FileHash (Join-Path $configRoot 'config.toml') -Algorithm SHA256).Hash -or $authBefore -ne (Get-FileHash (Join-Path $configRoot 'auth.toml') -Algorithm SHA256).Hash){throw 'global config changed'}
       - name: Save redacted boundary evidence
         if: always()

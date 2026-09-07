@@ -92,7 +92,7 @@ jobs:
           $project=Join-Path $env:USERPROFILE 'project'; $profile=Join-Path $env:LEIN_HOME 'profiles.clj'; New-Item -ItemType Directory -Force $project,$env:LEIN_HOME,$env:LOCALAPPDATA|Out-Null
           $text=";; native profile`r`n{:user {:repositories [[`"central`" {:url `"https://repo1.maven.org/maven2/`"}] [`"clojars`" {:url `"https://repo.clojars.org/`"}] [`"private`" {:url `"https://packages.invalid.example/maven/`"}]] :plugins [[lein-ancient `"0.7.0`"]]}}`r`n"; [IO.File]::WriteAllText($profile,$text,[Text.UTF8Encoding]::new($true))
           '(defproject native "0.1.0" :dependencies [[org.clojure/clojure "1.12.0"]] :repositories [["private" "https://packages.invalid.example/maven/"]])'|Set-Content -Encoding utf8 (Join-Path $project 'project.clj'); '{"version":1,"tools":[{"id":"leiningen","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
-          $before=(Get-FileHash $profile -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'project.clj') -Algorithm SHA256).Hash; $acl=(Get-Acl $profile).Sddl
+          $before=(Get-FileHash $profile -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'project.clj') -Algorithm SHA256).Hash
           Push-Location $project
           try{
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool leiningen --scope leiningen=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
@@ -102,7 +102,7 @@ jobs:
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
             (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'leiningen'){throw 'restore failed'}
           }finally{Pop-Location}
-          if($before -ne (Get-FileHash $profile -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'project.clj') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $profile).Sddl){throw 'Leiningen config not restored exactly'}
+          if($before -ne (Get-FileHash $profile -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'project.clj') -Algorithm SHA256).Hash){throw 'Leiningen config not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7

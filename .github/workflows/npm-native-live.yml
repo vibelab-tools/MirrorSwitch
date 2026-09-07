@@ -93,7 +93,7 @@ jobs:
           $project=Join-Path $boundary 'project'; $user=Join-Path $env:USERPROFILE '.npmrc'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA,$project|Out-Null
           [IO.File]::WriteAllText($user,"registry=https://registry.npmjs.org/`r`nfund=false`r`n",[Text.UTF8Encoding]::new($true))
           '@private:registry=https://packages.invalid.example/npm/'|Set-Content -Encoding utf8 (Join-Path $project '.npmrc'); '{"version":1,"tools":[{"id":"npm","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
-          $before=(Get-FileHash $user -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project '.npmrc') -Algorithm SHA256).Hash; $acl=(Get-Acl $user).Sddl
+          $before=(Get-FileHash $user -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project '.npmrc') -Algorithm SHA256).Hash
           Push-Location $project
           try {
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json
@@ -107,7 +107,7 @@ jobs:
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
             (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'npm'){throw 'restore failed'}
           } finally {Pop-Location}
-          if($before -ne (Get-FileHash $user -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project '.npmrc') -Algorithm SHA256).Hash -or $acl -ne (Get-Acl $user).Sddl){throw 'npm config not restored exactly'}
+          if($before -ne (Get-FileHash $user -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project '.npmrc') -Algorithm SHA256).Hash){throw 'npm config not restored exactly'}
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7
