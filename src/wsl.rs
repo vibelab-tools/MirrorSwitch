@@ -22,10 +22,10 @@ pub struct WslDistribution {
 }
 
 pub fn discover(runtime: &dyn Runtime) -> Result<Vec<WslDistribution>, AdapterError> {
-    if !runtime.command_exists("wsl.exe") {
+    let Some(program) = wsl_program(runtime) else {
         return Ok(Vec::new());
-    }
-    let output = runtime.run("wsl.exe", &["--list".into(), "--quiet".into()])?;
+    };
+    let output = runtime.run(&program, &["--list".into(), "--quiet".into()])?;
     if !output.status.success() {
         return Err(AdapterError::Runtime(format!(
             "wsl.exe --list --quiet failed with status {}",
@@ -37,7 +37,7 @@ pub fn discover(runtime: &dyn Runtime) -> Result<Vec<WslDistribution>, AdapterEr
     for name in names.lines().map(str::trim).filter(|name| !name.is_empty()) {
         validate_distribution_name(name)?;
         let output = runtime.run(
-            "wsl.exe",
+            &program,
             &[
                 "--distribution".into(),
                 name.into(),
@@ -57,6 +57,20 @@ pub fn discover(runtime: &dyn Runtime) -> Result<Vec<WslDistribution>, AdapterEr
     }
     distributions.sort_by(|left, right| left.name.cmp(&right.name));
     Ok(distributions)
+}
+
+fn wsl_program(runtime: &dyn Runtime) -> Option<String> {
+    if let Some(system_root) = runtime
+        .environment_variable("SystemRoot")
+        .filter(|value| !value.trim().is_empty())
+    {
+        let candidate = PathBuf::from(system_root).join("System32").join("wsl.exe");
+        let candidate = candidate.display().to_string();
+        if runtime.command_exists(&candidate) {
+            return Some(candidate);
+        }
+    }
+    runtime.command_exists("wsl.exe").then(|| "wsl.exe".into())
 }
 
 pub fn run_distribution(

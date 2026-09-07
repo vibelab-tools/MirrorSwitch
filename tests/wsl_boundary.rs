@@ -43,11 +43,20 @@ fn utf16(value: &str) -> Vec<u8> {
 
 struct WslRuntime {
     calls: RefCell<Vec<Vec<String>>>,
+    system_path_only: bool,
 }
 
 impl Runtime for WslRuntime {
     fn command_exists(&self, command: &str) -> bool {
-        command == "wsl.exe"
+        if self.system_path_only {
+            command != "wsl.exe" && command.replace('\\', "/").ends_with("/System32/wsl.exe")
+        } else {
+            command == "wsl.exe"
+        }
+    }
+
+    fn environment_variable(&self, name: &str) -> Option<String> {
+        (self.system_path_only && name == "SystemRoot").then(|| r"C:\Windows".into())
     }
 
     fn read(&self, _path: &Path) -> Result<Option<Vec<u8>>, AdapterError> {
@@ -55,7 +64,11 @@ impl Runtime for WslRuntime {
     }
 
     fn run(&self, program: &str, arguments: &[String]) -> Result<Output, AdapterError> {
-        assert_eq!(program, "wsl.exe");
+        if self.system_path_only {
+            assert!(program.replace('\\', "/").ends_with("/System32/wsl.exe"));
+        } else {
+            assert_eq!(program, "wsl.exe");
+        }
         self.calls.borrow_mut().push(arguments.to_vec());
         if arguments == ["--list", "--quiet"] {
             return Ok(output(utf16("Ubuntu\r\nDebian\r\n")));
@@ -79,6 +92,7 @@ impl Runtime for WslRuntime {
 fn wsl_inventory_decodes_utf16_and_keeps_each_distribution_unselected() {
     let runtime = WslRuntime {
         calls: RefCell::new(Vec::new()),
+        system_path_only: false,
     };
 
     let distributions = discover(&runtime).unwrap();
@@ -110,9 +124,24 @@ fn wsl_inventory_decodes_utf16_and_keeps_each_distribution_unselected() {
 }
 
 #[test]
+fn wsl_inventory_falls_back_to_the_native_system32_launcher() {
+    let runtime = WslRuntime {
+        calls: RefCell::new(Vec::new()),
+        system_path_only: true,
+    };
+
+    let distributions = discover(&runtime).unwrap();
+
+    assert_eq!(distributions.len(), 2);
+    assert_eq!(distributions[0].name, "Debian");
+    assert_eq!(distributions[1].name, "Ubuntu");
+}
+
+#[test]
 fn tui_shows_wsl_as_a_separate_explicit_target_hierarchy() {
     let runtime = WslRuntime {
         calls: RefCell::new(Vec::new()),
+        system_path_only: false,
     };
     let report = DetectionReport {
         context: SystemContext {
