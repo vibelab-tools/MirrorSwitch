@@ -76,7 +76,7 @@ fn install_clients(
     let global = root.join("opt/node/etc/npmrc");
     let user = root.join("home/developer/.npmrc");
     let project = root.join("work/project/.npmrc");
-    let project_directory = root.join("work/project");
+    let project_directory = fs::canonicalize(root).unwrap().join("work/project");
     let environment_registry = environment_registry.unwrap_or("");
     executable(
         root,
@@ -114,7 +114,7 @@ fn install_native_clients(root: &Path, selected: &str, global_path: &str, user_p
     let global = root.join(global_path.trim_start_matches('/'));
     let user = root.join(user_path.trim_start_matches('/'));
     let project = root.join("work/project/.npmrc");
-    let project_directory = root.join("work/project");
+    let project_directory = fs::canonicalize(root).unwrap().join("work/project");
     executable(
         root,
         "/usr/bin/npm",

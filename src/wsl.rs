@@ -110,8 +110,8 @@ fn parse_probe(name: &str, text: &str) -> Result<WslDistribution, AdapterError> 
         .ok_or_else(|| AdapterError::Runtime(format!("WSL distribution {name} has no user ID")))?;
     let home = values
         .get("home")
+        .filter(|value| value.starts_with('/'))
         .map(PathBuf::from)
-        .filter(|path| path.is_absolute())
         .ok_or_else(|| AdapterError::Runtime(format!("WSL distribution {name} has no home")))?;
     let lower_kernel = kernel.to_ascii_lowercase();
     let wsl_version =
