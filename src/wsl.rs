@@ -5,6 +5,9 @@ use std::{
 
 use serde::Serialize;
 
+#[cfg(windows)]
+use std::{fs, process::Stdio};
+
 use crate::{AdapterError, Runtime};
 
 const PROBE_SCRIPT: &str = r#"printf 'kernel=%s\n' "$(uname -r)"; printf 'uid=%s\n' "$(id -u)"; printf 'home=%s\n' "$HOME"; if command -v mirrorswitch >/dev/null 2>&1; then printf 'mirrorswitch=%s\n' "$(mirrorswitch --version)"; else printf 'mirrorswitch=\n'; fi"#;
@@ -86,7 +89,17 @@ fn wsl_program(runtime: &dyn Runtime) -> Option<String> {
 
 #[cfg(windows)]
 pub(crate) fn registered_distribution_names() -> Result<Vec<String>, AdapterError> {
-    let output = Command::new("reg.exe")
+    let directory = tempfile::tempdir().map_err(|error| {
+        AdapterError::Runtime(format!("could not stage WSL registry query: {error}"))
+    })?;
+    let path = directory.path().join("wsl-registry.txt");
+    let stdout = fs::File::create(&path).map_err(|error| {
+        AdapterError::Runtime(format!("could not stage WSL registry output: {error}"))
+    })?;
+    let stderr = stdout.try_clone().map_err(|error| {
+        AdapterError::Runtime(format!("could not stage WSL registry errors: {error}"))
+    })?;
+    let status = Command::new("reg.exe")
         .args([
             "query",
             r"HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss",
@@ -94,23 +107,24 @@ pub(crate) fn registered_distribution_names() -> Result<Vec<String>, AdapterErro
             "/v",
             "DistributionName",
         ])
-        .output()
+        .stdout(Stdio::from(stdout))
+        .stderr(Stdio::from(stderr))
+        .status()
         .map_err(|error| {
             AdapterError::Runtime(format!("could not query WSL registrations: {error}"))
         })?;
-    if !output.status.success() {
+    if !status.success() {
         return Ok(Vec::new());
     }
-    let mut names = decode_output(if output.stdout.is_empty() {
-        &output.stderr
-    } else {
-        &output.stdout
-    })?
-    .lines()
-    .filter_map(|line| line.split_once("REG_SZ").map(|(_, value)| value.trim()))
-    .filter(|value| !value.is_empty())
-    .map(str::to_owned)
-    .collect::<Vec<_>>();
+    let bytes = fs::read(&path).map_err(|error| {
+        AdapterError::Runtime(format!("could not read WSL registry output: {error}"))
+    })?;
+    let mut names = decode_output(&bytes)?
+        .lines()
+        .filter_map(|line| line.split_once("REG_SZ").map(|(_, value)| value.trim()))
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
     names.sort();
     names.dedup();
     Ok(names)
