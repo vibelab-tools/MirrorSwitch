@@ -595,11 +595,18 @@ fn parse_mirrorlist(text: &str, kind: MirrorKind) -> Result<Vec<ServerLine>, Ada
             && key.trim().eq_ignore_ascii_case("Server")
         {
             let url = value.trim();
-            let valid = match kind {
-                MirrorKind::Msys => url.ends_with("/msys/$arch/"),
-                MirrorKind::Mingw => url.ends_with("/mingw/$repo/"),
+            let placeholder = match kind {
+                MirrorKind::Msys => "$arch",
+                MirrorKind::Mingw => "$repo",
             };
-            if !valid || !url.starts_with("https://") {
+            let valid = reqwest::Url::parse(url).is_ok_and(|parsed| {
+                parsed.scheme() == "https"
+                    && parsed.host_str().is_some()
+                    && parsed.path_segments().is_some_and(|segments| {
+                        segments.into_iter().any(|part| part == placeholder)
+                    })
+            });
+            if !valid {
                 return Err(AdapterError::Unsupported(format!(
                     "MSYS2 {} mirrorlist contains an unsupported active server",
                     kind.name()

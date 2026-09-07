@@ -72,7 +72,7 @@ impl FakeRuntime {
     fn new(subsystem: &str) -> Self {
         let root = root();
         let config = b"[options]\r\nArchitecture = auto\r\nSigLevel = Required DatabaseOptional\r\nLocalFileSigLevel = Optional\r\n\r\n[msys]\r\nInclude = /etc/pacman.d/mirrorlist.msys\r\n\r\n[mingw32]\r\nInclude = /etc/pacman.d/mirrorlist.mingw\r\n[mingw64]\r\nInclude = /etc/pacman.d/mirrorlist.mingw\r\n[ucrt64]\r\nInclude = /etc/pacman.d/mirrorlist.mingw\r\n[clang32]\r\nInclude = /etc/pacman.d/mirrorlist.mingw\r\n[clang64]\r\nInclude = /etc/pacman.d/mirrorlist.mingw\r\n[clangarm64]\r\nInclude = /etc/pacman.d/mirrorlist.mingw\r\n";
-        let msys = b"# preserve custom precedence\r\nServer = https://private.example/cache/msys/$arch/\r\nServer = https://repo.msys2.org/msys/$arch/\r\nServer = https://mirrors.tuna.tsinghua.edu.cn/msys2/msys/$arch/\r\n";
+        let msys = b"# preserve custom precedence\r\nServer = https://private.example/cache/msys/$arch/\r\nServer = https://mirrors.qlu.edu.cn/msys2/$arch/\r\nServer = https://repo.msys2.org/msys/$arch/\r\nServer = https://mirrors.tuna.tsinghua.edu.cn/msys2/msys/$arch/\r\n";
         let mingw = b"# preserve custom precedence\r\nServer = https://private.example/cache/mingw/$repo/\r\nServer = https://repo.msys2.org/mingw/$repo/\r\nServer = https://mirrors.tuna.tsinghua.edu.cn/msys2/mingw/$repo/\r\n";
         Self {
             files: BTreeMap::from([
