@@ -631,3 +631,38 @@ fn real_http_probe_rejects_an_oversized_response() {
     server.join().unwrap();
     assert_eq!(error, ProbeError::TooLarge { limit_bytes: 10 });
 }
+
+#[test]
+fn real_http_probe_retries_one_connection_timeout() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = thread::spawn(move || {
+        let (first, _) = listener.accept().unwrap();
+        let stalled = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(150));
+            drop(first);
+        });
+
+        let (mut second, _) = listener.accept().unwrap();
+        let mut request = [0_u8; 1024];
+        let _ = second.read(&mut request).unwrap();
+        second
+            .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok")
+            .unwrap();
+        stalled.join().unwrap();
+    });
+
+    let observation = HttpCandidateProber
+        .probe(
+            mirrorswitch::catalog::HttpMethod::Get,
+            &format!("http://{address}/metadata"),
+            ProbeLimits {
+                timeout: Duration::from_millis(75),
+                max_bytes: 10,
+            },
+        )
+        .unwrap();
+    server.join().unwrap();
+    assert_eq!(observation.status, 200);
+    assert_eq!(observation.body, b"ok");
+}

@@ -55,7 +55,7 @@ pub struct ProbeLimits {
 impl Default for ProbeLimits {
     fn default() -> Self {
         Self {
-            timeout: Duration::from_secs(3),
+            timeout: Duration::from_secs(5),
             max_bytes: 24 * 1024 * 1024,
         }
     }
@@ -110,18 +110,25 @@ impl CandidateProber for HttpCandidateProber {
             .build()
             .map_err(|error| ProbeError::Http(error.to_string()))?;
         let started = Instant::now();
-        let request = client.request(
-            match method {
-                HttpMethod::Head => Method::HEAD,
-                HttpMethod::Get => Method::GET,
-            },
-            url,
-        );
-        let request = match accept {
-            Some(value) => request.header(reqwest::header::ACCEPT, value),
-            None => request,
+        let mut retries = 1;
+        let mut response = loop {
+            let request = client.request(
+                match method {
+                    HttpMethod::Head => Method::HEAD,
+                    HttpMethod::Get => Method::GET,
+                },
+                url,
+            );
+            let request = match accept {
+                Some(value) => request.header(reqwest::header::ACCEPT, value),
+                None => request,
+            };
+            match request.send() {
+                Ok(response) => break response,
+                Err(error) if error.is_timeout() && retries > 0 => retries -= 1,
+                Err(error) => return Err(map_reqwest_error(error)),
+            }
         };
-        let mut response = request.send().map_err(map_reqwest_error)?;
         if method == HttpMethod::Get
             && response
                 .content_length()
