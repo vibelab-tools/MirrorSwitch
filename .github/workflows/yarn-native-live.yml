@@ -51,11 +51,11 @@ jobs:
       - name: Restore shared Rust dependency cache
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          shared-key: native-boundary-v3-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'src/**/*.rs', 'tests/**/*.rs') }}
+          shared-key: native-boundary-v4-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'src/**/*.rs', 'tests/**/*.rs') }}
           add-job-id-key: "false"
           cache-workspace-crates: "true"
           cache-bin: "false"
-          cache-on-failure: "true"
+          cache-on-failure: "false"
       - name: Run deterministic Yarn boundary
         run: cargo test --locked --test yarn_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
       - name: Build native release executable
