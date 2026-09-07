@@ -71,7 +71,7 @@ jobs:
           mkdir -p "$(dirname "$user_config")" "$project"
           printf '[global]\nindex-url = https://pypi.org/simple/\ntimeout = 15\n' > "$user_config"
           chmod 0600 "$user_config"
-          printf '{"version":1,"tools":[{"id":"pip","scope":"user"}]}\n' > "$project/request.json"
+          printf '{"version":1,"tools":[{"id":"pip","scope":"user","mirrors":{"pypi--language-registry":"31d070d39e1daa376fb1d707"}}]}\n' > "$project/request.json"
 
           user_before=$(shasum -a 256 "$user_config" | awk '{print $1}')
           mode_before=$(stat -f '%Lp' "$user_config")
@@ -83,7 +83,7 @@ jobs:
 
           cd "$project"
           "$binary" status --offline --json > status.json
-          "$binary" plan --offline --tool pip --scope pip=user --json > plan-cli.json
+          "$binary" plan --offline --tool pip --scope pip=user --mirror pip:pypi--language-registry=31d070d39e1daa376fb1d707 --json > plan-cli.json
           "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - <<'PY'
           import json
@@ -147,7 +147,7 @@ jobs:
           New-Item -ItemType Directory -Force (Split-Path $userConfig), $env:LOCALAPPDATA, $env:ProgramData, $project | Out-Null
           $text = "[global]`r`nindex-url = https://pypi.org/simple/`r`ntimeout = 15`r`n"
           [System.IO.File]::WriteAllText($userConfig, $text, [System.Text.UTF8Encoding]::new($true))
-          '{"version":1,"tools":[{"id":"pip","scope":"user"}]}' | Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          '{"version":1,"tools":[{"id":"pip","scope":"user","mirrors":{"pypi--language-registry":"31d070d39e1daa376fb1d707"}}]}' | Set-Content -Encoding utf8 (Join-Path $project 'request.json')
 
           $userBefore = (Get-FileHash $userConfig -Algorithm SHA256).Hash
           $systemConfig = Join-Path $env:ProgramData 'pip/pip.ini'
@@ -156,7 +156,7 @@ jobs:
           Push-Location $project
           try {
             (& $binary status --offline --json) | Set-Content -Encoding utf8 status.json
-            (& $binary plan --offline --tool pip --scope pip=user --json) | Set-Content -Encoding utf8 plan-cli.json
+            (& $binary plan --offline --tool pip --scope pip=user --mirror pip:pypi--language-registry=31d070d39e1daa376fb1d707 --json) | Set-Content -Encoding utf8 plan-cli.json
             (& $binary plan --offline --config request.json --json) | Set-Content -Encoding utf8 plan-config.json
             $status = Get-Content status.json -Raw | ConvertFrom-Json
             if (@($status.detected_tools | Where-Object adapter_key -eq 'pip').Count -ne 1) { throw 'pip adapter was not detected' }
