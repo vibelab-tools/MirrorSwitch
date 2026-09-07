@@ -393,6 +393,9 @@ fn x64_command_state_apply_verify_and_explicit_restore_preserve_other_sources() 
             .unwrap()
             .valid
     );
+    assert!(runtime.calls.borrow().iter().any(|call| {
+        call.contains("powershell") && call.contains("New-Item -ItemType Directory -Force -Path")
+    }));
     assert!(
         runtime
             .calls

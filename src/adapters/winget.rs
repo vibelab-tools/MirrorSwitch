@@ -756,7 +756,7 @@ fn powershell_directory(
 ) -> Result<(), AdapterError> {
     let script = if create {
         format!(
-            "New-Item -ItemType Directory -Force -LiteralPath '{}' | Out-Null",
+            "New-Item -ItemType Directory -Force -Path '{}' | Out-Null",
             path.display().to_string().replace('\'', "''")
         )
     } else {
