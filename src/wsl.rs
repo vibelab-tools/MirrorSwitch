@@ -101,12 +101,16 @@ pub(crate) fn registered_distribution_names() -> Result<Vec<String>, AdapterErro
     if !output.status.success() {
         return Ok(Vec::new());
     }
-    let mut names = decode_output(&output.stdout)?
-        .lines()
-        .filter_map(|line| line.split_once("REG_SZ").map(|(_, value)| value.trim()))
-        .filter(|value| !value.is_empty())
-        .map(str::to_owned)
-        .collect::<Vec<_>>();
+    let mut names = decode_output(if output.stdout.is_empty() {
+        &output.stderr
+    } else {
+        &output.stdout
+    })?
+    .lines()
+    .filter_map(|line| line.split_once("REG_SZ").map(|(_, value)| value.trim()))
+    .filter(|value| !value.is_empty())
+    .map(str::to_owned)
+    .collect::<Vec<_>>();
     names.sort();
     names.dedup();
     Ok(names)
