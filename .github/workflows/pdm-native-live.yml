@@ -121,6 +121,8 @@ jobs:
           $boundary = Join-Path $env:RUNNER_TEMP 'mirrorswitch-pdm-boundary'
           $env:LOCALAPPDATA = Join-Path $boundary 'AppData/Local'
           $env:ProgramData = Join-Path $boundary 'ProgramData'
+          $env:WIN_PD_OVERRIDE_LOCAL_APPDATA = $env:LOCALAPPDATA
+          $env:WIN_PD_OVERRIDE_COMMON_APPDATA = $env:ProgramData
           $env:PDM_CHECK_UPDATE = 'false'; $env:PDM_NON_INTERACTIVE = '1'
           Remove-Item Env:PDM_CONFIG_FILE, Env:PDM_PROJECT, Env:PDM_PYPI_URL, Env:PDM_PYPI_USERNAME, Env:PDM_PYPI_PASSWORD, Env:PDM_PYPI_VERIFY_SSL, Env:PDM_PYPI_JSON_API -ErrorAction SilentlyContinue
           $project = Join-Path $boundary 'project'
