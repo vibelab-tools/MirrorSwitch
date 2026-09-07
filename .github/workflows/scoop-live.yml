@@ -80,6 +80,11 @@ jobs:
 
           (& $binary apply --offline --tool scoop --scope scoop=user --yes --json) | Set-Content -Encoding utf8 apply.json
           $apply = Get-Content apply.json -Raw | ConvertFrom-Json
+          if (-not $apply.result.successful -and $apply.result.tools[0].error -match 'git ls-remote Scoop bucket failed.+configuration restored: true') {
+            Move-Item apply.json apply-first.json
+            (& $binary apply --offline --tool scoop --scope scoop=user --yes --json) | Set-Content -Encoding utf8 apply.json
+            $apply = Get-Content apply.json -Raw | ConvertFrom-Json
+          }
           if (-not $apply.result.successful) { throw 'Scoop apply failed' }
           $applied = @($apply.result.tools | Where-Object status -eq 'applied')
           if ($applied.Count -ne 1) { throw 'Scoop transaction was not applied' }
@@ -100,7 +105,7 @@ jobs:
           name: scoop-boundary-${{ matrix.arch }}-${{ github.run_id }}
           path: |
             plan.json
-            apply.json
+            apply*.json
             status.json
             restore.json
             tui.txt
