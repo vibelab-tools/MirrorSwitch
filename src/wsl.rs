@@ -94,13 +94,13 @@ pub(crate) fn captured_distribution_names() -> Result<Vec<String>, AdapterError>
     })?;
     let path = directory.path().join("wsl-list.txt");
     let status = Command::new("cmd.exe")
+        .current_dir(directory.path())
         .args([
             "/D",
             "/U",
             "/C",
-            r#"wsl.exe --list --quiet > "%MIRRORSWITCH_WSL_LIST%" 2>&1"#,
+            "wsl.exe --list --quiet > wsl-list.txt 2>&1",
         ])
-        .env("MIRRORSWITCH_WSL_LIST", &path)
         .status()
         .map_err(|error| {
             AdapterError::Runtime(format!("could not capture WSL inventory: {error}"))
