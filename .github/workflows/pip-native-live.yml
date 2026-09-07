@@ -163,7 +163,7 @@ jobs:
             $cli = Get-Content plan-cli.json -Raw | ConvertFrom-Json
             $config = Get-Content plan-config.json -Raw | ConvertFrom-Json
             if (-not $cli.ok -or -not $config.ok) { throw 'pip plan was not actionable' }
-            if (($cli.plan.tools[0].plan | ConvertTo-Json -Depth 100 -Compress) -ne ($config.plan.tools[0].plan | ConvertTo-Json -Depth 100 -Compress)) {
+            if (-not [string]::Equals([string]($cli.plan.tools[0].plan | ConvertTo-Json -Depth 100 -Compress), [string]($config.plan.tools[0].plan | ConvertTo-Json -Depth 100 -Compress))) {
               throw 'CLI and configuration frontends produced different pip plans'
             }
             @('', 'n') | & $binary tui --offline --tool pip --scope pip=user | Set-Content -Encoding utf8 tui.txt

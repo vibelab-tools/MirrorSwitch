@@ -127,7 +127,7 @@ jobs:
             $cliTool = @($cli.plan.tools)
             $configTool = @($config.plan.tools)
             if ($cliTool.Count -ne 1 -or $cliTool[0].adapter_key -ne 'nuget') { throw 'unexpected NuGet CLI plan' }
-            if (($cliTool[0].plan | ConvertTo-Json -Depth 100 -Compress) -ne ($configTool[0].plan | ConvertTo-Json -Depth 100 -Compress)) {
+            if (-not [string]::Equals([string]($cliTool[0].plan | ConvertTo-Json -Depth 100 -Compress), [string]($configTool[0].plan | ConvertTo-Json -Depth 100 -Compress))) {
               throw 'CLI and configuration frontends produced different NuGet plans'
             }
             @('', 'n') | & $binary tui --offline --tool nuget --scope nuget=user | Set-Content -Encoding utf8 tui.txt
