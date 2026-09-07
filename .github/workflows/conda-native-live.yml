@@ -36,7 +36,12 @@ jobs:
       - name: Install Rust toolchain
         shell: bash
         run: |
-          conda --version
+          if [ "$RUNNER_OS" = Windows ]; then
+            "$CONDA/Scripts/conda.exe" --version
+            echo "$CONDA/Scripts" >> "$GITHUB_PATH"
+          else
+            conda --version
+          fi
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
           rustup default "$RUST_TOOLCHAIN"
       - name: Restore shared Rust dependency cache
@@ -60,6 +65,7 @@ jobs:
           boundary="$RUNNER_TEMP/mirrorswitch-conda-boundary"
           export HOME="$boundary/home" CONDARC="$boundary/home/.condarc"
           mkdir -p "$HOME" "$boundary/project"
+          rm -f "$CONDA/.condarc"
           printf 'channels:\n  - defaults\n  - conda-forge\ndefault_channels:\n  - https://repo.anaconda.com/pkgs/main\n  - https://repo.anaconda.com/pkgs/r\ncustom_channels:\n  conda-forge: https://conda.anaconda.org\nchannel_priority: strict\nssl_verify: true\n' > "$CONDARC"
           chmod 0600 "$CONDARC"
           printf '{"version":1,"tools":[{"id":"conda","scope":"user","mirrors":{"anaconda--language-registry":"610dc8408106c71ec5f2dc1d"}}]}\n' > "$boundary/project/request.json"
@@ -101,6 +107,7 @@ jobs:
           $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-conda-boundary'
           $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:CONDARC=Join-Path $env:USERPROFILE '.condarc'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'
           New-Item -ItemType Directory -Force $env:USERPROFILE,$env:LOCALAPPDATA,(Join-Path $boundary 'project')|Out-Null
+          Remove-Item (Join-Path $env:CONDA '.condarc') -Force -ErrorAction SilentlyContinue
           $text="channels:`r`n  - defaults`r`n  - conda-forge`r`ndefault_channels:`r`n  - https://repo.anaconda.com/pkgs/main`r`n  - https://repo.anaconda.com/pkgs/r`r`ncustom_channels:`r`n  conda-forge: https://conda.anaconda.org`r`nchannel_priority: strict`r`nssl_verify: true`r`n"
           [IO.File]::WriteAllText($env:CONDARC,$text,[Text.UTF8Encoding]::new($true))
           $project=Join-Path $boundary 'project'; '{"version":1,"tools":[{"id":"conda","scope":"user","mirrors":{"anaconda--language-registry":"610dc8408106c71ec5f2dc1d"}}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
