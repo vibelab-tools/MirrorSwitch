@@ -26,6 +26,7 @@ const MANIFEST_ID: &str = "9849";
 const X64_INSTALLER_HASH: &str = "A6FC67FEDAF9128A3309A1E2EBB8B986AECCF70122EE46D2CB4849E423F0C627";
 const ARM64_INSTALLER_HASH: &str =
     "083B5377392BC57CF27052B6D20A2D927770683BCA844632901FF38B4B7B0AC7";
+const SOURCE_NAME_ALREADY_EXISTS: &str = "0x8a15000c";
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct WinGetAdapter;
@@ -593,13 +594,31 @@ fn replace_source(
 
 fn restore_source(runtime: &dyn Runtime, state: &RecoveryState) -> Result<(), AdapterError> {
     let _ = remove_community(runtime);
-    add_source(
+    let restored = add_source(
         runtime,
         &state.original.argument,
         &state.winget_version,
         &state.original,
         false,
-    )
+    );
+    match restored {
+        Err(error)
+            if error
+                .to_string()
+                .to_ascii_lowercase()
+                .contains(SOURCE_NAME_ALREADY_EXISTS) =>
+        {
+            remove_community(runtime)?;
+            add_source(
+                runtime,
+                &state.original.argument,
+                &state.winget_version,
+                &state.original,
+                false,
+            )
+        }
+        result => result,
+    }
 }
 
 fn remove_community(runtime: &dyn Runtime) -> Result<(), AdapterError> {

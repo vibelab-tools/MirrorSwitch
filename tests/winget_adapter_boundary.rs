@@ -97,6 +97,7 @@ struct FakeRuntime {
     receipts: RefCell<BTreeMap<String, TransactionReceipt>>,
     calls: RefCell<Vec<String>>,
     fail_download: Cell<bool>,
+    stale_remove_once: Cell<bool>,
 }
 
 impl FakeRuntime {
@@ -134,6 +135,7 @@ impl FakeRuntime {
             receipts: RefCell::new(BTreeMap::new()),
             calls: RefCell::new(Vec::new()),
             fail_download: Cell::new(false),
+            stale_remove_once: Cell::new(false),
         }
     }
 
@@ -188,12 +190,20 @@ impl Runtime for FakeRuntime {
             return Ok(output(0, bytes));
         }
         if arguments.starts_with(&["source".into(), "remove".into()]) {
+            if self.stale_remove_once.replace(false) {
+                return Ok(output(0, Vec::new()));
+            }
             self.sources
                 .borrow_mut()
                 .retain(|source| source["Name"].as_str() != Some("winget"));
             return Ok(output(0, Vec::new()));
         }
         if arguments.starts_with(&["source".into(), "add".into()]) {
+            if self.source_argument("winget").is_some() {
+                return Err(AdapterError::Runtime(
+                    "winget source add failed with status exit code: 0x8a15000c".into(),
+                ));
+            }
             let argument = option(arguments, "--arg").unwrap();
             let trusted = option(arguments, "--trust-level").is_some();
             self.sources.borrow_mut().insert(
@@ -403,6 +413,7 @@ fn x64_command_state_apply_verify_and_explicit_restore_preserve_other_sources() 
             .iter()
             .any(|call| call.contains("download") && call.contains("--architecture x64"))
     );
+    runtime.stale_remove_once.set(true);
     let report =
         restore_execution(&context, &receipt.transaction_id, &[&adapter], &mut runtime).unwrap();
     assert!(report.receipt.verified);
