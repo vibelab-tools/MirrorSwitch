@@ -49,6 +49,7 @@ jobs:
           shared-key: native-boundary
           add-job-id-key: "false"
           cache-bin: "false"
+          cache-on-failure: "true"
       - name: Run deterministic Scoop adapter boundary
         run: cargo test --locked --test scoop_adapter_boundary -- --test-threads=1
       - name: Build native release executable

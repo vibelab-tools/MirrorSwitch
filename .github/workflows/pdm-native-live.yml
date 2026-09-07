@@ -43,6 +43,7 @@ jobs:
           shared-key: native-boundary
           add-job-id-key: "false"
           cache-bin: "false"
+          cache-on-failure: "true"
       - name: Run deterministic PDM boundary
         run: cargo test --locked --test pdm_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
       - name: Build native release executable

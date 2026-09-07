@@ -80,6 +80,7 @@ jobs:
           shared-key: native-boundary
           add-job-id-key: "false"
           cache-bin: "false"
+          cache-on-failure: "true"
       - name: Run deterministic WSL boundaries
         run: cargo test --locked --test wsl_boundary --test transaction_boundary -- --test-threads=1
       - name: Build native Windows release executable
