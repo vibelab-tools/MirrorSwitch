@@ -53,10 +53,10 @@ jobs:
           binary="$PWD/target/release/mirrorswitch"; original_rustup_home=$(rustup show home); boundary="$RUNNER_TEMP/mirrorswitch-rustup-boundary"
           export RUSTUP_HOME="$original_rustup_home" HOME="$boundary/home" SHELL=/bin/zsh PROFILE="$boundary/home/.zshrc"
           unset RUSTUP_DIST_SERVER RUSTUP_UPDATE_ROOT RUSTUP_DIST_ROOT
-          project="$HOME/project"; mkdir -p "$project"; printf '# native shell profile\nalias ll="ls -l"\n' > "$PROFILE"; chmod 0600 "$PROFILE"; printf '{"version":1,"tools":[{"id":"rustup","scope":"user"}]}\n' > "$project/request.json"
+          project="$HOME/project"; mkdir -p "$project"; printf '# native shell profile\nalias ll="ls -l"\n' > "$PROFILE"; chmod 0600 "$PROFILE"; printf '{"version":1,"tools":[{"id":"rustup","scope":"user","mirrors":{"rust-toolchain--release-artifacts":"00a3911aa66b29e0d7b0b013"}}]}\n' > "$project/request.json"
           before=$(shasum -a 256 "$PROFILE"|awk '{print $1}'); mode=$(stat -f '%Lp' "$PROFILE")
           cd "$project"
-          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool rustup --scope rustup=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool rustup --scope rustup=user --mirror rustup:rust-toolchain--release-artifacts=00a3911aa66b29e0d7b0b013 --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - <<'PY'
           import json
           s=json.load(open('status.json')); assert [t['adapter_key'] for t in s['detected_tools'] if t['adapter_key']=='rustup']==['rustup']
@@ -85,10 +85,10 @@ jobs:
           $key=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment',$true); if($null -eq $key){throw 'HKCU Environment is unavailable'}
           $distBefore=$key.GetValue('RUSTUP_DIST_SERVER',$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames); $updateBefore=$key.GetValue('RUSTUP_UPDATE_ROOT',$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
           $distKind=if($null -ne $distBefore){$key.GetValueKind('RUSTUP_DIST_SERVER')}else{$null}; $updateKind=if($null -ne $updateBefore){$key.GetValueKind('RUSTUP_UPDATE_ROOT')}else{$null}; $key.Close()
-          $project=Join-Path $boundary 'project'; '{"version":1,"tools":[{"id":"rustup","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          $project=Join-Path $boundary 'project'; '{"version":1,"tools":[{"id":"rustup","scope":"user","mirrors":{"rust-toolchain--release-artifacts":"00a3911aa66b29e0d7b0b013"}}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
           Push-Location $project
           try{
-            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool rustup --scope rustup=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool rustup --scope rustup=user --mirror rustup:rust-toolchain--release-artifacts=00a3911aa66b29e0d7b0b013 --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
             $s=Get-Content status.json -Raw|ConvertFrom-Json; if(@($s.detected_tools|Where-Object adapter_key -eq 'rustup').Count -ne 1){throw 'rustup not detected'}; $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or -not [string]::Equals([string]($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress), [string]($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress))){throw 'frontend plans differ'}
             @('','n')|& $binary tui --offline --tool rustup --scope rustup=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(huaweicloud|ustc)')){throw 'rustup mirror missing'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'rustup apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
