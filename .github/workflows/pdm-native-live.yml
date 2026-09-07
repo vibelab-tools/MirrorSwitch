@@ -67,7 +67,7 @@ jobs:
           printf '[project]\nname = "native-probe"\nversion = "0.1.0"\nrequires-python = ">=3.13"\ndependencies = []\n' > "$project/pyproject.toml"
           python -m venv "$project/.venv"
           printf '%s\n' "$project/.venv/bin/python" > "$project/.pdm-python"
-          printf '{"version":1,"tools":[{"id":"pdm","scope":"user"}]}\n' > "$project/request.json"
+          printf '{"version":1,"tools":[{"id":"pdm","scope":"user","mirrors":{"pypi--language-registry":"a468e2f137c27a0fc280655c"}}]}\n' > "$project/request.json"
           user_before=$(shasum -a 256 "$user_config" | awk '{print $1}')
           project_before=$(shasum -a 256 "$project/pyproject.toml" | awk '{print $1}')
           mode_before=$(stat -f '%Lp' "$user_config")
@@ -76,7 +76,7 @@ jobs:
 
           cd "$project"
           "$binary" status --offline --json > status.json
-          "$binary" plan --offline --tool pdm --scope pdm=user --json > plan-cli.json
+          "$binary" plan --offline --tool pdm --scope pdm=user --mirror pdm:pypi--language-registry=a468e2f137c27a0fc280655c --json > plan-cli.json
           "$binary" plan --offline --config request.json --json > plan-config.json
           python - <<'PY'
           import json
@@ -86,8 +86,8 @@ jobs:
           assert cli['ok'] and config['ok']
           assert cli['plan']['tools'][0]['plan']==config['plan']['tools'][0]['plan']
           PY
-          printf '\nn\n' | "$binary" tui --offline --tool pdm --scope pdm=user > tui.txt
-          grep -E 'mirror=(aliyun|huaweicloud|nju|sjtug|tuna|ustc)' tui.txt
+          printf '\nn\n' | "$binary" tui --offline --tool pdm --scope pdm=user --mirror pdm:pypi--language-registry=a468e2f137c27a0fc280655c > tui.txt
+          grep -F 'mirror=huaweicloud' tui.txt
           "$binary" apply --offline --config request.json --yes --json > apply.json
           transaction_id=$(python - <<'PY'
           import json
@@ -131,7 +131,7 @@ jobs:
           "[project]`r`nname = `"native-probe`"`r`nversion = `"0.1.0`"`r`nrequires-python = `">=3.13`"`r`ndependencies = []`r`n" | Set-Content -Encoding utf8 (Join-Path $project 'pyproject.toml')
           python -m venv (Join-Path $project '.venv')
           (Join-Path $project '.venv/Scripts/python.exe') | Set-Content -Encoding ascii (Join-Path $project '.pdm-python')
-          '{"version":1,"tools":[{"id":"pdm","scope":"user"}]}' | Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          '{"version":1,"tools":[{"id":"pdm","scope":"user","mirrors":{"pypi--language-registry":"a468e2f137c27a0fc280655c"}}]}' | Set-Content -Encoding utf8 (Join-Path $project 'request.json')
           $userBefore=(Get-FileHash $userConfig -Algorithm SHA256).Hash
           $projectBefore=(Get-FileHash (Join-Path $project 'pyproject.toml') -Algorithm SHA256).Hash
           $site=Join-Path $env:ProgramData 'pdm/pdm/config.toml'
@@ -140,15 +140,15 @@ jobs:
           Push-Location $project
           try {
             (& $binary status --offline --json) | Set-Content -Encoding utf8 status.json
-            (& $binary plan --offline --tool pdm --scope pdm=user --json) | Set-Content -Encoding utf8 plan-cli.json
+            (& $binary plan --offline --tool pdm --scope pdm=user --mirror pdm:pypi--language-registry=a468e2f137c27a0fc280655c --json) | Set-Content -Encoding utf8 plan-cli.json
             (& $binary plan --offline --config request.json --json) | Set-Content -Encoding utf8 plan-config.json
             $status=Get-Content status.json -Raw|ConvertFrom-Json
             if(@($status.detected_tools|Where-Object adapter_key -eq 'pdm').Count -ne 1){throw 'PDM adapter was not detected'}
             $cli=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $config=Get-Content plan-config.json -Raw|ConvertFrom-Json
             if(-not $cli.ok -or -not $config.ok){throw 'PDM plan was not actionable'}
             if(-not [string]::Equals([string]($cli.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress), [string]($config.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress))){throw 'frontend plans differ'}
-            @('', 'n')|& $binary tui --offline --tool pdm --scope pdm=user|Set-Content -Encoding utf8 tui.txt
-            if(-not((Get-Content tui.txt)-match 'mirror=(aliyun|huaweicloud|nju|sjtug|tuna|ustc)')){throw 'PDM TUI mirror missing'}
+            @('', 'n')|& $binary tui --offline --tool pdm --scope pdm=user --mirror pdm:pypi--language-registry=a468e2f137c27a0fc280655c|Set-Content -Encoding utf8 tui.txt
+            if(-not((Get-Content tui.txt)-match 'mirror=huaweicloud')){throw 'PDM TUI mirror missing'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json
             $apply=Get-Content apply.json -Raw|ConvertFrom-Json
             if(-not $apply.result.successful){throw 'PDM apply or query failed'}
