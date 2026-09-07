@@ -80,7 +80,7 @@ jobs:
           printf 'index-strategy = "first-index"\n\n[[index]]\nname = "public"\nurl = "https://pypi.org/simple/"\ndefault = true\n' > "$user_config"
           chmod 0600 "$user_config"
           printf '[project]\nname = "native-probe"\nversion = "0.1.0"\nrequires-python = ">=3.13"\n' > "$project/pyproject.toml"
-          printf '{"version":1,"tools":[{"id":"uv","scope":"user"}]}\n' > "$project/request.json"
+          printf '{"version":1,"tools":[{"id":"uv","scope":"user","mirrors":{"pypi--language-registry":"92cfde62542b969fc84ba953"}}]}\n' > "$project/request.json"
 
           user_before=$(shasum -a 256 "$user_config" | awk '{print $1}')
           project_before=$(shasum -a 256 "$project/pyproject.toml" | awk '{print $1}')
@@ -93,7 +93,7 @@ jobs:
 
           cd "$project"
           "$binary" status --offline --json > status.json
-          "$binary" plan --offline --tool uv --scope uv=user --json > plan-cli.json
+          "$binary" plan --offline --tool uv --scope uv=user --mirror uv:pypi--language-registry=92cfde62542b969fc84ba953 --json > plan-cli.json
           "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - <<'PY'
           import json
@@ -105,8 +105,8 @@ jobs:
           assert len(cli['plan']['tools']) == len(config['plan']['tools']) == 1
           assert cli['plan']['tools'][0]['plan'] == config['plan']['tools'][0]['plan']
           PY
-          printf '\nn\n' | "$binary" tui --offline --tool uv --scope uv=user > tui.txt
-          grep -E 'mirror=(aliyun|huaweicloud|nju|sjtug|tuna|ustc)' tui.txt
+          printf '\nn\n' | "$binary" tui --offline --tool uv --scope uv=user --mirror uv:pypi--language-registry=92cfde62542b969fc84ba953 > tui.txt
+          grep -F 'mirror=huaweicloud' tui.txt
 
           "$binary" apply --offline --config request.json --yes --json > apply.json
           transaction_id=$(python3 - <<'PY'
@@ -160,7 +160,7 @@ jobs:
           $text = "index-strategy = `"first-index`"`r`n`r`n[[index]]`r`nname = `"public`"`r`nurl = `"https://pypi.org/simple/`"`r`ndefault = true`r`n"
           [System.IO.File]::WriteAllText($userConfig, $text, [System.Text.UTF8Encoding]::new($true))
           "[project]`r`nname = `"native-probe`"`r`nversion = `"0.1.0`"`r`nrequires-python = `">=3.13`"`r`n" | Set-Content -Encoding utf8 (Join-Path $project 'pyproject.toml')
-          '{"version":1,"tools":[{"id":"uv","scope":"user"}]}' | Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          '{"version":1,"tools":[{"id":"uv","scope":"user","mirrors":{"pypi--language-registry":"92cfde62542b969fc84ba953"}}]}' | Set-Content -Encoding utf8 (Join-Path $project 'request.json')
 
           $userBefore = (Get-FileHash $userConfig -Algorithm SHA256).Hash
           $projectBefore = (Get-FileHash (Join-Path $project 'pyproject.toml') -Algorithm SHA256).Hash
@@ -170,7 +170,7 @@ jobs:
           Push-Location $project
           try {
             (& $binary status --offline --json) | Set-Content -Encoding utf8 status.json
-            (& $binary plan --offline --tool uv --scope uv=user --json) | Set-Content -Encoding utf8 plan-cli.json
+            (& $binary plan --offline --tool uv --scope uv=user --mirror uv:pypi--language-registry=92cfde62542b969fc84ba953 --json) | Set-Content -Encoding utf8 plan-cli.json
             (& $binary plan --offline --config request.json --json) | Set-Content -Encoding utf8 plan-config.json
             $status = Get-Content status.json -Raw | ConvertFrom-Json
             if (@($status.detected_tools | Where-Object adapter_key -eq 'uv').Count -ne 1) { throw 'uv adapter was not detected' }
@@ -180,8 +180,8 @@ jobs:
             if (-not [string]::Equals([string]($cli.plan.tools[0].plan | ConvertTo-Json -Depth 100 -Compress), [string]($config.plan.tools[0].plan | ConvertTo-Json -Depth 100 -Compress))) {
               throw 'CLI and configuration frontends produced different uv plans'
             }
-            @('', 'n') | & $binary tui --offline --tool uv --scope uv=user | Set-Content -Encoding utf8 tui.txt
-            if (-not ((Get-Content tui.txt) -match 'mirror=(aliyun|huaweicloud|nju|sjtug|tuna|ustc)')) { throw 'uv TUI mirror missing' }
+            @('', 'n') | & $binary tui --offline --tool uv --scope uv=user --mirror uv:pypi--language-registry=92cfde62542b969fc84ba953 | Set-Content -Encoding utf8 tui.txt
+            if (-not ((Get-Content tui.txt) -match 'mirror=huaweicloud')) { throw 'uv TUI mirror missing' }
 
             (& $binary apply --offline --config request.json --yes --json) | Set-Content -Encoding utf8 apply.json
             $apply = Get-Content apply.json -Raw | ConvertFrom-Json
