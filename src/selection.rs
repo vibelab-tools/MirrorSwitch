@@ -101,6 +101,11 @@ impl CandidateProber for HttpCandidateProber {
         limits: ProbeLimits,
     ) -> Result<ProbeObservation, ProbeError> {
         let client = Client::builder()
+            .user_agent(concat!(
+                env!("CARGO_PKG_NAME"),
+                "/",
+                env!("CARGO_PKG_VERSION")
+            ))
             .timeout(limits.timeout)
             .build()
             .map_err(|error| ProbeError::Http(error.to_string()))?;
