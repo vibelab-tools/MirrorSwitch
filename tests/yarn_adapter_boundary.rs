@@ -73,7 +73,7 @@ fn install_yarn(
     let project_classic = root.join("work/project/.yarnrc");
     let user_berry = root.join("home/developer/.yarnrc.yml");
     let project_berry = root.join("work/project/.yarnrc.yml");
-    let project_directory = root.join("work/project");
+    let project_directory = fs::canonicalize(root).unwrap().join("work/project");
     let files = if classic {
         format!(
             "for file in '{}' '{}' '{}'; do\n    if [ -f \"$file\" ]; then found=$(awk '$1 == \"registry\" {{gsub(/\"/, \"\", $2); print $2}}' \"$file\" | tail -1); [ -n \"$found\" ] && value=$found; fi\n  done",

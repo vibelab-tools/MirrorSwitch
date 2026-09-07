@@ -129,7 +129,7 @@ case "$*" in
       if [ "$previous" = config ]; then config=$argument; fi
       if [ "$argument" = --configfile ]; then previous=config; else previous=''; fi
     done
-    tr -d '\000' < "$root$config" | grep -q 'repo.huaweicloud.com/repository/nuget/v3/index.json' || exit 71
+    LC_ALL=C tr -d '\000' < "$root$config" | LC_ALL=C grep -q 'repo.huaweicloud.com/repository/nuget/v3/index.json' || exit 71
     printf '%s\n' 'E  mirrorswitch [https://repo.huaweicloud.com/repository/nuget/v3/index.json]'
     ;;
   "restore "*)
@@ -171,7 +171,7 @@ case "$*" in
       if [ "$previous" = config ]; then config=$argument; fi
       if [ "$argument" = -ConfigFile ]; then previous=config; else previous=''; fi
     done
-    tr -d '\000' < "$root$config" | grep -q 'repo.huaweicloud.com/repository/nuget/v3/index.json' || exit 81
+    LC_ALL=C tr -d '\000' < "$root$config" | LC_ALL=C grep -q 'repo.huaweicloud.com/repository/nuget/v3/index.json' || exit 81
     printf '%s\n' '1. mirrorswitch [Enabled]' '   https://repo.huaweicloud.com/repository/nuget/v3/index.json'
     ;;
   "install NuGet.Versioning "*)

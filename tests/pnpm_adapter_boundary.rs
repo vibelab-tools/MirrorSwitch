@@ -73,7 +73,7 @@ fn install_pnpm(
     let fallback = root.join(fallback.trim_start_matches('/'));
     let project = root.join("work/project/.npmrc");
     let workspace = root.join("work/project/pnpm-workspace.yaml");
-    let project_directory = root.join("work/project");
+    let project_directory = fs::canonicalize(root).unwrap().join("work/project");
     let effective_override = effective_override.unwrap_or("");
     fs::create_dir_all(&project_directory).unwrap();
     executable(
