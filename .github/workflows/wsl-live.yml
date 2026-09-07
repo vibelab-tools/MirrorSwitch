@@ -107,6 +107,12 @@ jobs:
             ConvertTo-Json -Depth 3 |
             Set-Content -Encoding utf8 wsl-registry.json
           & cmd.exe /d /u /c 'wsl.exe --list --quiet > wsl-cmd-list.txt 2>&1'
+          $registryQuery = & reg.exe query 'HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss' /s /v DistributionName 2>&1
+          $registryQueryExit = $LASTEXITCODE
+          $registryQuery | Set-Content -Encoding utf8 wsl-reg-query.txt
+          [ordered]@{ exit_code = $registryQueryExit } |
+            ConvertTo-Json |
+            Set-Content -Encoding utf8 wsl-reg-query-status.json
 
           (& "$env:SystemRoot\System32\wsl.exe" --list --quiet 2>&1) | Set-Content -Encoding utf8 wsl-list.txt
           (& $binary status --offline --json) | Set-Content -Encoding utf8 host-status.json
@@ -176,5 +182,7 @@ jobs:
             wsl-list.txt
             wsl-cmd-list.txt
             wsl-registry.json
+            wsl-reg-query.txt
+            wsl-reg-query-status.json
           if-no-files-found: warn
           retention-days: 7
