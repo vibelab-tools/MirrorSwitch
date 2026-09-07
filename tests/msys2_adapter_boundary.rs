@@ -97,9 +97,13 @@ impl FakeRuntime {
     }
 }
 
+fn pacman() -> PathBuf {
+    root().join("usr").join("bin").join("pacman.exe")
+}
+
 impl Runtime for FakeRuntime {
     fn command_exists(&self, command: &str) -> bool {
-        command == root().join("usr/bin/pacman.exe").display().to_string()
+        command == pacman().display().to_string()
     }
 
     fn environment_variable(&self, name: &str) -> Option<String> {
@@ -114,7 +118,7 @@ impl Runtime for FakeRuntime {
         self.calls
             .borrow_mut()
             .push(format!("{program} {}", arguments.join(" ")));
-        if program != root().join("usr/bin/pacman.exe").display().to_string() {
+        if program != pacman().display().to_string() {
             return Err(AdapterError::Runtime(format!(
                 "unexpected MSYS2 command {program}"
             )));

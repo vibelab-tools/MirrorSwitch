@@ -112,7 +112,7 @@ case "$*" in
     printf '%s\n' '[repositories.packagist.url] https://repo.huaweicloud.com/repository/php/ (/home/developer/.composer/config.json)'
     ;;
   "diagnose --no-interaction --no-plugins")
-    [ "$PWD" = "$verification_home" ] || exit 74
+    [ "$(pwd -P)" = "$(cd "$verification_home" && pwd -P)" ] || exit 74
     [ "$COMPOSER_HOME" = '/home/developer/.mirrorswitch/verification/composer' ] || exit 75
     [ -z "${{COMPOSER+x}}" ] || exit 76
     [ -z "${{COMPOSER_AUTH+x}}" ] || exit 77
@@ -120,7 +120,7 @@ case "$*" in
     printf '%s\n' 'Checking connectivity to https://repo.huaweicloud.com/repository/php/: OK'
     ;;
   "show psr/log 3.0.2 --all --no-interaction --no-plugins")
-    [ "$PWD" = "$verification_home" ] || exit 79
+    [ "$(pwd -P)" = "$(cd "$verification_home" && pwd -P)" ] || exit 79
     [ "$COMPOSER_HOME" = '/home/developer/.mirrorswitch/verification/composer' ] || exit 80
     [ -z "${{COMPOSER+x}}" ] || exit 81
     [ -z "${{COMPOSER_AUTH+x}}" ] || exit 82
