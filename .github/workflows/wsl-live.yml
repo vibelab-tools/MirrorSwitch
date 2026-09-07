@@ -142,7 +142,7 @@ jobs:
           (& $binary status --offline --json) | Set-Content -Encoding utf8 host-status.json
           $hostStatus = Get-Content host-status.json -Raw | ConvertFrom-Json
           if ($hostStatus.context.os -ne 'windows' -or $hostStatus.context.architecture -ne 'arm64') { throw 'host context is not Windows ARM64' }
-          if (@($hostStatus.wsl_distributions).Count -ne 0) { throw 'WSL distribution was unexpectedly available or selected' }
+          if (@($hostStatus.wsl_distributions | Where-Object { $null -ne $_ }).Count -ne 0) { throw 'WSL distribution was unexpectedly available or selected' }
           $notices = @($hostStatus.notices | Where-Object { $_.subject -eq 'wsl' -and $_.code -eq 'adapter-detection-failed' })
           if ($notices.Count -ne 1) { throw 'WSL2 unavailability was not reported explicitly' }
       - name: Save redacted boundary evidence
