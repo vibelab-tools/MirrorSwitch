@@ -45,6 +45,7 @@ struct WslRuntime {
     calls: RefCell<Vec<Vec<String>>>,
     system_path_only: bool,
     list_on_stderr: bool,
+    powershell_list: bool,
 }
 
 impl Runtime for WslRuntime {
@@ -52,7 +53,7 @@ impl Runtime for WslRuntime {
         if self.system_path_only {
             false
         } else {
-            command == "wsl.exe"
+            command == "wsl.exe" || self.powershell_list && command == "pwsh"
         }
     }
 
@@ -65,6 +66,12 @@ impl Runtime for WslRuntime {
     }
 
     fn run(&self, program: &str, arguments: &[String]) -> Result<Output, AdapterError> {
+        if program == "pwsh" {
+            assert!(self.powershell_list);
+            assert_eq!(arguments[3], "-Command");
+            assert!(arguments[4].contains("--list --quiet"));
+            return Ok(output(b"Ubuntu\r\nDebian\r\n".to_vec()));
+        }
         if self.system_path_only {
             assert!(program.replace('\\', "/").ends_with("/System32/wsl.exe"));
         } else {
@@ -103,6 +110,7 @@ fn wsl_inventory_decodes_utf16_and_keeps_each_distribution_unselected() {
         calls: RefCell::new(Vec::new()),
         system_path_only: false,
         list_on_stderr: false,
+        powershell_list: false,
     };
 
     let distributions = discover(&runtime).unwrap();
@@ -139,6 +147,7 @@ fn wsl_inventory_falls_back_to_the_native_system32_launcher() {
         calls: RefCell::new(Vec::new()),
         system_path_only: true,
         list_on_stderr: false,
+        powershell_list: false,
     };
 
     let distributions = discover(&runtime).unwrap();
@@ -154,6 +163,23 @@ fn wsl_inventory_accepts_redirected_names_from_stderr() {
         calls: RefCell::new(Vec::new()),
         system_path_only: false,
         list_on_stderr: true,
+        powershell_list: false,
+    };
+
+    let distributions = discover(&runtime).unwrap();
+
+    assert_eq!(distributions.len(), 2);
+    assert_eq!(distributions[0].name, "Debian");
+    assert_eq!(distributions[1].name, "Ubuntu");
+}
+
+#[test]
+fn wsl_inventory_uses_powershell_to_normalize_redirected_output() {
+    let runtime = WslRuntime {
+        calls: RefCell::new(Vec::new()),
+        system_path_only: false,
+        list_on_stderr: false,
+        powershell_list: true,
     };
 
     let distributions = discover(&runtime).unwrap();
@@ -169,6 +195,7 @@ fn tui_shows_wsl_as_a_separate_explicit_target_hierarchy() {
         calls: RefCell::new(Vec::new()),
         system_path_only: false,
         list_on_stderr: false,
+        powershell_list: false,
     };
     let report = DetectionReport {
         context: SystemContext {

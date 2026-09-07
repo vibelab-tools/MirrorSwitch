@@ -25,7 +25,7 @@ pub fn discover(runtime: &dyn Runtime) -> Result<Vec<WslDistribution>, AdapterEr
     let Some(program) = wsl_program(runtime) else {
         return Ok(Vec::new());
     };
-    let output = runtime.run(&program, &["--list".into(), "--quiet".into()])?;
+    let output = list_distributions(runtime, &program)?;
     if !output.status.success() {
         return Err(AdapterError::Runtime(format!(
             "wsl.exe --list --quiet failed with status {}",
@@ -61,6 +61,33 @@ pub fn discover(runtime: &dyn Runtime) -> Result<Vec<WslDistribution>, AdapterEr
     }
     distributions.sort_by(|left, right| left.name.cmp(&right.name));
     Ok(distributions)
+}
+
+fn list_distributions(runtime: &dyn Runtime, program: &str) -> Result<Output, AdapterError> {
+    let powershell = if runtime.command_exists("pwsh") {
+        Some("pwsh")
+    } else if runtime.command_exists("powershell") {
+        Some("powershell")
+    } else {
+        None
+    };
+    let Some(powershell) = powershell else {
+        return runtime.run(program, &["--list".into(), "--quiet".into()]);
+    };
+    let program = program.replace('\'', "''");
+    let script = format!(
+        "$raw = & '{program}' --list --quiet 2>&1 | Out-String; $code = $LASTEXITCODE; [Console]::Out.Write($raw.Replace([string][char]0, '')); exit $code"
+    );
+    runtime.run(
+        powershell,
+        &[
+            "-NoLogo".into(),
+            "-NoProfile".into(),
+            "-NonInteractive".into(),
+            "-Command".into(),
+            script,
+        ],
+    )
 }
 
 fn wsl_program(runtime: &dyn Runtime) -> Option<String> {
