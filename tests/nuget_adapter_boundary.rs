@@ -138,10 +138,10 @@ case "$*" in
       exit {restore_exit}
     fi
     packages=''
-    previous=''
     for argument in "$@"; do
-      if [ "$previous" = packages ]; then packages=$argument; fi
-      if [ "$argument" = --packages ]; then previous=packages; else previous=''; fi
+      case "$argument" in
+        -p:RestorePackagesPath=*) packages=${{argument#-p:RestorePackagesPath=}} ;;
+      esac
     done
     [ -n "$packages" ] || exit 72
     target="$root$packages/nuget.versioning/6.12.1"

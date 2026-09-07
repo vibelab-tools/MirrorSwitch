@@ -1799,6 +1799,7 @@ fn verify_with_dotnet(
     let config = path_string(&snapshot.verification_config)?;
     let packages = directory.join("packages/dotnet");
     let packages_arg = path_string(&packages)?;
+    let packages_property = format!("-p:RestorePackagesPath={packages_arg}");
     run_verification_program(
         runtime,
         directory,
@@ -1808,13 +1809,12 @@ fn verify_with_dotnet(
             &project,
             "--configfile",
             &config,
-            "--packages",
-            &packages_arg,
+            &packages_property,
             "--force",
             "--disable-parallel",
             "--verbosity",
             "normal",
-            "-p:RestoreNoCache=true",
+            "--no-http-cache",
             "-p:NuGetAudit=false",
         ],
         "dotnet restore NuGet verification package",
