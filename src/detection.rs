@@ -602,6 +602,14 @@ impl OsRuntime {
             .iter()
             .find_map(|directory| find_command_in(directory, command, &self.root))
     }
+
+    fn command_for_run(&self, command: &str) -> Option<PathBuf> {
+        if command.contains('/') || (cfg!(windows) && command.contains('\\')) {
+            Some(PathBuf::from(command))
+        } else {
+            self.find_command(command)
+        }
+    }
 }
 
 impl Runtime for OsRuntime {
@@ -673,7 +681,7 @@ impl Runtime for OsRuntime {
     }
 
     fn run(&self, program: &str, arguments: &[String]) -> Result<Output, AdapterError> {
-        let logical = self.find_command(program).ok_or_else(|| {
+        let logical = self.command_for_run(program).ok_or_else(|| {
             AdapterError::Runtime(format!("command {program} is not available on PATH"))
         })?;
         run_command(&physical_path(&self.root, &logical), arguments, None)
@@ -686,7 +694,7 @@ impl Runtime for OsRuntime {
         program: &str,
         arguments: &[String],
     ) -> Result<Output, AdapterError> {
-        let logical = self.find_command(program).ok_or_else(|| {
+        let logical = self.command_for_run(program).ok_or_else(|| {
             AdapterError::Runtime(format!("command {program} is not available on PATH"))
         })?;
         run_command(
@@ -710,7 +718,7 @@ impl Runtime for OsRuntime {
         environment: &BTreeMap<String, String>,
         removed_environment: &[String],
     ) -> Result<Output, AdapterError> {
-        let logical = self.find_command(program).ok_or_else(|| {
+        let logical = self.command_for_run(program).ok_or_else(|| {
             AdapterError::Runtime(format!("command {program} is not available on PATH"))
         })?;
         run_command_with_environment(
@@ -735,7 +743,7 @@ impl Runtime for OsRuntime {
         environment: &BTreeMap<String, String>,
         removed_environment: &[String],
     ) -> Result<Output, AdapterError> {
-        let logical = self.find_command(program).ok_or_else(|| {
+        let logical = self.command_for_run(program).ok_or_else(|| {
             AdapterError::Runtime(format!("command {program} is not available on PATH"))
         })?;
         run_command_with_environment(

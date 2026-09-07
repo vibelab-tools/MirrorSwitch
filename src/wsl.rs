@@ -69,10 +69,7 @@ fn wsl_program(runtime: &dyn Runtime) -> Option<String> {
         .filter(|value| !value.trim().is_empty())
     {
         let candidate = PathBuf::from(system_root).join("System32").join("wsl.exe");
-        let candidate = candidate.display().to_string();
-        if runtime.command_exists(&candidate) {
-            return Some(candidate);
-        }
+        return Some(candidate.display().to_string());
     }
     runtime.command_exists("wsl.exe").then(|| "wsl.exe".into())
 }

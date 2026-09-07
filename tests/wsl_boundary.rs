@@ -50,7 +50,7 @@ struct WslRuntime {
 impl Runtime for WslRuntime {
     fn command_exists(&self, command: &str) -> bool {
         if self.system_path_only {
-            command != "wsl.exe" && command.replace('\\', "/").ends_with("/System32/wsl.exe")
+            false
         } else {
             command == "wsl.exe"
         }
