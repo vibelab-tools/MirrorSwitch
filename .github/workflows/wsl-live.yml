@@ -42,7 +42,7 @@ jobs:
         with:
           distribution: Debian-13
           wsl-version: '2'
-          update: 'true'
+          update: 'false'
           wsl-conf: |
             [user]
             default=root
@@ -52,7 +52,7 @@ jobs:
         with:
           distribution: Ubuntu-24.04
           wsl-version: '2'
-          update: 'true'
+          update: 'false'
           set-as-default: 'false'
           wsl-conf: |
             [user]
