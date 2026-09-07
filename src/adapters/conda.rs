@@ -283,23 +283,39 @@ impl Adapter for CondaAdapter {
                         &format!("{client} effective config"),
                     )?
                 };
-                if !effective_config_has_reviewed_mirror(&config) {
+                let Some(mirror) = effective_config_reviewed_mirror(&config) else {
                     return Err(AdapterError::Verification(format!(
                         "{client} effective config does not contain a reviewed mirror"
                     )));
-                }
+                };
+                let verification_channel = format!("{mirror}/pkgs/main");
                 let query = if client == "conda" {
                     run_text(
                         runtime,
                         client,
-                        &["search", "python=3.12", "--json"],
+                        &[
+                            "search",
+                            "python=3.12",
+                            "--override-channels",
+                            "-c",
+                            &verification_channel,
+                            "--json",
+                        ],
                         "conda repodata query",
                     )?
                 } else {
                     run_text(
                         runtime,
                         client,
-                        &["repoquery", "search", "python=3.12", "--json"],
+                        &[
+                            "repoquery",
+                            "search",
+                            "python=3.12",
+                            "--override-channels",
+                            "-c",
+                            &verification_channel,
+                            "--json",
+                        ],
                         &format!("{client} repodata query"),
                     )?
                 };
@@ -342,15 +358,21 @@ impl Adapter for CondaAdapter {
     }
 }
 
-fn effective_config_has_reviewed_mirror(config: &str) -> bool {
+fn effective_config_reviewed_mirror(config: &str) -> Option<&'static str> {
     serde_json::from_str::<serde_json::Value>(config)
-        .is_ok_and(|value| json_contains_reviewed_mirror(&value))
+        .ok()
+        .and_then(|value| {
+            MIRROR_BASES
+                .iter()
+                .copied()
+                .find(|base| json_contains_mirror(&value, base))
+        })
 }
 
-fn json_contains_reviewed_mirror(value: &serde_json::Value) -> bool {
+fn json_contains_mirror(value: &serde_json::Value, base: &str) -> bool {
     match value {
-        serde_json::Value::String(value) => MIRROR_BASES.iter().any(|base| {
-            [*base, base.trim_start_matches("https://")]
+        serde_json::Value::String(value) => {
+            [base, base.trim_start_matches("https://")]
                 .iter()
                 .any(|candidate| {
                     value == candidate
@@ -358,28 +380,41 @@ fn json_contains_reviewed_mirror(value: &serde_json::Value) -> bool {
                             .strip_prefix(candidate)
                             .is_some_and(|suffix| suffix.starts_with('/'))
                 })
-        }),
-        serde_json::Value::Array(values) => values.iter().any(json_contains_reviewed_mirror),
-        serde_json::Value::Object(values) => values.values().any(json_contains_reviewed_mirror),
+        }
+        serde_json::Value::Array(values) => {
+            values.iter().any(|value| json_contains_mirror(value, base))
+        }
+        serde_json::Value::Object(values) => values
+            .values()
+            .any(|value| json_contains_mirror(value, base)),
         _ => false,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::effective_config_has_reviewed_mirror;
+    use super::effective_config_reviewed_mirror;
 
     #[test]
     fn effective_config_accepts_full_urls_and_conda_26_location_objects() {
-        assert!(effective_config_has_reviewed_mirror(
-            r#"{"default_channels":["https://mirrors.ustc.edu.cn/anaconda/pkgs/main"]}"#
-        ));
-        assert!(effective_config_has_reviewed_mirror(
-            r#"{"custom_channels":{"conda-forge":{"location":"mirrors.ustc.edu.cn/anaconda/cloud"}}}"#
-        ));
-        assert!(!effective_config_has_reviewed_mirror(
-            r#"{"location":"https://private.example/?next=mirrors.ustc.edu.cn/anaconda"}"#
-        ));
+        assert_eq!(
+            effective_config_reviewed_mirror(
+                r#"{"default_channels":["https://mirrors.ustc.edu.cn/anaconda/pkgs/main"]}"#
+            ),
+            Some("https://mirrors.ustc.edu.cn/anaconda")
+        );
+        assert_eq!(
+            effective_config_reviewed_mirror(
+                r#"{"custom_channels":{"conda-forge":{"location":"mirrors.ustc.edu.cn/anaconda/cloud"}}}"#
+            ),
+            Some("https://mirrors.ustc.edu.cn/anaconda")
+        );
+        assert_eq!(
+            effective_config_reviewed_mirror(
+                r#"{"location":"https://private.example/?next=mirrors.ustc.edu.cn/anaconda"}"#
+            ),
+            None
+        );
     }
 }
 
