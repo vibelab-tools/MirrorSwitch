@@ -32,7 +32,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path (Split-Path $env:CYGWIN_SETUP), 'C:\cygwin-cache' | Out-Null
           Invoke-WebRequest -UseBasicParsing -Uri https://cygwin.com/setup-x86_64.exe -OutFile $env:CYGWIN_SETUP
           $signature = Get-AuthenticodeSignature -FilePath $env:CYGWIN_SETUP
-          if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Cygwin') { throw 'Cygwin setup signature is invalid' }
+          if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate) { throw "Cygwin setup signature is invalid: $($signature.Status)" }
+          $fingerprint = $signature.SignerCertificate.GetCertHashString([System.Security.Cryptography.HashAlgorithmName]::SHA256).ToLowerInvariant()
+          if ($fingerprint -ne '2ce11da3a675a9d631e06a28ddfd6f730b9cc6989b43bd30ad7cc79d219cf2bd') { throw "unexpected Cygwin signer certificate: $fingerprint" }
           & $env:CYGWIN_SETUP --quiet-mode --wait --no-admin --no-shortcuts --no-desktop --no-startmenu `
             --root $env:CYGWIN_ROOT --local-package-dir C:\cygwin-cache `
             --site https://mirrors.kernel.org/sourceware/cygwin --packages dash
