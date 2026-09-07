@@ -74,6 +74,12 @@ jobs:
             & wsl.exe --distribution $distribution --user root --exec install -m 0755 $linuxBinary /usr/local/bin/mirrorswitch
             & wsl.exe --distribution $distribution --exec mirrorswitch --version
           }
+      - name: Restore shared Rust dependency cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: native-boundary
+          add-job-id-key: "false"
+          cache-bin: "false"
       - name: Run deterministic WSL boundaries
         run: cargo test --locked --test wsl_boundary --test transaction_boundary -- --test-threads=1
       - name: Build native Windows release executable

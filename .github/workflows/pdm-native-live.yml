@@ -37,6 +37,12 @@ jobs:
           python -m pip install --disable-pip-version-check 'pdm==2.28.2'
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
           rustup default "$RUST_TOOLCHAIN"
+      - name: Restore shared Rust dependency cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: native-boundary
+          add-job-id-key: "false"
+          cache-bin: "false"
       - name: Run deterministic PDM boundary
         run: cargo test --locked --test pdm_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
       - name: Build native release executable

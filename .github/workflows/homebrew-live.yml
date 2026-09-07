@@ -29,6 +29,12 @@ jobs:
       - uses: actions/checkout@v7
       - name: Install Rust toolchain
         run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal && rustup default "$RUST_TOOLCHAIN"
+      - name: Restore shared Rust dependency cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: native-boundary
+          add-job-id-key: "false"
+          cache-bin: "false"
       - name: Run deterministic Homebrew adapter boundary
         run: cargo test --locked --test homebrew_adapter_boundary -- --test-threads=1
       - name: Build native release executable

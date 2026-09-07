@@ -37,6 +37,12 @@ jobs:
           python -m pip install --disable-pip-version-check 'poetry==2.4.1'
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
           rustup default "$RUST_TOOLCHAIN"
+      - name: Restore shared Rust dependency cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: native-boundary
+          add-job-id-key: "false"
+          cache-bin: "false"
       - name: Run deterministic Poetry boundary
         run: cargo test --locked --test poetry_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
       - name: Build native release executable

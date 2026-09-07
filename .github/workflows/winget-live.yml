@@ -38,6 +38,12 @@ jobs:
           winget --version
           winget search --id jqlang.jq --exact --source winget --accept-source-agreements --disable-interactivity
           winget source export --disable-interactivity | Set-Content -Encoding utf8 source-before.jsonl
+      - name: Restore shared Rust dependency cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: native-boundary
+          add-job-id-key: "false"
+          cache-bin: "false"
       - name: Run deterministic WinGet adapter and restore boundaries
         run: cargo test --locked --test winget_adapter_boundary --test restore_dispatch_boundary -- --test-threads=1
       - name: Build native release executable
