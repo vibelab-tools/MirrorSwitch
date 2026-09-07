@@ -283,7 +283,7 @@ impl Adapter for CondaAdapter {
                         &format!("{client} effective config"),
                     )?
                 };
-                if !MIRROR_BASES.iter().any(|base| config.contains(base)) {
+                if !effective_config_has_reviewed_mirror(&config) {
                     return Err(AdapterError::Verification(format!(
                         "{client} effective config does not contain a reviewed mirror"
                     )));
@@ -339,6 +339,47 @@ impl Adapter for CondaAdapter {
                 restored.restored_files, restored.transaction_id
             ),
         })
+    }
+}
+
+fn effective_config_has_reviewed_mirror(config: &str) -> bool {
+    serde_json::from_str::<serde_json::Value>(config)
+        .is_ok_and(|value| json_contains_reviewed_mirror(&value))
+}
+
+fn json_contains_reviewed_mirror(value: &serde_json::Value) -> bool {
+    match value {
+        serde_json::Value::String(value) => MIRROR_BASES.iter().any(|base| {
+            [*base, base.trim_start_matches("https://")]
+                .iter()
+                .any(|candidate| {
+                    value == candidate
+                        || value
+                            .strip_prefix(candidate)
+                            .is_some_and(|suffix| suffix.starts_with('/'))
+                })
+        }),
+        serde_json::Value::Array(values) => values.iter().any(json_contains_reviewed_mirror),
+        serde_json::Value::Object(values) => values.values().any(json_contains_reviewed_mirror),
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::effective_config_has_reviewed_mirror;
+
+    #[test]
+    fn effective_config_accepts_full_urls_and_conda_26_location_objects() {
+        assert!(effective_config_has_reviewed_mirror(
+            r#"{"default_channels":["https://mirrors.ustc.edu.cn/anaconda/pkgs/main"]}"#
+        ));
+        assert!(effective_config_has_reviewed_mirror(
+            r#"{"custom_channels":{"conda-forge":{"location":"mirrors.ustc.edu.cn/anaconda/cloud"}}}"#
+        ));
+        assert!(!effective_config_has_reviewed_mirror(
+            r#"{"location":"https://private.example/?next=mirrors.ustc.edu.cn/anaconda"}"#
+        ));
     }
 }
 
