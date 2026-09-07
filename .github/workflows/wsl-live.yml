@@ -37,6 +37,7 @@ jobs:
           rustup toolchain install $env:RUST_TOOLCHAIN --profile minimal
           rustup default $env:RUST_TOOLCHAIN
       - name: Install Debian WSL
+        if: matrix.arch == 'x86_64'
         uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
         with:
           distribution: Debian-13
@@ -46,6 +47,7 @@ jobs:
             [user]
             default=root
       - name: Install Ubuntu WSL
+        if: matrix.arch == 'x86_64'
         uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
         with:
           distribution: Ubuntu-24.04
@@ -56,6 +58,7 @@ jobs:
             [user]
             default=root
       - name: Install the matching Linux CLI in each distribution
+        if: matrix.arch == 'x86_64'
         shell: pwsh
         env:
           LINUX_ARCHIVE: ${{ matrix.linux_archive }}
@@ -87,15 +90,16 @@ jobs:
       - name: Build native Windows release executable
         run: cargo build --locked --release --bin mirrorswitch
       - name: Prove host defaults and independent distribution transactions
+        if: matrix.arch == 'x86_64'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
 
           (& $binary status --offline --json) | Set-Content -Encoding utf8 host-status.json
-          $host = Get-Content host-status.json -Raw | ConvertFrom-Json
-          if ($host.context.os -ne 'windows') { throw 'host context is not Windows' }
-          $wsl = @($host.wsl_distributions)
+          $hostStatus = Get-Content host-status.json -Raw | ConvertFrom-Json
+          if ($hostStatus.context.os -ne 'windows') { throw 'host context is not Windows' }
+          $wsl = @($hostStatus.wsl_distributions)
           if (@($wsl | Where-Object { $_.name -in @('Debian-13', 'Ubuntu-24.04') }).Count -ne 2) { throw 'WSL inventory is incomplete' }
           if (@($wsl | Where-Object selected).Count -ne 0) { throw 'WSL was selected implicitly' }
 
@@ -129,6 +133,18 @@ jobs:
           @('', 'n') | & $binary tui --wsl Debian-13 --offline --tool apt | Set-Content -Encoding utf8 wsl-tui.txt
           if (-not ((Get-Content wsl-tui.txt) -match 'os=Linux')) { throw 'delegated WSL TUI did not show Linux' }
           if ($debianApplied -eq $debianBefore -or $ubuntuApplied -eq $ubuntuBefore) { throw 'WSL apply did not change the independent apt trees' }
+      - name: Confirm the native ARM64 WSL2 availability boundary
+        if: matrix.arch == 'arm64'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $binary = Join-Path $PWD 'target/release/mirrorswitch.exe'
+          (& $binary status --offline --json) | Set-Content -Encoding utf8 host-status.json
+          $hostStatus = Get-Content host-status.json -Raw | ConvertFrom-Json
+          if ($hostStatus.context.os -ne 'windows' -or $hostStatus.context.architecture -ne 'arm64') { throw 'host context is not Windows ARM64' }
+          if (@($hostStatus.wsl_distributions).Count -ne 0) { throw 'WSL distribution was unexpectedly available or selected' }
+          $notices = @($hostStatus.notices | Where-Object { $_.subject -eq 'wsl' -and $_.code -eq 'adapter-detection-failed' })
+          if ($notices.Count -ne 1) { throw 'WSL2 unavailability was not reported explicitly' }
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7
