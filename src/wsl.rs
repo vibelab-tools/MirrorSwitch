@@ -5,6 +5,9 @@ use std::{
 
 use serde::Serialize;
 
+#[cfg(windows)]
+use std::fs;
+
 use crate::{AdapterError, Runtime};
 
 const PROBE_SCRIPT: &str = r#"printf 'kernel=%s\n' "$(uname -r)"; printf 'uid=%s\n' "$(id -u)"; printf 'home=%s\n' "$HOME"; if command -v mirrorswitch >/dev/null 2>&1; then printf 'mirrorswitch=%s\n' "$(mirrorswitch --version)"; else printf 'mirrorswitch=\n'; fi"#;
@@ -85,49 +88,37 @@ fn wsl_program(runtime: &dyn Runtime) -> Option<String> {
 }
 
 #[cfg(windows)]
-pub(crate) fn registered_distribution_names(
-    runtime: &dyn Runtime,
-) -> Result<Vec<String>, AdapterError> {
-    let powershell = runtime
-        .environment_variable("SystemRoot")
-        .filter(|value| !value.trim().is_empty())
-        .map(|root| {
-            PathBuf::from(root)
-                .join("System32")
-                .join("WindowsPowerShell")
-                .join("v1.0")
-                .join("powershell.exe")
-                .display()
-                .to_string()
-        })
-        .unwrap_or_else(|| "powershell.exe".into());
-    let script = r#"$path = 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Lxss'; $names = @(if (Test-Path -LiteralPath $path) { Get-ChildItem -LiteralPath $path | ForEach-Object { $_.GetValue('DistributionName') } | Where-Object { $_ } }); $text = $names -join "`n"; $bytes = [Text.UTF8Encoding]::new($false).GetBytes($text); $stdout = [Console]::OpenStandardOutput(); $stdout.Write($bytes, 0, $bytes.Length)"#;
-    let output = runtime.run(
-        &powershell,
-        &[
-            "-NoLogo".into(),
-            "-NoProfile".into(),
-            "-NonInteractive".into(),
-            "-Command".into(),
-            script.into(),
-        ],
-    )?;
-    if !output.status.success() {
+pub(crate) fn captured_distribution_names() -> Result<Vec<String>, AdapterError> {
+    let directory = tempfile::tempdir().map_err(|error| {
+        AdapterError::Runtime(format!("could not stage WSL inventory: {error}"))
+    })?;
+    let path = directory.path().join("wsl-list.txt");
+    let status = Command::new("cmd.exe")
+        .args([
+            "/D",
+            "/U",
+            "/C",
+            r#""%SystemRoot%\System32\wsl.exe" --list --quiet > "%MIRRORSWITCH_WSL_LIST%" 2>&1"#,
+        ])
+        .env("MIRRORSWITCH_WSL_LIST", &path)
+        .status()
+        .map_err(|error| {
+            AdapterError::Runtime(format!("could not capture WSL inventory: {error}"))
+        })?;
+    if !status.success() {
         return Err(AdapterError::Runtime(format!(
-            "PowerShell WSL registry query failed with status {}",
-            output.status
+            "wsl.exe --list --quiet failed with status {status}"
         )));
     }
-    let mut names = decode_output(if output.stdout.is_empty() {
-        &output.stderr
-    } else {
-        &output.stdout
-    })?
-    .lines()
-    .map(str::trim)
-    .filter(|name| !name.is_empty())
-    .map(str::to_owned)
-    .collect::<Vec<_>>();
+    let bytes = fs::read(&path).map_err(|error| {
+        AdapterError::Runtime(format!("could not read captured WSL inventory: {error}"))
+    })?;
+    let mut names = decode_output(&bytes)?
+        .lines()
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
     names.sort();
     names.dedup();
     Ok(names)

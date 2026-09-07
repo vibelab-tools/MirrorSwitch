@@ -635,7 +635,7 @@ impl Runtime for OsRuntime {
     fn wsl_distribution_names(&self) -> Result<Option<Vec<String>>, AdapterError> {
         #[cfg(windows)]
         {
-            crate::wsl::registered_distribution_names(self).map(Some)
+            crate::wsl::captured_distribution_names().map(Some)
         }
         #[cfg(not(windows))]
         {
