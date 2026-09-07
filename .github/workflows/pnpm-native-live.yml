@@ -92,7 +92,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-pnpm-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'
           Remove-Item Env:pnpm_config_config_dir,Env:PNPM_CONFIG_CONFIG_DIR,Env:pnpm_config_userconfig,Env:PNPM_CONFIG_USERCONFIG,Env:pnpm_config_registry,Env:PNPM_CONFIG_REGISTRY,Env:XDG_CONFIG_HOME -ErrorAction SilentlyContinue
           $dir=Join-Path $env:LOCALAPPDATA 'pnpm/config'; $project=Join-Path $boundary 'project'; $auth=Join-Path $dir 'auth.ini'; New-Item -ItemType Directory -Force $dir,$project,$env:USERPROFILE|Out-Null
           [IO.File]::WriteAllText($auth,"# native pnpm auth`r`nregistry=https://registry.npmjs.org/`r`n",[Text.UTF8Encoding]::new($true))

@@ -89,7 +89,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-julia-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:JULIA_PKG_SERVER,Env:JULIA_DEPOT_PATH,Env:JULIA_PROJECT,Env:JULIA_LOAD_PATH -ErrorAction SilentlyContinue
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:JULIA_PKG_SERVER,Env:JULIA_DEPOT_PATH,Env:JULIA_PROJECT,Env:JULIA_LOAD_PATH -ErrorAction SilentlyContinue
           $launcher=(Get-Command julia -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -ne '.exe'){throw "native Julia launcher is not an executable: $launcher"}
           $project=Join-Path $env:USERPROFILE 'project'; $auth=Join-Path $env:USERPROFILE '.julia/servers/pkg.julialang.org/auth.toml'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:LOCALAPPDATA,$project,(Split-Path $auth)|Out-Null
           & reg.exe add 'HKCU\Environment' /v JULIA_PKG_SERVER /t REG_SZ /d 'https://pkg.julialang.org' /f|Out-Null

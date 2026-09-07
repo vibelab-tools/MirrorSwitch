@@ -95,7 +95,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-composer-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:COMPOSER_HOME,Env:COMPOSER,Env:COMPOSER_AUTH,Env:COMPOSER_DISABLE_NETWORK,Env:COMPOSER_CAFILE -ErrorAction SilentlyContinue
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:COMPOSER_HOME,Env:COMPOSER,Env:COMPOSER_AUTH,Env:COMPOSER_DISABLE_NETWORK,Env:COMPOSER_CAFILE -ErrorAction SilentlyContinue
           $launcher=(Get-Command composer -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -notin @('.bat','.cmd')){throw "native Composer launcher is not a batch command: $launcher"}
           $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA,$project|Out-Null
           $composerHome=composer config --global home; if(-not([IO.Path]::GetFullPath($composerHome).StartsWith([IO.Path]::GetFullPath($env:USERPROFILE),[StringComparison]::OrdinalIgnoreCase))){throw "Composer home is outside USERPROFILE: $composerHome"}; $global=Join-Path $composerHome 'config.json'; $globalAuth=Join-Path $composerHome 'auth.json'; New-Item -ItemType Directory -Force $composerHome|Out-Null

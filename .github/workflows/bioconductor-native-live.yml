@@ -89,7 +89,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-bioconductor-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; $env:R_LIBS_USER=Join-Path $boundary 'r-library'; Remove-Item Env:R_PROFILE,Env:R_PROFILE_USER,Env:R_ENVIRON_USER,Env:R_REPOSITORIES,Env:R_ARCH -ErrorAction SilentlyContinue
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; $env:R_LIBS_USER=Join-Path $boundary 'r-library'; Remove-Item Env:R_PROFILE,Env:R_PROFILE_USER,Env:R_ENVIRON_USER,Env:R_REPOSITORIES,Env:R_ARCH -ErrorAction SilentlyContinue
           $launcher=(Get-Command Rscript -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -ne '.exe'){throw "native Rscript launcher is not an executable: $launcher"}
           $project=Join-Path $env:USERPROFILE 'project'; $profile=Join-Path $env:USERPROFILE '.Rprofile'; $environ=Join-Path $env:USERPROFILE '.Renviron'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA,$env:R_LIBS_USER,$project|Out-Null
           Rscript -e 'install.packages("BiocManager", repos="https://cloud.r-project.org", quiet=TRUE)'

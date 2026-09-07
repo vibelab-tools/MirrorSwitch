@@ -91,7 +91,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-sbt-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; $env:JAVA_OPTS="-Duser.home=$env:USERPROFILE"; Remove-Item Env:SBT_OPTS,Env:SBT_CREDENTIALS -ErrorAction SilentlyContinue
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; $env:JAVA_OPTS="-Duser.home=$env:USERPROFILE"; Remove-Item Env:SBT_OPTS,Env:SBT_CREDENTIALS -ErrorAction SilentlyContinue
           $project=Join-Path $env:USERPROFILE 'project'; $repositories=Join-Path $env:USERPROFILE '.sbt/repositories'; New-Item -ItemType Directory -Force $project,(Join-Path $project 'project'),(Split-Path $repositories),$env:LOCALAPPDATA|Out-Null
           [IO.File]::WriteAllText($repositories,"# native repositories`r`n[repositories]`r`n  local`r`n  corporate: https://packages.invalid.example/maven/`r`n  maven-central`r`n",[Text.UTF8Encoding]::new($true))
           "ThisBuild / scalaVersion := `"2.13.16`"`r`nresolvers += `"private`" at `"https://packages.invalid.example/maven/`"`r`n"|Set-Content -Encoding utf8 (Join-Path $project 'build.sbt'); 'sbt.version=1.13.0'|Set-Content -Encoding ascii (Join-Path $project 'project/build.properties'); '{"version":1,"tools":[{"id":"sbt","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')

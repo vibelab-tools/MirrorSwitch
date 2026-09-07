@@ -103,7 +103,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-opam-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:OPAMROOT,Env:OPAMFETCH,Env:OPAMYES,Env:OPAMROOTISOK -ErrorAction SilentlyContinue
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:OPAMROOT,Env:OPAMFETCH,Env:OPAMYES,Env:OPAMROOTISOK -ErrorAction SilentlyContinue
           $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:LOCALAPPDATA,$project,(Join-Path $project '.opam-switch')|Out-Null
           opam init --bare --disable-sandboxing --no-setup --yes default https://opam.ocaml.org
           $root=opam var root --safe; $config=Join-Path $root 'config'; $repos=Join-Path $root 'repo/repos-config'; [IO.File]::WriteAllText((Join-Path $project 'opam.locked'),'opam-version: "2.0"',[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project '.opam-switch/switch-config'),"opam-version: `"2.0`"`r`nsynopsis: `"preserved local switch`"`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'opam.locked') IsReadOnly $true; Set-ItemProperty (Join-Path $project '.opam-switch/switch-config') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"opam","scope":"user"}]}',[Text.UTF8Encoding]::new($false))

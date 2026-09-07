@@ -128,7 +128,7 @@ jobs:
           $ErrorActionPreference='Stop'
           $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'
           $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-yarn-${{ matrix.generation }}'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'
           Remove-Item Env:YARN_REGISTRY,Env:YARN_NPM_REGISTRY_SERVER,Env:YARN_NPM_AUTH_TOKEN,Env:npm_config_registry,Env:NPM_CONFIG_REGISTRY -ErrorAction SilentlyContinue
           $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $project,$env:APPDATA,$env:LOCALAPPDATA|Out-Null
           if('${{ matrix.generation }}' -eq 'classic'){

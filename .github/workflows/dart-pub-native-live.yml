@@ -90,7 +90,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-dart-pub-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:PUB_HOSTED_URL,Env:PUB_CACHE,Env:FLUTTER_STORAGE_BASE_URL -ErrorAction SilentlyContinue
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:PUB_HOSTED_URL,Env:PUB_CACHE,Env:FLUTTER_STORAGE_BASE_URL -ErrorAction SilentlyContinue
           $launcher=(Get-Command dart -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -ne '.exe'){throw "native Dart launcher is not an executable: $launcher"}
           $project=Join-Path $env:USERPROFILE 'project'; $tokenDir=Join-Path $env:APPDATA 'dart'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA,$project,$tokenDir|Out-Null
           & reg.exe add 'HKCU\Environment' /v PUB_HOSTED_URL /t REG_SZ /d 'https://pub.dev' /f|Out-Null

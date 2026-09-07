@@ -89,7 +89,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-npm-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'
           Remove-Item Env:npm_config_registry,Env:NPM_CONFIG_REGISTRY,Env:npm_config_userconfig,Env:NPM_CONFIG_USERCONFIG -ErrorAction SilentlyContinue
           $project=Join-Path $boundary 'project'; $user=Join-Path $env:USERPROFILE '.npmrc'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA,$project|Out-Null
           [IO.File]::WriteAllText($user,"registry=https://registry.npmjs.org/`r`nfund=false`r`n",[Text.UTF8Encoding]::new($true))

@@ -99,7 +99,7 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-conda-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:CONDARC=Join-Path $env:USERPROFILE '.condarc'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:CONDARC=Join-Path $env:USERPROFILE '.condarc'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'
           New-Item -ItemType Directory -Force $env:USERPROFILE,$env:LOCALAPPDATA,(Join-Path $boundary 'project')|Out-Null
           $text="channels:`r`n  - defaults`r`n  - conda-forge`r`ndefault_channels:`r`n  - https://repo.anaconda.com/pkgs/main`r`n  - https://repo.anaconda.com/pkgs/r`r`ncustom_channels:`r`n  conda-forge: https://conda.anaconda.org`r`nchannel_priority: strict`r`nssl_verify: true`r`n"
           [IO.File]::WriteAllText($env:CONDARC,$text,[Text.UTF8Encoding]::new($true))

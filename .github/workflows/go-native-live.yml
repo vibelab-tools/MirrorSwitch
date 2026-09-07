@@ -88,7 +88,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-go-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:GOENV,Env:GOPROXY,Env:GOSUMDB,Env:GOPRIVATE,Env:GONOPROXY,Env:GONOSUMDB,Env:GO111MODULE -ErrorAction SilentlyContinue
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:GOENV,Env:GOPROXY,Env:GOSUMDB,Env:GOPRIVATE,Env:GONOPROXY,Env:GONOSUMDB,Env:GO111MODULE -ErrorAction SilentlyContinue
           $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $project,$env:APPDATA,$env:LOCALAPPDATA|Out-Null
           go env -w GOPROXY=https://proxy.golang.org,direct GOSUMDB=sum.golang.org 'GOPRIVATE=corp.invalid.example/*' 'GONOSUMDB=corp.invalid.example/*'
           $goenv=go env GOENV; $text=(Get-Content $goenv -Raw)-replace "(?<!`r)`n","`r`n"; [IO.File]::WriteAllText($goenv,$text,[Text.UTF8Encoding]::new($false))

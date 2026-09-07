@@ -88,7 +88,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-maven-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:MAVEN_ARGS -ErrorAction SilentlyContinue; $env:MAVEN_OPTS="-Duser.home=$env:USERPROFILE"
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:MAVEN_ARGS -ErrorAction SilentlyContinue; $env:MAVEN_OPTS="-Duser.home=$env:USERPROFILE"
           $project=Join-Path $env:USERPROFILE 'project'; $settings=Join-Path $env:USERPROFILE '.m2/settings.xml'; New-Item -ItemType Directory -Force $project,(Split-Path $settings),$env:LOCALAPPDATA|Out-Null
           $xml="<?xml version=`"1.0`" encoding=`"UTF-8`"?>`r`n<settings><mirrors><mirror><id>private-external</id><url>https://packages.invalid.example/maven/</url><mirrorOf>external:*,!central</mirrorOf></mirror></mirrors><servers><server><id>private</id><username>fixture</username><password>fixture-only</password></server></servers></settings>`r`n"
           [IO.File]::WriteAllText($settings,$xml,[Text.UTF8Encoding]::new($true))

@@ -105,7 +105,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-gradle-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:GRADLE_USER_HOME=Join-Path $env:USERPROFILE '.gradle'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:GRADLE_OPTS,Env:JAVA_OPTS -ErrorAction SilentlyContinue
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:GRADLE_USER_HOME=Join-Path $env:USERPROFILE '.gradle'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:GRADLE_OPTS,Env:JAVA_OPTS -ErrorAction SilentlyContinue
           $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $project,$env:GRADLE_USER_HOME,$env:LOCALAPPDATA|Out-Null; Push-Location $project
           try{
             'rootProject.name = "native-probe"'|Set-Content -Encoding utf8 settings.gradle; "plugins { id `"java`" }`nrepositories { mavenCentral() }"|Set-Content -Encoding utf8 build.gradle

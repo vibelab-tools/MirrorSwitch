@@ -92,7 +92,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-rubygems-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:GEMRC,Env:GEM_HOME,Env:GEM_PATH,Env:RUBYGEMS_GEMDEPS -ErrorAction SilentlyContinue
+          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:GEMRC,Env:GEM_HOME,Env:GEM_PATH,Env:RUBYGEMS_GEMDEPS -ErrorAction SilentlyContinue
           $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA,$project|Out-Null
           $gemrc=ruby -rrubygems -e 'print Gem.configuration.config_file_name'; $credentials=gem environment credentials; $gemHome=gem environment home
           if(-not([IO.Path]::GetFullPath($gemrc).StartsWith([IO.Path]::GetFullPath($env:USERPROFILE),[StringComparison]::OrdinalIgnoreCase))){throw "gemrc is outside USERPROFILE: $gemrc"}; if(-not([IO.Path]::GetFullPath($credentials).StartsWith([IO.Path]::GetFullPath($env:USERPROFILE),[StringComparison]::OrdinalIgnoreCase))){throw "credentials are outside USERPROFILE: $credentials"}
