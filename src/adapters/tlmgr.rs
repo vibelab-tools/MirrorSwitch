@@ -355,23 +355,43 @@ impl Adapter for TlmgrAdapter {
                     "tlmgr remote query did not return texlive.infra".into(),
                 ));
             }
-            let platforms = run_tlmgr(
-                runtime,
-                ConfigurationScope::System,
-                Some(&endpoint),
-                &["platform", "list"],
-                "tlmgr remote platform query",
-            )?;
-            if !platforms
-                .lines()
-                .map(str::trim)
-                .map(|line| line.strip_prefix("(i) ").unwrap_or(line))
-                .any(|line| line == installation.platform)
-            {
-                return Err(AdapterError::Verification(format!(
-                    "tlmgr remote repository lacks platform {}",
-                    installation.platform
-                )));
+            if context.os == OperatingSystem::Windows {
+                let package = format!("texlive.infra.{}", installation.platform);
+                let platform = run_tlmgr(
+                    runtime,
+                    ConfigurationScope::System,
+                    Some(&endpoint),
+                    &["info", &package],
+                    "tlmgr remote platform package query",
+                )?;
+                if !platform.lines().any(|line| {
+                    line.trim_start()
+                        .strip_prefix("package:")
+                        .is_some_and(|value| value.trim() == package)
+                }) {
+                    return Err(AdapterError::Verification(format!(
+                        "tlmgr remote repository lacks platform package {package}"
+                    )));
+                }
+            } else {
+                let platforms = run_tlmgr(
+                    runtime,
+                    ConfigurationScope::System,
+                    Some(&endpoint),
+                    &["platform", "list"],
+                    "tlmgr remote platform query",
+                )?;
+                if !platforms
+                    .lines()
+                    .map(str::trim)
+                    .map(|line| line.strip_prefix("(i) ").unwrap_or(line))
+                    .any(|line| line == installation.platform)
+                {
+                    return Err(AdapterError::Verification(format!(
+                        "tlmgr remote repository lacks platform {}",
+                        installation.platform
+                    )));
+                }
             }
             Ok(VerificationResult {
                 valid: true,
