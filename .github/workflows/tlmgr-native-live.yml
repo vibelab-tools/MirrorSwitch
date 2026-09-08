@@ -101,6 +101,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-tlmgr-boundary'
+          $env:TEXMFHOME=Join-Path $env:USERPROFILE 'texmf'
           $launcher=(Get-Command tlmgr -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -notin @('.bat','.exe')){throw "native tlmgr launcher is not Windows-compatible: $launcher"}
           tlmgr init-usertree; if($LASTEXITCODE -ne 0){throw 'tlmgr user tree initialization failed'}; tlmgr --usermode option repository https://mirror.ctan.org/systems/texlive/tlnet; if($LASTEXITCODE -ne 0){throw 'tlmgr user repository initialization failed'}
           $texmfhome=(kpsewhich -var-value=TEXMFHOME) -join ''; $userDb=Join-Path $texmfhome 'tlpkg/texlive.tlpdb'; $version=(tlmgr --version) -join "`n"; $root=($version -split "`n"|Where-Object {$_ -like 'tlmgr using installation:*'}|Select-Object -First 1).Substring('tlmgr using installation: '.Length); $systemDb=Join-Path $root 'tlpkg/texlive.tlpdb'
