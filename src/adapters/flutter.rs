@@ -79,7 +79,7 @@ impl Adapter for FlutterAdapter {
         }
         let version = flutter_version(runtime, None, None)?;
         validate_version(&version)?;
-        let help = run_flutter(
+        run_flutter(
             runtime,
             None,
             None,
@@ -89,11 +89,6 @@ impl Adapter for FlutterAdapter {
             "flutter precache --help",
         )?;
         let artifact_flag = platform_artifact_flag(context);
-        if !help.lines().any(|line| line.contains(artifact_flag)) {
-            return Err(AdapterError::Unsupported(format!(
-                "Flutter precache does not expose {artifact_flag} artifacts"
-            )));
-        }
         let layout = config_layout(context, runtime)?;
         let project = inspect_project(runtime)?;
         let token_files = token_file_count(runtime, &layout.token_dir)?;
