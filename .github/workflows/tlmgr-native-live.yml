@@ -25,10 +25,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: TeX-Live/setup-texlive-action@v4
-        env:
-          TEXLIVE_INSTALL_TEXMFCONFIG: ${{ runner.temp }}/mirrorswitch-tlmgr-boundary/home/.texlive2026/texmf-config
-          TEXLIVE_INSTALL_TEXMFHOME: ${{ runner.temp }}/mirrorswitch-tlmgr-boundary/home/texmf
-          TEXLIVE_INSTALL_TEXMFVAR: ${{ runner.temp }}/mirrorswitch-tlmgr-boundary/home/.texlive2026/texmf-var
         with:
           version: "2026"
           cache: false
