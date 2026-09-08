@@ -1207,14 +1207,52 @@ fn run_program_in(
 
 fn output_text(output: Output, operation: &str) -> Result<String, AdapterError> {
     if !output.status.success() {
+        let detail = failure_detail(&output)
+            .map(|detail| format!("; detail: {detail}"))
+            .unwrap_or_default();
         return Err(AdapterError::Runtime(format!(
-            "{operation} failed with status {}",
-            output.status
+            "{operation} failed with status {}{detail}",
+            output.status,
         )));
     }
     String::from_utf8(output.stdout)
         .map(|value| value.trim().to_owned())
         .map_err(|_| AdapterError::Runtime(format!("{operation} returned non-UTF-8 stdout")))
+}
+
+fn failure_detail(output: &Output) -> Option<String> {
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lines = stderr
+        .lines()
+        .chain(stdout.lines())
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .filter(|line| {
+            let lower = line.to_ascii_lowercase();
+            ![
+                "http://",
+                "https://",
+                "password",
+                "credential",
+                "token",
+                "secret",
+                "authorization",
+            ]
+            .iter()
+            .any(|marker| lower.contains(marker))
+        })
+        .collect::<Vec<_>>();
+    lines
+        .iter()
+        .find(|line| {
+            let lower = line.to_ascii_lowercase();
+            ["error", "exception", "invalid", "failed", "could not"]
+                .iter()
+                .any(|marker| lower.contains(marker))
+        })
+        .or_else(|| lines.last())
+        .map(|line| line.chars().take(240).collect())
 }
 
 fn prefixed_version(output: &str, prefix: &str) -> Result<String, AdapterError> {

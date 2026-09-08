@@ -129,7 +129,10 @@ case "$*" in
     [ -z "${{COMPOSER+x}}" ] || exit 81
     [ -z "${{COMPOSER_AUTH+x}}" ] || exit 82
     grep -q 'repo.huaweicloud.com/repository/php' "$verification_config" || exit 83
-    [ {query_exit} -eq 0 ] || exit {query_exit}
+    if [ {query_exit} -ne 0 ]; then
+      printf '%s\n' 'controlled Composer query failure' >&2
+      exit {query_exit}
+    fi
     printf '%s\n' \
       'name     : psr/log' \
       'versions : 3.0.2' \
@@ -570,6 +573,11 @@ fn failed_real_composer_query_restores_the_original_global_config() {
     let error = adapter
         .verify(&context, &mut runtime, &receipt)
         .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("detail: controlled Composer query failure")
+    );
     assert!(error.to_string().contains("configuration restored: true"));
     assert_eq!(fs::read(config).unwrap(), original);
     assert!(
