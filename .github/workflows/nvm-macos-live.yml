@@ -52,14 +52,14 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-nvm-boundary"; export HOME="$boundary/home" SHELL=/bin/zsh NVM_DIR="$boundary/home/.nvm"; unset PROFILE ZDOTDIR NVM_NODEJS_ORG_MIRROR NVM_IOJS_ORG_MIRROR NVM_AUTH_HEADER
-          project="$HOME/project"; profile="$HOME/.zshrc"; mkdir -p "$project" "$NVM_DIR"; cp "$RUNNER_TEMP/nvm-$NVM_VERSION/nvm.sh" "$NVM_DIR/nvm.sh"
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-nvm-boundary"; export SHELL=/bin/zsh ZDOTDIR="$boundary/zdot" NVM_DIR="$HOME/.nvm"; unset PROFILE NVM_NODEJS_ORG_MIRROR NVM_IOJS_ORG_MIRROR NVM_AUTH_HEADER
+          project="$boundary/project"; profile="$ZDOTDIR/.zshrc"; mkdir -p "$project" "$ZDOTDIR" "$NVM_DIR"; cp "$RUNNER_TEMP/nvm-$NVM_VERSION/nvm.sh" "$NVM_DIR/nvm.sh"
           printf '%s\n' '# native zsh policy' "export PRIVATE_NODE_TOKEN='fixture-only'" 'export NVM_DIR="$HOME/.nvm"' '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' > "$profile"; chmod 0600 "$profile"
           printf '%s\n' 'v24.1.0' > "$project/.nvmrc"; chmod 0400 "$project/.nvmrc"
-          printf '{"version":1,"tools":[{"id":"nvm","scope":"user"}]}\n' > "$project/request.json"
+          printf '{"version":1,"tools":[{"id":"nvm","scope":"user","mirrors":{"nodejs--release-artifacts":"f013929104aae6e0430080ed"}}]}\n' > "$project/request.json"
           before=$(shasum -a 256 "$profile"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/.nvmrc"|awk '{print $1}'); mode=$(stat -f '%Lp' "$profile")
           cd "$project"
-          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool nvm --scope nvm=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool nvm --scope nvm=user --mirror nvm:nodejs--release-artifacts=f013929104aae6e0430080ed --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - "$profile" "$HOME" <<'PY'
           import json, pathlib, platform, sys
           status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='nvm']; assert len(tools)==1
@@ -68,11 +68,11 @@ jobs:
           a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']; assert 'fixture-only' not in open('status.json').read()+open('plan-cli.json').read()+open('plan-config.json').read()
           selections=a['plan']['tools'][0]['selection']['selections']; assert len(selections)==(1 if machine=='arm64' else 2)
           PY
-          printf '\nn\n'|"$binary" tui --offline --tool nvm --scope nvm=user > tui.txt; grep -E 'mirror=(aliyun|huaweicloud|nju|tuna|ustc)' tui.txt; ! grep -F 'fixture-only' tui.txt
+          printf '\nn\n'|"$binary" tui --offline --tool nvm --scope nvm=user --mirror nvm:nodejs--release-artifacts=f013929104aae6e0430080ed > tui.txt; grep -F 'mirror=nju' tui.txt; ! grep -F 'fixture-only' tui.txt
           "$binary" apply --offline --config request.json --yes --json > apply.json
           id=$(python3 - <<'PY'
           import json
-          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1 and a[0]['verification']['valid']; print(a[0]['receipt']['transaction_id'])
           PY
           )
           source "$profile"; nvm ls-remote --no-colors node|grep -F 'v24.1.0'
@@ -88,6 +88,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: nvm-macos-${{ matrix.name }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/mirrorswitch-nvm-boundary/home/project/*.json
+          path: ${{ runner.temp }}/mirrorswitch-nvm-boundary/project/*.json
           if-no-files-found: warn
           retention-days: 7
