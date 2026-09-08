@@ -63,9 +63,9 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-cpan-boundary"; export HOME="$boundary/home" SHELL=/bin/zsh
-          unset PROFILE ZDOTDIR BASH_ENV PERL_CPANM_OPT
-          project="$HOME/project"; profile="$HOME/.zshrc"; mkdir -p "$project"
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-cpan-boundary"; export SHELL=/bin/zsh ZDOTDIR="$boundary/zdot"
+          unset PROFILE BASH_ENV PERL_CPANM_OPT
+          project="$boundary/project"; profile="$ZDOTDIR/.zshrc"; mkdir -p "$project" "$ZDOTDIR"
           cpan_home=$(PERL_MM_USE_DEFAULT=1 perl -MCPAN -MCPAN::HandleConfig -e 'print CPAN::HandleConfig::cpan_home()'|tail -n 1); config="$cpan_home/CPAN/MyConfig.pm"; mkdir -p "$(dirname "$config")"
           chmod 0600 "$config"
           printf '%s\n' '# native zsh policy' "export PERL_CPANM_OPT='--quiet --mirror https://www.cpan.org/ --cascade-search'" > "$profile"; chmod 0600 "$profile"
@@ -100,10 +100,10 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-cpan-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:PROFILE,Env:ZDOTDIR,Env:BASH_ENV,Env:SHELL,Env:PERL_CPANM_OPT -ErrorAction SilentlyContinue
+          Remove-Item Env:PROFILE,Env:ZDOTDIR,Env:BASH_ENV,Env:SHELL,Env:PERL_CPANM_OPT -ErrorAction SilentlyContinue
           $prior=[Environment]::GetEnvironmentVariable('PERL_CPANM_OPT','User'); [Environment]::SetEnvironmentVariable('PERL_CPANM_OPT','--mirror https://www.cpan.org/','User')
           try{
-            $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $project,$env:APPDATA,$env:LOCALAPPDATA|Out-Null
+            $project=Join-Path $boundary 'project'; New-Item -ItemType Directory -Force $project|Out-Null
             $env:PERL_MM_USE_DEFAULT='1'; $cpanOutput=@(& perl -MCPAN -MCPAN::HandleConfig -e 'print CPAN::HandleConfig::cpan_home()'); if($LASTEXITCODE -ne 0){throw 'CPAN home discovery failed'}; $cpanHome=$cpanOutput[-1].Trim(); Remove-Item Env:PERL_MM_USE_DEFAULT; $config=Join-Path $cpanHome 'CPAN/MyConfig.pm'; New-Item -ItemType Directory -Force (Split-Path $config)|Out-Null
             $contents=[IO.File]::ReadAllText($config).Replace("`r`n","`n").Replace("`n","`r`n"); [IO.File]::WriteAllText($config,$contents,[Text.UTF8Encoding]::new($true))
             [IO.File]::WriteAllText((Join-Path $project 'cpanfile'),"requires 'Private::Module', url => 'https://build:fixture-only@packages.invalid.example/dist.tar.gz';`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'cpanfile') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"cpan","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
@@ -125,6 +125,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: cpan-native-${{ matrix.name }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/mirrorswitch-cpan-boundary/home/project/*.json
+          path: ${{ runner.temp }}/mirrorswitch-cpan-boundary/project/*.json
           if-no-files-found: warn
           retention-days: 7
