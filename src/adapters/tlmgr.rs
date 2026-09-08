@@ -357,7 +357,7 @@ impl Adapter for TlmgrAdapter {
             }
             let platforms = run_tlmgr(
                 runtime,
-                *scope,
+                ConfigurationScope::System,
                 Some(&endpoint),
                 &["platform", "list"],
                 "tlmgr remote platform query",

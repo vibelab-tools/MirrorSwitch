@@ -145,6 +145,7 @@ if [ -n "$repository" ] && [ "$1" = info ] && [ "$2" = texlive.infra ]; then
   exit 0
 fi
 if [ -n "$repository" ] && [ "$1" = platform ] && [ "$2" = list ]; then
+  [ "$usermode" -eq 0 ] || exit 93
   printf '%s\n' 'Available platforms:' 'aarch64-linux' 'x86_64-linux' 'x86_64-linuxmusl' 'universal-darwin' 'windows'
   exit 0
 fi
