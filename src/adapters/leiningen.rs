@@ -71,16 +71,6 @@ impl Adapter for LeiningenAdapter {
         if !runtime.command_exists("lein") {
             return Ok(None);
         }
-        let environment_command = if context.os == OperatingSystem::Windows {
-            "cmd.exe"
-        } else {
-            "env"
-        };
-        if !runtime.command_exists(environment_command) {
-            return Err(AdapterError::Unsupported(format!(
-                "Leiningen verification requires {environment_command}"
-            )));
-        }
         let output = run_lein(runtime, None, &["version"], "lein version")?;
         let version = lein_version(&output)?;
         reviewed_version(&version)?;
@@ -363,9 +353,9 @@ impl Adapter for LeiningenAdapter {
                     "Leiningen verification project is not canonical".into(),
                 ));
             }
-            let mirrors = run_verification(context, runtime, &layout, &["pprint", ":mirrors"])?;
-            let deps = run_verification(context, runtime, &layout, &["deps"])?;
-            let name = run_verification(context, runtime, &layout, &["pprint", ":name"])?;
+            let mirrors = run_verification(runtime, &layout, &["pprint", ":mirrors"])?;
+            let deps = run_verification(runtime, &layout, &["deps"])?;
+            let name = run_verification(runtime, &layout, &["pprint", ":name"])?;
             for endpoint in [&pair.maven, &pair.clojars] {
                 if !mirrors.contains(endpoint.trim_end_matches('/')) {
                     return Err(AdapterError::Verification(format!(
@@ -1275,30 +1265,25 @@ fn add_change(
 }
 
 fn run_verification(
-    context: &SystemContext,
     runtime: &dyn Runtime,
     layout: &Layout,
     task: &[&str],
 ) -> Result<String, AdapterError> {
-    if context.os == OperatingSystem::Windows {
-        let command = format!(
-            "set \"LEIN_NO_USER_PROFILES=1\"&& set \"LEIN_SILENT=true\"&& lein {}",
-            task.join(" ")
-        );
-        let output = runtime.run_in(
-            &layout.verification_root,
-            "cmd.exe",
-            &["/D".into(), "/S".into(), "/C".into(), command],
-        )?;
-        return command_output(output, "Leiningen dependency/plugin verification");
-    }
-    let mut arguments = vec![
-        "LEIN_NO_USER_PROFILES=1".into(),
-        "LEIN_SILENT=true".into(),
-        "lein".into(),
-    ];
-    arguments.extend(task.iter().map(|argument| (*argument).into()));
-    let output = runtime.run_in(&layout.verification_root, "env", &arguments)?;
+    let arguments = task
+        .iter()
+        .map(|argument| (*argument).into())
+        .collect::<Vec<_>>();
+    let environment = BTreeMap::from([
+        ("LEIN_NO_USER_PROFILES".into(), "1".into()),
+        ("LEIN_SILENT".into(), "true".into()),
+    ]);
+    let output = runtime.run_in_with_environment(
+        &layout.verification_root,
+        "lein",
+        &arguments,
+        &environment,
+        &[],
+    )?;
     command_output(output, "Leiningen dependency/plugin verification")
 }
 

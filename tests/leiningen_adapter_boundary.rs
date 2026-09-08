@@ -66,24 +66,6 @@ fn executable(root: &Path, path: &str, contents: String) {
 fn install_lein(root: &Path, version: &str, verification_exit: i32) {
     executable(
         root,
-        "/usr/bin/env",
-        format!(
-            r#"#!/bin/sh
-while [ $# -gt 0 ]; do
-  case "$1" in
-    *=*) export "$1"; shift ;;
-    *) break ;;
-  esac
-done
-[ "$1" = lein ] || exit 90
-shift
-exec '{root}/usr/bin/lein' "$@"
-"#,
-            root = root.display(),
-        ),
-    );
-    executable(
-        root,
         "/usr/bin/lein",
         format!(
             r#"#!/bin/sh
@@ -113,24 +95,6 @@ else
   exit 67
 fi
 "#,
-        ),
-    );
-    executable(
-        root,
-        "/usr/bin/cmd.exe",
-        format!(
-            r#"#!/bin/sh
-[ "$1 $2 $3" = '/D /S /C' ] || exit 91
-export LEIN_NO_USER_PROFILES=1 LEIN_SILENT=true
-case "$4" in
-  *'lein pprint :mirrors') set -- pprint :mirrors ;;
-  *'lein pprint :name') set -- pprint :name ;;
-  *'lein deps') set -- deps ;;
-  *) exit 92 ;;
-esac
-exec '{root}/usr/bin/lein' "$@"
-"#,
-            root = root.display(),
         ),
     );
 }
