@@ -88,6 +88,8 @@ exec '{root}/usr/bin/lein' "$@"
         format!(
             r#"#!/bin/sh
 if [ "$1" = version ]; then
+  [ "${{LEIN_NO_USER_PROFILES:-}}" = 1 ] || exit 58
+  [ "${{LEIN_SILENT:-}}" = true ] || exit 59
   printf '%s\n' 'Leiningen {version} on Java 17.0.13 OpenJDK 64-Bit Server VM'
   exit 0
 fi
@@ -97,7 +99,10 @@ grep -F 'Managed by MirrorSwitch: Leiningen verification profile' "$PWD/profiles
 grep -F 'mirrorswitch-leiningen-verification' "$PWD/project.clj" >/dev/null || exit 64
 grep -F 'commons-lang3 "3.14.0"' "$PWD/project.clj" >/dev/null || exit 65
 grep -F 'lein-pprint "1.3.2"' "$PWD/project.clj" >/dev/null || exit 66
-[ {verification_exit} -eq 0 ] || exit {verification_exit}
+if [ {verification_exit} -ne 0 ]; then
+  printf '%s\n' 'controlled Leiningen verification failure' >&2
+  exit {verification_exit}
+fi
 if [ "$1" = pprint ] && [ "$2" = :mirrors ]; then
   printf '%s\n' '{{central https://maven.aliyun.com/repository/public/, clojars https://mirrors.tuna.tsinghua.edu.cn/clojars/}}'
 elif [ "$1" = deps ]; then
@@ -411,6 +416,11 @@ fn failed_resolution_restores_user_profile_and_verification_fixture() {
     let error = adapter
         .verify(&context, &mut runtime, &receipt)
         .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("detail: controlled Leiningen verification failure")
+    );
     assert!(error.to_string().contains("configuration restored: true"));
     assert_eq!(fs::read(profile).unwrap(), original);
     assert!(

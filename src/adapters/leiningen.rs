@@ -1310,18 +1310,27 @@ fn run_lein(
         .iter()
         .map(|argument| (*argument).into())
         .collect::<Vec<_>>();
+    let environment = BTreeMap::from([
+        ("LEIN_NO_USER_PROFILES".into(), "1".into()),
+        ("LEIN_SILENT".into(), "true".into()),
+    ]);
     let output = match directory {
-        Some(directory) => runtime.run_in(directory, "lein", &arguments)?,
-        None => runtime.run("lein", &arguments)?,
+        Some(directory) => {
+            runtime.run_in_with_environment(directory, "lein", &arguments, &environment, &[])?
+        }
+        None => runtime.run_with_environment("lein", &arguments, &environment, &[])?,
     };
     command_output(output, label)
 }
 
 fn command_output(output: std::process::Output, label: &str) -> Result<String, AdapterError> {
     if !output.status.success() {
+        let detail = failure_detail(&output)
+            .map(|detail| format!("; detail: {detail}"))
+            .unwrap_or_default();
         return Err(AdapterError::Runtime(format!(
-            "{label} failed with status {}",
-            output.status
+            "{label} failed with status {}{detail}",
+            output.status,
         )));
     }
     let stdout = String::from_utf8(output.stdout)
@@ -1329,6 +1338,33 @@ fn command_output(output: std::process::Output, label: &str) -> Result<String, A
     let stderr = String::from_utf8(output.stderr)
         .map_err(|_| AdapterError::Runtime(format!("{label} returned non-UTF-8 stderr")))?;
     Ok(format!("{stdout}\n{stderr}").trim().into())
+}
+
+fn failure_detail(output: &std::process::Output) -> Option<String> {
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lines = stderr
+        .lines()
+        .chain(stdout.lines())
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .filter(|line| {
+            let lower = line.to_ascii_lowercase();
+            ![
+                "http://",
+                "https://",
+                "password",
+                "credential",
+                "token",
+                "secret",
+                "authorization",
+            ]
+            .iter()
+            .any(|marker| lower.contains(marker))
+        })
+        .collect::<Vec<_>>();
+    let start = lines.len().saturating_sub(2);
+    (!lines.is_empty()).then(|| lines[start..].join(" ").chars().take(240).collect())
 }
 
 fn lein_version(output: &str) -> Result<String, AdapterError> {
