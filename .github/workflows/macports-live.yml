@@ -58,12 +58,18 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          binary="$PWD/target/release/mirrorswitch"
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-macports-boundary"; mkdir -p "$boundary"; cd "$boundary"
           sources=/opt/local/etc/macports/sources.conf
           archives=/opt/local/etc/macports/archive_sites.conf
+          config=/opt/local/etc/macports/macports.conf
+          pubkeys=/opt/local/etc/macports/pubkeys.conf
+          variants=/opt/local/etc/macports/variants.conf
           sources_before=$(shasum -a 256 "$sources" | awk '{print $1}')
           archives_before=$(shasum -a 256 "$archives" | awk '{print $1}')
+          config_before=$(shasum -a 256 "$config" | awk '{print $1}'); pubkeys_before=$(shasum -a 256 "$pubkeys" | awk '{print $1}'); variants_before=$(shasum -a 256 "$variants" | awk '{print $1}')
+          sources_mode=$(stat -f '%Lp' "$sources"); archives_mode=$(stat -f '%Lp' "$archives")
           export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
+          printf '{"version":1,"tools":[{"id":"macports","scope":"system","mirrors":{"macports--static-files":"61a03d92751bbea185a015ba"}}]}\n' > request.json
 
           "$binary" status --offline --json > status.json
           python3 - <<'PY'
@@ -71,50 +77,56 @@ jobs:
           status = json.load(open("status.json"))
           assert [item["adapter_key"] for item in status["detected_tools"] if item["adapter_key"] == "macports"] == ["macports"]
           PY
-          "$binary" plan --offline --tool macports --scope macports=system --json > plan.json
+          "$binary" plan --offline --tool macports --scope macports=system --mirror macports:macports--static-files=61a03d92751bbea185a015ba --json > plan-cli.json
+          "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - <<'PY'
           import json
-          plan = json.load(open("plan.json"))
-          assert plan["ok"] is True
-          tools = plan["plan"]["tools"]
+          cli=json.load(open('plan-cli.json')); config=json.load(open('plan-config.json'))
+          assert cli['ok'] and config['ok'] and cli['plan']['tools'][0]['plan'] == config['plan']['tools'][0]['plan']
+          tools = cli["plan"]["tools"]
           assert [item["adapter_key"] for item in tools] == ["macports"]
-          assert {item["provider_id"] for item in tools[0]["selection"]["selections"]} <= {"aliyun", "nju", "sjtug"}
+          assert [(item['provider_id'],item['candidate_id']) for item in tools[0]['selection']['selections']] == [('nju','61a03d92751bbea185a015ba')]
           assert tools[0]["plan"]["requires_elevation"] is True
           assert len(tools[0]["plan"]["changes"]) == 2
           PY
 
           sudo env HOME="$HOME" PATH="$PATH" \
-            "$binary" apply --offline --tool macports --scope macports=system --yes --json > apply.json
+            "$binary" apply --offline --config request.json --yes --json > apply.json
           transaction_id=$(python3 - <<'PY'
           import json
           result = json.load(open("apply.json"))["result"]
           assert result["successful"] is True
           applied = [item for item in result["tools"] if item["status"] == "applied"]
-          assert len(applied) == 1
+          assert len(applied) == 1 and applied[0]["verification"]["valid"] is True
           print(applied[0]["receipt"]["transaction_id"])
           PY
           )
-          printf '\nn\n' | "$binary" tui --offline --tool macports --scope macports=system > tui.txt
-          grep -E 'mirror=(aliyun|nju|sjtug)' tui.txt
+          printf '\nn\n' | "$binary" tui --offline --tool macports --scope macports=system --mirror macports:macports--static-files=61a03d92751bbea185a015ba > tui.txt
+          grep -F 'mirror=nju' tui.txt
+          sudo env HOME="$HOME" PATH="$PATH" \
+            "$binary" apply --offline --config request.json --yes --json > idempotent.json
+          python3 - <<'PY'
+          import json
+          result=json.load(open('idempotent.json'))['result']; assert result['successful'] and not [item for item in result['tools'] if item['status']=='applied']
+          PY
           sudo env HOME="$HOME" PATH="$PATH" \
             "$binary" restore "$transaction_id" --yes --json > restore.json
           python3 - <<'PY'
           import json
-          assert json.load(open("restore.json"))["receipt"]["verified"] is True
+          restore=json.load(open("restore.json")); assert restore['adapter_key']=='macports' and restore["receipt"]["verified"] is True
           PY
 
           test "$sources_before" = "$(shasum -a 256 "$sources" | awk '{print $1}')"
           test "$archives_before" = "$(shasum -a 256 "$archives" | awk '{print $1}')"
+          test "$config_before" = "$(shasum -a 256 "$config" | awk '{print $1}')"; test "$pubkeys_before" = "$(shasum -a 256 "$pubkeys" | awk '{print $1}')"; test "$variants_before" = "$(shasum -a 256 "$variants" | awk '{print $1}')"
+          test "$sources_mode" = "$(stat -f '%Lp' "$sources")"; test "$archives_mode" = "$(stat -f '%Lp' "$archives")"
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: macports-boundary-${{ matrix.arch }}-${{ github.run_id }}
           path: |
-            plan.json
-            apply.json
-            status.json
-            restore.json
-            tui.txt
+            ${{ runner.temp }}/mirrorswitch-macports-boundary/*.json
+            ${{ runner.temp }}/mirrorswitch-macports-boundary/tui.txt
           if-no-files-found: warn
           retention-days: 7
