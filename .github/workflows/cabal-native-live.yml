@@ -75,17 +75,17 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-cabal-boundary"; export HOME="$boundary/home" XDG_CONFIG_HOME="$boundary/home/.config"
-          unset CABAL_CONFIG CABAL_DIR
-          project="$HOME/project"; config="$XDG_CONFIG_HOME/cabal/config"; mkdir -p "$project" "$(dirname "$config")"
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-cabal-boundary"
+          unset CABAL_CONFIG CABAL_DIR XDG_CONFIG_HOME
+          project="$boundary/project"; config="$HOME/.config/cabal/config"; mkdir -p "$project" "$(dirname "$config")"
           printf '%s\n' '-- native Cabal policy' 'repository hackage.haskell.org' '  url: https://hackage.haskell.org/' '  secure: True' 'repository private.corp' '  url: https://build:fixture-only@packages.invalid.example/hackage' '  secure: True' 'active-repositories: :rest, hackage.haskell.org, private.corp:override' 'http-transport: curl' > "$config"; chmod 0600 "$config"
           printf '%s\n' 'packages: .' 'index-state: 2026-08-01T00:00:00Z' > "$project/cabal.project"; chmod 0400 "$project/cabal.project"
           printf '%s\n' 'cabal-version: 3.0' 'name: mirrorswitch-cabal-boundary' 'version: 0.0.0' 'build-type: Simple' 'executable native-boundary' '  main-is: Main.hs' '  default-language: Haskell2010' '  build-depends: base >=4.14 && <5' > "$project/mirrorswitch-cabal-boundary.cabal"
           printf '%s\n' 'main :: IO ()' 'main = putStrLn "native Cabal boundary"' > "$project/Main.hs"
-          printf '{"version":1,"tools":[{"id":"cabal","scope":"user"}]}\n' > "$project/request.json"
+          printf '{"version":1,"tools":[{"id":"cabal","scope":"user","mirrors":{"hackage--language-registry":"6f682a674e9407378ad49d0c"}}]}\n' > "$project/request.json"
           before=$(shasum -a 256 "$config"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/cabal.project"|awk '{print $1}'); mode=$(stat -f '%Lp' "$config")
           cd "$project"
-          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool cabal --scope cabal=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool cabal --scope cabal=user --mirror cabal:hackage--language-registry=6f682a674e9407378ad49d0c --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - "$config" <<'PY'
           import json, pathlib, sys
           status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='cabal']; assert len(tools)==1
@@ -93,14 +93,14 @@ jobs:
           a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
           assert 'fixture-only' not in pathlib.Path('status.json').read_text()+pathlib.Path('plan-cli.json').read_text()+pathlib.Path('plan-config.json').read_text()
           PY
-          printf '\nn\n'|"$binary" tui --offline --tool cabal --scope cabal=user > tui.txt; grep -E 'mirror=(nju|tuna|ustc)' tui.txt; ! grep -F 'fixture-only' tui.txt
+          printf '\nn\n'|"$binary" tui --offline --tool cabal --scope cabal=user --mirror cabal:hackage--language-registry=6f682a674e9407378ad49d0c > tui.txt; grep -F 'mirror=nju' tui.txt; ! grep -F 'fixture-only' tui.txt
           "$binary" apply --offline --config request.json --yes --json > apply.json
           id=$(python3 - <<'PY'
           import json
-          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1 and a[0]['verification']['valid']; print(a[0]['receipt']['transaction_id'])
           PY
           )
-          grep -F 'url: https://mirrors.' "$config"; grep -F 'https://build:fixture-only@packages.invalid.example/hackage' "$config"; grep -F 'secure: True' "$config"
+          grep -F 'url: https://mirrors.nju.edu.cn/hackage/' "$config"; grep -F 'https://build:fixture-only@packages.invalid.example/hackage' "$config"; grep -F 'secure: True' "$config"
           cabal --config-file="$config" user-config diff >/dev/null
           cabal --config-file="$config" build --offline all
           "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
@@ -114,21 +114,21 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-cabal-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:CABAL_CONFIG,Env:CABAL_DIR,Env:XDG_CONFIG_HOME -ErrorAction SilentlyContinue
+          Remove-Item Env:CABAL_CONFIG,Env:CABAL_DIR,Env:XDG_CONFIG_HOME -ErrorAction SilentlyContinue
           $launcher=(Get-Command cabal -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -ne '.exe'){throw "native Cabal launcher is not an executable: $launcher"}
-          $project=Join-Path $env:USERPROFILE 'project'; $config=Join-Path $env:APPDATA 'cabal/config'; New-Item -ItemType Directory -Force $project,(Split-Path $config),$env:LOCALAPPDATA|Out-Null
+          $project=Join-Path $boundary 'project'; $config=Join-Path (Join-Path $env:APPDATA 'cabal') 'config'; New-Item -ItemType Directory -Force $project,(Split-Path $config)|Out-Null
           $contents="-- native Cabal policy`r`nrepository hackage.haskell.org`r`n  url: https://hackage.haskell.org/`r`n  secure: True`r`nrepository private.corp`r`n  url: https://build:fixture-only@packages.invalid.example/hackage`r`n  secure: True`r`nactive-repositories: :rest, hackage.haskell.org, private.corp:override`r`nhttp-transport: curl`r`n"; [IO.File]::WriteAllText($config,$contents,[Text.UTF8Encoding]::new($true))
-          [IO.File]::WriteAllText((Join-Path $project 'cabal.project'),"packages: .`r`nindex-state: 2026-08-01T00:00:00Z`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'cabal.project') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"cabal","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+          [IO.File]::WriteAllText((Join-Path $project 'cabal.project'),"packages: .`r`nindex-state: 2026-08-01T00:00:00Z`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'cabal.project') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"cabal","scope":"user","mirrors":{"hackage--language-registry":"6f682a674e9407378ad49d0c"}}]}',[Text.UTF8Encoding]::new($false))
           [IO.File]::WriteAllText((Join-Path $project 'mirrorswitch-cabal-boundary.cabal'),"cabal-version: 3.0`r`nname: mirrorswitch-cabal-boundary`r`nversion: 0.0.0`r`nbuild-type: Simple`r`nexecutable native-boundary`r`n  main-is: Main.hs`r`n  default-language: Haskell2010`r`n  build-depends: base >=4.14 && <5`r`n",[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project 'Main.hs'),"main :: IO ()`r`nmain = pure ()`r`n",[Text.UTF8Encoding]::new($false))
           $before=(Get-FileHash $config -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'cabal.project') -Algorithm SHA256).Hash
           Push-Location $project
           try{
-            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool cabal --scope cabal=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool cabal --scope cabal=user --mirror cabal:hackage--language-registry=6f682a674e9407378ad49d0c --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
             $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'cabal'); if($tools.Count -ne 1){throw 'Cabal not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains($config) -or -not $evidence.Contains($project) -or -not $evidence.Contains('Windows')){throw 'native path/platform evidence missing'}
             $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or -not [string]::Equals([string]($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress), [string]($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)) -or (Get-Content status.json,plan-cli.json,plan-config.json -Raw)-match 'fixture-only'){throw 'frontend plans differ or credential leaked'}
-            @('','n')|& $binary tui --offline --tool cabal --scope cabal=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(nju|tuna|ustc)') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
-            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Cabal apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
-            $configured=[IO.File]::ReadAllText($config); if(-not $configured.Contains('url: https://mirrors.') -or -not $configured.Contains('https://build:fixture-only@packages.invalid.example/hackage') -or -not $configured.Contains('secure: True') -or -not $configured.Contains("`r`n")){throw 'native configuration policy or CRLF was not preserved'}; $bytes=[IO.File]::ReadAllBytes($config); if($bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'UTF-8 BOM was not preserved'}
+            @('','n')|& $binary tui --offline --tool cabal --scope cabal=user --mirror cabal:hackage--language-registry=6f682a674e9407378ad49d0c|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=nju') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Cabal apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1 -or -not $applied[0].verification.valid){throw 'verified transaction missing'}; $id=$applied[0].receipt.transaction_id
+            $configured=[IO.File]::ReadAllText($config); if(-not $configured.Contains('url: https://mirrors.nju.edu.cn/hackage/') -or -not $configured.Contains('https://build:fixture-only@packages.invalid.example/hackage') -or -not $configured.Contains('secure: True') -or -not $configured.Contains("`r`n")){throw 'native configuration policy or CRLF was not preserved'}; $bytes=[IO.File]::ReadAllBytes($config); if($bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'UTF-8 BOM was not preserved'}
             $configArg="--config-file=$config"; & cabal $configArg user-config diff|Out-Null; if($LASTEXITCODE -ne 0){throw 'native Cabal rejected the applied config'}
             & cabal $configArg build --offline all; if($LASTEXITCODE -ne 0){throw 'native Cabal build failed'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'cabal'){throw 'restore failed'}
@@ -139,6 +139,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: cabal-native-${{ matrix.name }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/mirrorswitch-cabal-boundary/home/project/*.json
+          path: ${{ runner.temp }}/mirrorswitch-cabal-boundary/project/*.json
           if-no-files-found: warn
           retention-days: 7
