@@ -30,14 +30,13 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
       - uses: DeLaGuardo/setup-clojure@13.6.1
         with:
           lein: 2.12.0
       - name: Install Rust toolchain
         shell: bash
         run: |
-          lein version
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
           rustup default "$RUST_TOOLCHAIN"
       - name: Restore shared Rust dependency cache
