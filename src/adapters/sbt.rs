@@ -63,11 +63,11 @@ impl Adapter for SbtAdapter {
                 "sbt was found but Java is unavailable on PATH".into(),
             ));
         }
-        let version = sbt_version(runtime)?;
-        reviewed_version(&version)?;
-        let java = run_command(runtime, "java", &["-version"], "java -version")?;
         let layout = config_layout(runtime)?;
         let project = inspect_project(runtime, &layout)?;
+        let version = sbt_version(runtime, project.sbt_version.as_deref())?;
+        reviewed_version(&version)?;
+        let java = run_command(runtime, "java", &["-version"], "java -version")?;
         let mut evidence = vec![
             format!("sbt {version}"),
             format!(
@@ -120,14 +120,15 @@ impl Adapter for SbtAdapter {
                 "sbt read received another tool's detection result".into(),
             ));
         }
-        let version = sbt_version(runtime)?;
+        let layout = config_layout(runtime)?;
+        let project = inspect_project(runtime, &layout)?;
+        let version = sbt_version(runtime, project.sbt_version.as_deref())?;
         if detected.version.as_deref() != Some(version.as_str()) {
             return Err(AdapterError::Conflict(
                 "sbt version changed after detection".into(),
             ));
         }
         reviewed_version(&version)?;
-        let layout = config_layout(runtime)?;
         let mut sources = environment_sources(runtime);
         sources.push(snapshot_source("sbt-version", &version));
         let mut files = Vec::new();
@@ -1112,7 +1113,18 @@ fn verification_arguments(layout: &ConfigLayout) -> Result<Vec<String>, AdapterE
     ])
 }
 
-fn sbt_version(runtime: &dyn Runtime) -> Result<String, AdapterError> {
+fn sbt_version(
+    runtime: &dyn Runtime,
+    configured_version: Option<&str>,
+) -> Result<String, AdapterError> {
+    if let Some(version) = configured_version.filter(|version| valid_version_token(version)) {
+        let output = runtime.run("sbt", &["--script-version".into()])?;
+        if output.status.success()
+            && parse_sbt_version(&command_output(output, "sbt --script-version")?).is_some()
+        {
+            return Ok(version.into());
+        }
+    }
     for argument in ["--numeric-version", "--version"] {
         let output = runtime.run("sbt", &[argument.into()])?;
         if !output.status.success() {

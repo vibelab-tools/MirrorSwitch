@@ -80,7 +80,12 @@ if [ "$1" = --numeric-version ]; then
   exit 0
 fi
 if [ "$1" = --version ]; then
+  [ {numeric_version} = true ] || exit 2
   printf '\033[32m%s\033[0m\n' 'sbt version in this project: {version}'
+  exit 0
+fi
+if [ "$1" = --script-version ]; then
+  printf '%s\n' '1.12.11'
   exit 0
 fi
 repositories=
@@ -281,6 +286,11 @@ fn sbt_two_arm64_and_missing_repository_file_produce_the_same_plan_for_all_entri
     let directory = tempdir().unwrap();
     let root = directory.path();
     install_sbt(root, "2.0.8", 0, false);
+    write(
+        root,
+        "/work/project/project/build.properties",
+        b"sbt.version=2.0.8\n",
+    );
     let adapter = SbtAdapter;
     let context = context(root, Architecture::Arm64);
     let mut runtime = runtime(root, BTreeMap::new());
