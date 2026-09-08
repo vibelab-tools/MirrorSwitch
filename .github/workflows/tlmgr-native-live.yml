@@ -58,27 +58,27 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-tlmgr-boundary"; export HOME="$boundary/home"
-          project="$HOME/project"; mkdir -p "$project"
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-tlmgr-boundary"
+          project="$boundary/project"; mkdir -p "$project"
           tlmgr init-usertree
           tlmgr --usermode option repository https://mirror.ctan.org/systems/texlive/tlnet
           texmfhome=$(kpsewhich -var-value=TEXMFHOME); user_db="$texmfhome/tlpkg/texlive.tlpdb"; root=$(tlmgr --version|sed -n 's/^tlmgr using installation: //p'); system_db="$root/tlpkg/texlive.tlpdb"
           printf '%s\n' 'TEXINPUTS=./private//' > "$project/texlive.project"; chmod 0400 "$project/texlive.project"
-          printf '{"version":1,"tools":[{"id":"tlmgr","scope":"user"}]}\n' > "$project/request.json"
+          printf '{"version":1,"tools":[{"id":"tlmgr","scope":"user","mirrors":{"ctan--language-registry":"14d922d2ede9c4af514f0929"}}]}\n' > "$project/request.json"
           user_before=$(shasum -a 256 "$user_db"|awk '{print $1}'); system_before=$(shasum -a 256 "$system_db"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/texlive.project"|awk '{print $1}'); mode=$(stat -f '%Lp' "$user_db")
           cd "$project"
-          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool tlmgr --scope tlmgr=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool tlmgr --scope tlmgr=user --mirror tlmgr:ctan--language-registry=14d922d2ede9c4af514f0929 --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - "$root" "$texmfhome" <<'PY'
           import json, pathlib, sys
           status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='tlmgr']; assert len(tools)==1
           evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and sys.argv[2] in evidence and str(pathlib.Path.cwd()) in evidence and 'Macos' in evidence and 'universal-darwin' in evidence
           a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
           PY
-          printf '\nn\n'|"$binary" tui --offline --tool tlmgr --scope tlmgr=user > tui.txt; grep -E 'mirror=(aliyun|huaweicloud|nju|tuna)' tui.txt
+          printf '\nn\n'|"$binary" tui --offline --tool tlmgr --scope tlmgr=user --mirror tlmgr:ctan--language-registry=14d922d2ede9c4af514f0929 > tui.txt; grep -F 'mirror=nju' tui.txt
           "$binary" apply --offline --config request.json --yes --json > apply.json
           id=$(python3 - <<'PY'
           import json
-          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1 and a[0]['verification']['valid']; print(a[0]['receipt']['transaction_id'])
           PY
           )
           tlmgr --usermode repository list|grep -E 'mirrors\.(aliyun|nju|tuna)|repo\.huaweicloud\.com'
@@ -93,19 +93,18 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-tlmgr-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA|Out-Null
           $launcher=(Get-Command tlmgr -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -notin @('.bat','.exe')){throw "native tlmgr launcher is not Windows-compatible: $launcher"}
           tlmgr init-usertree; if($LASTEXITCODE -ne 0){throw 'tlmgr user tree initialization failed'}; tlmgr --usermode option repository https://mirror.ctan.org/systems/texlive/tlnet; if($LASTEXITCODE -ne 0){throw 'tlmgr user repository initialization failed'}
           $texmfhome=(kpsewhich -var-value=TEXMFHOME) -join ''; $userDb=Join-Path $texmfhome 'tlpkg/texlive.tlpdb'; $version=(tlmgr --version) -join "`n"; $root=($version -split "`n"|Where-Object {$_ -like 'tlmgr using installation:*'}|Select-Object -First 1).Substring('tlmgr using installation: '.Length); $systemDb=Join-Path $root 'tlpkg/texlive.tlpdb'
-          $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $project|Out-Null; [IO.File]::WriteAllText((Join-Path $project 'texlive.project'),"TEXINPUTS=./private//`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'texlive.project') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"tlmgr","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+          $project=Join-Path $boundary 'project'; New-Item -ItemType Directory -Force $project|Out-Null; [IO.File]::WriteAllText((Join-Path $project 'texlive.project'),"TEXINPUTS=./private//`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'texlive.project') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"tlmgr","scope":"user","mirrors":{"ctan--language-registry":"14d922d2ede9c4af514f0929"}}]}',[Text.UTF8Encoding]::new($false))
           $userBefore=(Get-FileHash $userDb -Algorithm SHA256).Hash; $systemBefore=(Get-FileHash $systemDb -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'texlive.project') -Algorithm SHA256).Hash
           Push-Location $project
           try{
-            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool tlmgr --scope tlmgr=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
-            $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'tlmgr'); if($tools.Count -ne 1){throw 'tlmgr not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains($root) -or -not $evidence.Contains($texmfhome) -or -not $evidence.Contains($project) -or -not $evidence.Contains('Windows') -or -not $evidence.Contains('TeX Live platform windows')){throw 'native path/platform evidence missing'}
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool tlmgr --scope tlmgr=user --mirror tlmgr:ctan--language-registry=14d922d2ede9c4af514f0929 --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'tlmgr'); if($tools.Count -ne 1){throw 'tlmgr not detected'}; $evidence=($tools[0].detected.evidence -join "`n").Replace('/','\'); if(-not $evidence.Contains($root.Replace('/','\')) -or -not $evidence.Contains($texmfhome.Replace('/','\')) -or -not $evidence.Contains($project.Replace('/','\')) -or -not $evidence.Contains('Windows') -or -not $evidence.Contains('TeX Live platform windows')){throw 'native path/platform evidence missing'}
             $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or -not [string]::Equals([string]($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress), [string]($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress))){throw 'frontend plans differ'}
-            @('','n')|& $binary tui --offline --tool tlmgr --scope tlmgr=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(aliyun|huaweicloud|nju|tuna)')){throw 'tlmgr mirror missing'}
-            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'tlmgr apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            @('','n')|& $binary tui --offline --tool tlmgr --scope tlmgr=user --mirror tlmgr:ctan--language-registry=14d922d2ede9c4af514f0929|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=nju')){throw 'tlmgr mirror missing'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'tlmgr apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1 -or -not $applied[0].verification.valid){throw 'verified transaction missing'}; $id=$applied[0].receipt.transaction_id
             $repositories=(tlmgr --usermode repository list) -join "`n"; if($repositories -notmatch 'mirrors\.(aliyun|nju|tuna)|repo\.huaweicloud\.com'){throw 'native tlmgr did not load selected repository'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'tlmgr'){throw 'restore failed'}
           }finally{Pop-Location}
@@ -115,6 +114,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: tlmgr-native-${{ matrix.name }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/mirrorswitch-tlmgr-boundary/home/project/*.json
+          path: ${{ runner.temp }}/mirrorswitch-tlmgr-boundary/project/*.json
           if-no-files-found: warn
           retention-days: 7
