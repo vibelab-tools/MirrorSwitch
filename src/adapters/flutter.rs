@@ -85,7 +85,7 @@ impl Adapter for FlutterAdapter {
             None,
             None,
             None,
-            &["precache", "--help"],
+            &["--verbose", "precache", "--help"],
             "flutter precache --help",
         )?;
         let artifact_flag = platform_artifact_flag(context);

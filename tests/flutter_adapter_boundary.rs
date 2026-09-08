@@ -96,7 +96,7 @@ if [ "$1" = --version ] && [ "$2" = --machine ]; then
   printf '%s\n' '{{"frameworkVersion":"{version}","channel":"{channel}","repositoryUrl":"{repository}","frameworkRevision":"{framework}","engineRevision":"{engine}","engineContentHash":"{content_hash}","dartSdkVersion":"3.13.2","devToolsVersion":"2.51.1"}}'
   exit 0
 fi
-if [ "$1" = precache ] && [ "$2" = --help ]; then
+if [ "$1" = --verbose ] && [ "$2" = precache ] && [ "$3" = --help ]; then
   printf '%s\n' 'Populate the Flutter tool cache.' '    --linux' '    --macos' '    --windows'
   exit 0
 fi
