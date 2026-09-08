@@ -30,6 +30,8 @@ const VERIFY_POM_MARKER: &str = "<!-- Managed by MirrorSwitch: Maven verificatio
 const VERIFY_ARTIFACT: &str = "org.apache.commons:commons-lang3:3.14.0";
 const HELP_GOAL: &str = "org.apache.maven.plugins:maven-help-plugin:3.5.2:effective-settings";
 const DEPENDENCY_GOAL: &str = "org.apache.maven.plugins:maven-dependency-plugin:3.11.0:get";
+const VERIFY_REMOTE_REPOSITORY: &str =
+    "-DremoteRepositories=central::default::https://repo.maven.apache.org/maven2/";
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct MavenAdapter;
@@ -393,6 +395,7 @@ impl Adapter for MavenAdapter {
                     DEPENDENCY_GOAL,
                     &format!("-Dartifact={VERIFY_ARTIFACT}"),
                     "-Dtransitive=false",
+                    VERIFY_REMOTE_REPOSITORY,
                 ],
             )
             .map_err(|error| {
