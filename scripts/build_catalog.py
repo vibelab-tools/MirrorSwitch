@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "112"
+CATALOG_FORMAT_REVISION = "113"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -1703,13 +1703,13 @@ def runtime_properties(
             {
                 "endpoint_role": "metadata",
                 "method": "head",
-                "path": "/ports.tar.gz",
+                "path": "/ports.tar",
                 "expected_status": [200],
             },
             {
                 "endpoint_role": "metadata",
                 "method": "get",
-                "path": "/ports.tar.gz.rmd160",
+                "path": "/ports.tar.rmd160",
                 "expected_status": [200],
                 "expected_content_type": "application/octet-stream",
             },

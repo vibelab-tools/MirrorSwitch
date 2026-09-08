@@ -24,7 +24,7 @@ const DEFAULT_PUBKEY: &str = "/opt/local/share/macports/macports-pubkey.pem";
 const UPSTREAM: &str = "macports--static-files";
 const MANAGED_BEGIN: &str = "# BEGIN MirrorSwitch MacPorts archives";
 const MANAGED_END: &str = "# END MirrorSwitch MacPorts archives";
-const OFFICIAL_SOURCE: &str = "rsync://rsync.macports.org/macports/release/tarballs/ports.tar.gz";
+const OFFICIAL_SOURCE: &str = "rsync://rsync.macports.org/macports/release/tarballs/ports.tar";
 const OFFICIAL_ARCHIVES: &str = "https://packages.macports.org";
 const MIRROR_ROOTS: &[&str] = &[
     "https://mirrors.aliyun.com/macports",
@@ -302,7 +302,7 @@ impl Adapter for MacPortsAdapter {
         let new_sources = rewrite_sources(
             utf8(&source_document.path, &source_document.contents)?,
             &source_document.path,
-            &format!("{}/ports.tar.gz", tree_endpoint.trim_end_matches('/')),
+            &format!("{}/ports.tar", tree_endpoint.trim_end_matches('/')),
         )?
         .into_bytes();
         let new_archives = rewrite_archive_sites(
@@ -913,7 +913,7 @@ fn selected_endpoints(selections: &[MirrorSelection]) -> Result<(&str, &str), Ad
             "MacPorts selection lacks paired HTTPS tree and archive endpoints".into(),
         ));
     };
-    if !is_mirror_source(&format!("{}/ports.tar.gz", metadata.trim_end_matches('/')))
+    if !is_mirror_source(&format!("{}/ports.tar", metadata.trim_end_matches('/')))
         || !is_mirror_archive(artifacts)
         || provider_root(metadata) != provider_root(artifacts)
     {
@@ -969,7 +969,7 @@ fn is_public_source(url: &str) -> bool {
 
 fn is_mirror_source(url: &str) -> bool {
     MIRROR_ROOTS.iter().any(|root| {
-        normalize_url(url) == normalize_url(&format!("{root}/release/tarballs/ports.tar.gz"))
+        normalize_url(url) == normalize_url(&format!("{root}/release/tarballs/ports.tar"))
     })
 }
 

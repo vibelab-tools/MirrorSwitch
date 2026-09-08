@@ -15,7 +15,7 @@ its rmd160 signature file with reviewed SHA-256 values before latency ranking.
 ## Managed state
 
 The adapter changes only the one `[default]` public tree URI in `sources.conf`. Local and custom
-trees keep their order and flags. The selected HTTPS `ports.tar.gz` retains MacPorts' signed
+trees keep their order and flags. The selected HTTPS `ports.tar` retains MacPorts' signed
 tarball behavior; a default source marked `nosync`, multiple defaults, or an unknown default is
 not rewritten.
 

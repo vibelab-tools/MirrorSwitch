@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+8ecf27bc8caa",
-  "content_revision": 20260906060753,
-  "generated_at": "2026-09-06T06:07:53Z",
+  "content_version": "2026.08.28+c33bc2fff824",
+  "content_revision": 20260908230342,
+  "generated_at": "2026-09-08T23:03:42Z",
   "providers": [
     {
       "id": "aliyun",
@@ -14768,7 +14768,7 @@
         {
           "endpoint_role": "metadata",
           "method": "head",
-          "path": "/ports.tar.gz",
+          "path": "/ports.tar",
           "expected_status": [
             200
           ]
@@ -14776,7 +14776,7 @@
         {
           "endpoint_role": "metadata",
           "method": "get",
-          "path": "/ports.tar.gz.rmd160",
+          "path": "/ports.tar.rmd160",
           "expected_status": [
             200
           ],
@@ -19390,7 +19390,7 @@
         {
           "endpoint_role": "metadata",
           "method": "head",
-          "path": "/ports.tar.gz",
+          "path": "/ports.tar",
           "expected_status": [
             200
           ]
@@ -19398,7 +19398,7 @@
         {
           "endpoint_role": "metadata",
           "method": "get",
-          "path": "/ports.tar.gz.rmd160",
+          "path": "/ports.tar.rmd160",
           "expected_status": [
             200
           ],
@@ -25913,7 +25913,7 @@
         {
           "endpoint_role": "metadata",
           "method": "head",
-          "path": "/ports.tar.gz",
+          "path": "/ports.tar",
           "expected_status": [
             200
           ]
@@ -25921,7 +25921,7 @@
         {
           "endpoint_role": "metadata",
           "method": "get",
-          "path": "/ports.tar.gz.rmd160",
+          "path": "/ports.tar.rmd160",
           "expected_status": [
             200
           ],

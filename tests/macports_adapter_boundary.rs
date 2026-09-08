@@ -65,7 +65,7 @@ fn install(root: &Path, darwin: u32, build_from_source: &str, sync_exit: i32) {
     write(
         root,
         "/opt/local/etc/macports/sources.conf",
-        b"# preserve local precedence\nfile:///Users/test/custom-ports [nosync]\nrsync://rsync.macports.org/macports/release/tarballs/ports.tar.gz [default]\n",
+        b"# preserve local precedence\nfile:///Users/test/custom-ports [nosync]\nrsync://rsync.macports.org/macports/release/tarballs/ports.tar [default]\n",
     );
     write(
         root,
@@ -94,7 +94,7 @@ fn install(root: &Path, darwin: u32, build_from_source: &str, sync_exit: i32) {
         root,
         "/opt/local/bin/port",
         format!(
-            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{calls}'\nif [ \"$1\" = version ]; then echo 'Version: 2.11.6'; exit 0; fi\nif [ \"$1\" = sync ]; then grep -q 'mirrors.*macports/release/tarballs/ports.tar.gz' '{sources}' || exit 65; if [ '{sync_exit}' -ne 0 ]; then echo 'signature verification failed at https://build:fixture-only@private.example/tree' >&2; fi; exit {sync_exit}; fi\nif [ \"$1\" = -q ] && [ \"$2\" = info ] && [ \"$3\" = zlib ]; then echo 'zlib @1.3.2_0'; exit 0; fi\nif [ \"$1\" = -q ] && [ \"$2\" = archivefetch ] && [ \"$3\" = zlib ]; then grep -q 'mirrors.*macports/packages' '{archives}'; exit 0; fi\nexit 64\n",
+            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{calls}'\nif [ \"$1\" = version ]; then echo 'Version: 2.11.6'; exit 0; fi\nif [ \"$1\" = sync ]; then grep -q 'mirrors.*macports/release/tarballs/ports.tar' '{sources}' || exit 65; if [ '{sync_exit}' -ne 0 ]; then echo 'signature verification failed at https://build:fixture-only@private.example/tree' >&2; fi; exit {sync_exit}; fi\nif [ \"$1\" = -q ] && [ \"$2\" = info ] && [ \"$3\" = zlib ]; then echo 'zlib @1.3.2_0'; exit 0; fi\nif [ \"$1\" = -q ] && [ \"$2\" = archivefetch ] && [ \"$3\" = zlib ]; then grep -q 'mirrors.*macports/packages' '{archives}'; exit 0; fi\nexit 64\n",
             calls = calls.display(),
             sources = sources.display(),
             archives = archives.display(),

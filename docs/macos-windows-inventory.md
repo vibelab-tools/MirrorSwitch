@@ -69,7 +69,7 @@ found in the provider inventory. Nothing in this table is `supported` yet.
 Representative live checks on 2026-09-02 returned HTTP 200 for both USTC and NJU
 `winget-source/source.msix`; USTC and TUNA `mingw/clangarm64/clangarm64.db`; Huawei Cygwin
 `x86_64/setup.xz`; USTC/TUNA Homebrew `api/formula.jws.json`; all three cataloged MacPorts
-`release/tarballs/ports.tar.gz`; Huawei's NuGet v3 index; and TUNA's Nix cache-info. The old
+`release/tarballs/ports.tar`; Huawei's NuGet v3 index; and TUNA's Nix cache-info. The old
 catalog path `https://mirrors.tuna.tsinghua.edu.cn/cygwin/` now returns 404; Cygwin's current
 official link is `https://mirrors.tuna.tsinghua.edu.cn/sourceware/cygwin/`. CocoaPods sample paths
 under the cataloged static roots returned 404, so those candidates remain partial pending #98.
