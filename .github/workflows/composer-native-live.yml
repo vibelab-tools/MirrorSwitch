@@ -19,9 +19,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: macOS x86_64, runner: macos-15-intel }
-          - { name: macOS arm64, runner: macos-15 }
-          - { name: Windows x86_64, runner: windows-2025 }
+          - { name: macOS x86_64, runner: macos-15-intel, php: "8.3" }
+          - { name: macOS arm64, runner: macos-15, php: "8.4" }
+          - { name: Windows x86_64, runner: windows-2025, php: "8.4" }
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 40
     steps:
@@ -45,7 +45,7 @@ jobs:
         run: cargo build --locked --release --bin mirrorswitch
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.4"
+          php-version: ${{ matrix.php }}
           tools: composer:2.10.3
           coverage: none
       - name: Verify PHP and Composer toolchains
