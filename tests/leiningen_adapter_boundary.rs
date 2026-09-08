@@ -215,6 +215,14 @@ fn user_plan_preserves_profiles_private_repositories_credentials_and_project_fil
     let current = adapter
         .read_current(&context, &runtime, &detected, ConfigurationScope::User)
         .unwrap();
+    let request = adapter
+        .selection_request(&context, &detected, &current)
+        .unwrap();
+    assert_eq!(request.repository_versions[MAVEN_UPSTREAM], "leiningen-2.x");
+    assert_eq!(
+        request.repository_versions[CLOJARS_UPSTREAM],
+        "leiningen-2.x"
+    );
     assert!(current.sources.iter().any(|source| {
         source
             .metadata

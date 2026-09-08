@@ -19,6 +19,7 @@ use crate::{
 
 const MAVEN_UPSTREAM: &str = "maven--language-registry";
 const CLOJARS_UPSTREAM: &str = "clojars--language-registry";
+const REPOSITORY_VERSION: &str = "leiningen-2.x";
 const MAVEN_ENDPOINTS: &[&str] = &[
     "https://maven.aliyun.com/repository/public/",
     "https://repo.huaweicloud.com/repository/maven/",
@@ -219,7 +220,10 @@ impl Adapter for LeiningenAdapter {
             context: context.clone(),
             tool_version: detected.version.clone(),
             required_upstreams: vec![MAVEN_UPSTREAM.into(), CLOJARS_UPSTREAM.into()],
-            repository_versions: BTreeMap::new(),
+            repository_versions: BTreeMap::from([
+                (MAVEN_UPSTREAM.into(), REPOSITORY_VERSION.into()),
+                (CLOJARS_UPSTREAM.into(), REPOSITORY_VERSION.into()),
+            ]),
             probe_contexts: BTreeMap::new(),
             required_compatibility_evidence: vec![
                 CompatibilityDimension::OperatingSystem,

@@ -57,21 +57,21 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-leiningen-boundary"; export HOME="$boundary/home" LEIN_HOME="$boundary/home/.lein"; export JAVA_OPTS="-Duser.home=$HOME"
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-leiningen-boundary"; export LEIN_HOME="$boundary/lein-home"
           unset LEIN_NO_USER_PROFILES LEIN_SILENT LEIN_JVM_OPTS
-          project="$HOME/project"; profile="$LEIN_HOME/profiles.clj"; mkdir -p "$project" "$LEIN_HOME"
+          project="$boundary/project"; profile="$LEIN_HOME/profiles.clj"; mkdir -p "$project" "$LEIN_HOME"
           printf '%s\n' '{:user {:repositories [["central" {:url "https://repo1.maven.org/maven2/"}] ["clojars" {:url "https://repo.clojars.org/"}] ["private" {:url "https://packages.invalid.example/maven/"}]] :plugins [[lein-ancient "0.7.0"]]}}' > "$profile"; chmod 0600 "$profile"
           printf '%s\n' '(defproject native "0.1.0" :dependencies [[org.clojure/clojure "1.12.0"]] :repositories [["private" "https://packages.invalid.example/maven/"]])' > "$project/project.clj"
-          printf '{"version":1,"tools":[{"id":"leiningen","scope":"user"}]}\n' > "$project/request.json"
+          printf '{"version":1,"tools":[{"id":"leiningen","scope":"user","mirrors":{"maven--language-registry":"094eb23b71e959695b8ce5a1","clojars--language-registry":"39d3604f410bdbfdc01c99c3"}}]}\n' > "$project/request.json"
           before=$(shasum -a 256 "$profile"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/project.clj"|awk '{print $1}'); mode=$(stat -f '%Lp' "$profile")
           cd "$project"
-          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool leiningen --scope leiningen=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool leiningen --scope leiningen=user --mirror leiningen:maven--language-registry=094eb23b71e959695b8ce5a1 --mirror leiningen:clojars--language-registry=39d3604f410bdbfdc01c99c3 --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - <<'PY'
           import json
           s=json.load(open('status.json')); assert [t['adapter_key'] for t in s['detected_tools'] if t['adapter_key']=='leiningen']==['leiningen']
           a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
           PY
-          printf '\nn\n'|"$binary" tui --offline --tool leiningen --scope leiningen=user > tui.txt; grep -E 'mirror=(aliyun|huaweicloud|nju|tuna)' tui.txt
+          printf '\nn\n'|"$binary" tui --offline --tool leiningen --scope leiningen=user --mirror leiningen:maven--language-registry=094eb23b71e959695b8ce5a1 --mirror leiningen:clojars--language-registry=39d3604f410bdbfdc01c99c3 > tui.txt; grep -E 'mirror=(huaweicloud|nju)' tui.txt
           "$binary" apply --offline --config request.json --yes --json > apply.json
           id=$(python3 - <<'PY'
           import json
@@ -89,16 +89,16 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-leiningen-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LEIN_HOME=Join-Path $env:USERPROFILE '.lein'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; $env:JAVA_OPTS="-Duser.home=$env:USERPROFILE"; Remove-Item Env:LEIN_NO_USER_PROFILES,Env:LEIN_SILENT,Env:LEIN_JVM_OPTS -ErrorAction SilentlyContinue
-          $project=Join-Path $env:USERPROFILE 'project'; $profile=Join-Path $env:LEIN_HOME 'profiles.clj'; New-Item -ItemType Directory -Force $project,$env:LEIN_HOME,$env:LOCALAPPDATA|Out-Null
+          $env:LEIN_HOME=Join-Path $boundary 'lein-home'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:LEIN_NO_USER_PROFILES,Env:LEIN_SILENT,Env:LEIN_JVM_OPTS -ErrorAction SilentlyContinue
+          $project=Join-Path $boundary 'project'; $profile=Join-Path $env:LEIN_HOME 'profiles.clj'; New-Item -ItemType Directory -Force $project,$env:LEIN_HOME,$env:LOCALAPPDATA|Out-Null
           $text=";; native profile`r`n{:user {:repositories [[`"central`" {:url `"https://repo1.maven.org/maven2/`"}] [`"clojars`" {:url `"https://repo.clojars.org/`"}] [`"private`" {:url `"https://packages.invalid.example/maven/`"}]] :plugins [[lein-ancient `"0.7.0`"]]}}`r`n"; [IO.File]::WriteAllText($profile,$text,[Text.UTF8Encoding]::new($true))
-          '(defproject native "0.1.0" :dependencies [[org.clojure/clojure "1.12.0"]] :repositories [["private" "https://packages.invalid.example/maven/"]])'|Set-Content -Encoding utf8 (Join-Path $project 'project.clj'); '{"version":1,"tools":[{"id":"leiningen","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          '(defproject native "0.1.0" :dependencies [[org.clojure/clojure "1.12.0"]] :repositories [["private" "https://packages.invalid.example/maven/"]])'|Set-Content -Encoding utf8 (Join-Path $project 'project.clj'); '{"version":1,"tools":[{"id":"leiningen","scope":"user","mirrors":{"maven--language-registry":"094eb23b71e959695b8ce5a1","clojars--language-registry":"39d3604f410bdbfdc01c99c3"}}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
           $before=(Get-FileHash $profile -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'project.clj') -Algorithm SHA256).Hash
           Push-Location $project
           try{
-            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool leiningen --scope leiningen=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool leiningen --scope leiningen=user --mirror leiningen:maven--language-registry=094eb23b71e959695b8ce5a1 --mirror leiningen:clojars--language-registry=39d3604f410bdbfdc01c99c3 --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
             $s=Get-Content status.json -Raw|ConvertFrom-Json; if(@($s.detected_tools|Where-Object adapter_key -eq 'leiningen').Count -ne 1){throw 'Leiningen not detected'}; $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or -not [string]::Equals([string]($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress), [string]($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress))){throw 'frontend plans differ'}
-            @('','n')|& $binary tui --offline --tool leiningen --scope leiningen=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(aliyun|huaweicloud|nju|tuna)')){throw 'Leiningen mirror missing'}
+            @('','n')|& $binary tui --offline --tool leiningen --scope leiningen=user --mirror leiningen:maven--language-registry=094eb23b71e959695b8ce5a1 --mirror leiningen:clojars--language-registry=39d3604f410bdbfdc01c99c3|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(huaweicloud|nju)')){throw 'Leiningen mirror missing'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Leiningen apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
             (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'leiningen'){throw 'restore failed'}
@@ -109,6 +109,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: leiningen-native-${{ matrix.name }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/mirrorswitch-leiningen-boundary/home/project/*.json
+          path: ${{ runner.temp }}/mirrorswitch-leiningen-boundary/project/*.json
           if-no-files-found: warn
           retention-days: 7
