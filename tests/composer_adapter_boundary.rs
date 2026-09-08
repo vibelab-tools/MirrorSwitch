@@ -104,7 +104,11 @@ verification_config='{verification_config}'
 verification_home='{verification_home}'
 case "$*" in
   "--version --no-ansi") printf '%s\n' 'Composer version {version} 2026-08-01 00:00:00' ;;
-  "config --global home") printf '%s\n' '/home/developer/.composer' ;;
+  "config --global home")
+    [ "$(pwd -P)" = "$(cd '{user_home}' && pwd -P)" ] || exit 68
+    [ -z "${{COMPOSER_AUTH+x}}" ] || exit 69
+    printf '%s\n' '/home/developer/.composer'
+    ;;
   "config --global --list --source")
     [ "$COMPOSER_HOME" = '/home/developer/.composer' ] || exit 71
     [ -z "${{COMPOSER+x}}" ] || exit 72
@@ -136,6 +140,7 @@ case "$*" in
 esac
 "#,
             config = physical_config.display(),
+            user_home = root.join("home/developer").display(),
             verification_config = verification_home.join("config.json").display(),
             verification_home = verification_home.display(),
         ),

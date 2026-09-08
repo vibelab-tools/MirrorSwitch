@@ -561,17 +561,25 @@ fn composer_snapshot(runtime: &dyn Runtime) -> Result<ComposerSnapshot, AdapterE
     let php_output = run_program(runtime, "php", &["--version"], "php --version")?;
     let php_version = prefixed_version(&php_output, "PHP")?;
     reviewed_php_version(&php_version)?;
-    let home = PathBuf::from(run_composer(
-        runtime,
-        None,
-        &["config", "--global", "home"],
+    let user_home = runtime
+        .home_dir()
+        .ok_or_else(|| AdapterError::Unsupported("Composer user home is unavailable".into()))?;
+    let home_arguments = ["config", "--global", "home"]
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    let home = PathBuf::from(output_text(
+        runtime.run_in_with_environment(
+            &user_home,
+            "composer",
+            &home_arguments,
+            &BTreeMap::new(),
+            &["COMPOSER".into(), "COMPOSER_AUTH".into()],
+        )?,
         "Composer home query",
     )?);
     validate_path(&home, "home")?;
     validate_user_path(runtime, &home)?;
-    let user_home = runtime
-        .home_dir()
-        .ok_or_else(|| AdapterError::Unsupported("Composer user home is unavailable".into()))?;
     let global_config = home.join("config.json");
     let verification_home = user_home.join(".mirrorswitch/verification/composer");
     let verification_config = verification_home.join("config.json");
@@ -1108,15 +1116,6 @@ fn unique_endpoint(selection: &MirrorSelection, role: EndpointRole) -> Result<&s
         )));
     }
     Ok(&endpoints[0].url)
-}
-
-fn run_composer(
-    runtime: &dyn Runtime,
-    directory: Option<&Path>,
-    arguments: &[&str],
-    operation: &str,
-) -> Result<String, AdapterError> {
-    run_program_in(runtime, directory, "composer", arguments, operation)
 }
 
 fn run_composer_at_home(
