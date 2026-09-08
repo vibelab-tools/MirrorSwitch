@@ -664,6 +664,11 @@ fn bundler_snapshot(runtime: &dyn Runtime) -> Result<BundlerSnapshot, AdapterErr
     let bundler_version = bundle
         .strip_prefix("Bundler version ")
         .or_else(|| bundle.strip_prefix("Bundler "))
+        .or_else(|| {
+            version_components(bundle.trim())
+                .is_some()
+                .then_some(bundle.trim())
+        })
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .ok_or_else(|| {

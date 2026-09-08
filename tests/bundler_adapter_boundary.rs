@@ -76,6 +76,11 @@ fn executable(root: &Path, path: &str, contents: String) {
 
 fn install_bundler(root: &Path, bundler: &str, ruby: &str, failure: &str) {
     let verification = root.join("home/developer/.mirrorswitch/verification/bundler");
+    let version_output = if bundler.starts_with("4.") {
+        bundler.to_owned()
+    } else {
+        format!("Bundler version {bundler}")
+    };
     executable(
         root,
         "/usr/bin/bundle",
@@ -84,7 +89,7 @@ fn install_bundler(root: &Path, bundler: &str, ruby: &str, failure: &str) {
 config='{config}'
 gemfile='{gemfile}'
 case "$*" in
-  "--version") printf '%s\n' 'Bundler version {bundler}' ;;
+  "--version") printf '%s\n' '{version_output}' ;;
   "config get mirror."*)
     [ "$BUNDLE_USER_CONFIG" = '/home/developer/.mirrorswitch/verification/bundler/home/.bundle/config' ] || exit 70
     [ "$BUNDLE_APP_CONFIG" = '/home/developer/.mirrorswitch/verification/bundler/.bundle' ] || exit 71
