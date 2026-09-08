@@ -46,30 +46,42 @@ fn runtime_executes_the_native_command_convention() {
     let directory = tempdir().unwrap();
     #[cfg(windows)]
     let executable = {
+        let executable_directory = directory.path().join("tool bin");
+        fs::create_dir(&executable_directory).unwrap();
         fs::write(
-            directory.path().join("mirrorswitch-probe"),
+            executable_directory.join("mirrorswitch-probe"),
             b"#!/bin/sh\necho wrong-command\n",
         )
         .unwrap();
-        let path = directory.path().join("mirrorswitch-probe.cmd");
-        fs::write(&path, b"@echo off\r\necho native-command\r\n").unwrap();
-        path
+        let path = executable_directory.join("mirrorswitch-probe.cmd");
+        fs::write(
+            &path,
+            b"@echo off\r\nif not \"%~1\"==\"argument with spaces\" exit /b 7\r\necho native-command\r\n",
+        )
+        .unwrap();
+        (executable_directory, path)
     };
     #[cfg(unix)]
     let executable = {
         use std::os::unix::fs::PermissionsExt;
 
         let path = directory.path().join("mirrorswitch-probe");
-        fs::write(&path, b"#!/bin/sh\nprintf 'native-command\\n'\n").unwrap();
+        fs::write(
+            &path,
+            b"#!/bin/sh\n[ \"$1\" = \"argument with spaces\" ] || exit 7\nprintf 'native-command\\n'\n",
+        )
+        .unwrap();
         let mut permissions = fs::metadata(&path).unwrap().permissions();
         permissions.set_mode(0o755);
         fs::set_permissions(&path, permissions).unwrap();
-        path
+        (directory.path().to_path_buf(), path)
     };
 
-    let runtime = OsRuntime::new("/", vec![directory.path().to_path_buf()]);
+    let runtime = OsRuntime::new("/", vec![executable.0.clone()]);
     assert!(runtime.command_exists("mirrorswitch-probe"));
-    let output = runtime.run("mirrorswitch-probe", &[]).unwrap();
+    let output = runtime
+        .run("mirrorswitch-probe", &["argument with spaces".into()])
+        .unwrap();
     assert!(output.status.success());
     assert_eq!(
         String::from_utf8_lossy(&output.stdout).trim(),
@@ -79,8 +91,8 @@ fn runtime_executes_the_native_command_convention() {
     #[cfg(windows)]
     assert_eq!(
         found.to_string_lossy().to_ascii_lowercase(),
-        executable.to_string_lossy().to_ascii_lowercase()
+        executable.1.to_string_lossy().to_ascii_lowercase()
     );
     #[cfg(unix)]
-    assert_eq!(found, executable);
+    assert_eq!(found, executable.1);
 }

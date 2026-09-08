@@ -1235,7 +1235,7 @@ fn run_command_with_environment(
         Some("cmd" | "bat")
     ) {
         let mut command = Command::new("cmd.exe");
-        command.args(["/D", "/C"]).arg(path);
+        command.args(["/D", "/C", "call"]).arg(path);
         command
     } else {
         Command::new(path)
