@@ -398,7 +398,7 @@ impl Adapter for MacPortsAdapter {
                 ));
             }
             for (arguments, label) in [
-                (vec!["-q".into(), "sync".into()], "port sync"),
+                (vec!["sync".into()], "port sync"),
                 (
                     vec!["-q".into(), "info".into(), "zlib".into()],
                     "port info zlib",
