@@ -25,8 +25,27 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: jcs090218/setup-emacs@v3
+        if: runner.os != 'macOS' || runner.arch != 'X64'
         with:
           version: "30.2"
+      - name: Install checksum-pinned Emacs on macOS Intel
+        if: runner.os == 'macOS' && runner.arch == 'X64'
+        shell: bash
+        env:
+          EMACS_ASSET: Emacs.2025-08-14.636f166.emacs-30-2-1.macOS-11.x86_64.dmg
+          EMACS_SHA256: 9eade73998b1772fb8fba74cfa02ca25ab06285287a6b2bccafc14f609860f8c
+        run: |
+          set -Eeuo pipefail
+          dmg="$RUNNER_TEMP/$EMACS_ASSET"; mount="$RUNNER_TEMP/emacs-volume"; app="$RUNNER_TEMP/Emacs.app"; bin="$RUNNER_TEMP/emacs-bin"
+          curl -fsSL "https://github.com/jimeh/emacs-builds/releases/download/Emacs-30.2-1/$EMACS_ASSET" -o "$dmg"
+          test "$(shasum -a 256 "$dmg"|awk '{print $1}')" = "$EMACS_SHA256"
+          mkdir -p "$mount" "$bin"
+          hdiutil attach -quiet -readonly -nobrowse -mountpoint "$mount" "$dmg"
+          trap 'hdiutil detach -quiet "$mount" || true' EXIT
+          test -d "$mount/Emacs.app"
+          ditto "$mount/Emacs.app" "$app"
+          ln -s "$app/Contents/MacOS/Emacs" "$bin/emacs"
+          echo "$bin" >> "$GITHUB_PATH"
       - name: Install Rust toolchain
         shell: bash
         run: |
