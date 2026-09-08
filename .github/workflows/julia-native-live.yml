@@ -53,24 +53,24 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-julia-boundary"; export HOME="$boundary/home" SHELL=/bin/zsh
-          unset PROFILE ZDOTDIR JULIA_PKG_SERVER JULIA_DEPOT_PATH JULIA_PROJECT JULIA_LOAD_PATH
-          project="$HOME/project"; profile="$HOME/.zshrc"; auth="$HOME/.julia/servers/pkg.julialang.org/auth.toml"; mkdir -p "$project" "$(dirname "$auth")"
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-julia-boundary"; export SHELL=/bin/zsh PROFILE="$boundary/profile"
+          unset ZDOTDIR JULIA_PKG_SERVER JULIA_DEPOT_PATH JULIA_PROJECT JULIA_LOAD_PATH
+          project="$boundary/project"; profile="$PROFILE"; auth="$HOME/.julia/servers/pkg.julialang.org/auth.toml"; mkdir -p "$project" "$(dirname "$auth")"
           printf '%s\n' '# native shell policy' "export JULIA_PKG_SERVER='https://pkg.julialang.org'" > "$profile"; chmod 0600 "$profile"
           printf '%s\n' 'token = "fixture-only"' > "$auth"; chmod 0600 "$auth"
           printf '%s\n' '[deps]' > "$project/Project.toml"; chmod 0400 "$project/Project.toml"
           printf '%s\n' '# preserved manifest' > "$project/Manifest.toml"; chmod 0400 "$project/Manifest.toml"
-          printf '{"version":1,"tools":[{"id":"julia","scope":"user"}]}\n' > "$project/request.json"
+          printf '{"version":1,"tools":[{"id":"julia","scope":"user","mirrors":{"julia--language-registry":"98bc4ef0f2e9c0531365555f"}}]}\n' > "$project/request.json"
           before=$(shasum -a 256 "$profile"|awk '{print $1}'); auth_before=$(shasum -a 256 "$auth"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/Project.toml"|awk '{print $1}'); manifest_before=$(shasum -a 256 "$project/Manifest.toml"|awk '{print $1}'); mode=$(stat -f '%Lp' "$profile")
           cd "$project"
-          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool julia --scope julia=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool julia --scope julia=user --mirror julia:julia--language-registry=98bc4ef0f2e9c0531365555f --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - "$profile" <<'PY'
           import json, sys
           status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='julia']; assert len(tools)==1
           evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and 'Macos' in evidence and 'active project is detected' in evidence
           a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
           PY
-          printf '\nn\n'|"$binary" tui --offline --tool julia --scope julia=user > tui.txt; grep -F 'mirror=nju' tui.txt; ! grep -F 'fixture-only' tui.txt
+          printf '\nn\n'|"$binary" tui --offline --tool julia --scope julia=user --mirror julia:julia--language-registry=98bc4ef0f2e9c0531365555f > tui.txt; grep -F 'mirror=nju' tui.txt; ! grep -F 'fixture-only' tui.txt
           "$binary" apply --offline --config request.json --yes --json > apply.json
           id=$(python3 - <<'PY'
           import json
@@ -89,18 +89,18 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-julia-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:JULIA_PKG_SERVER,Env:JULIA_DEPOT_PATH,Env:JULIA_PROJECT,Env:JULIA_LOAD_PATH -ErrorAction SilentlyContinue
+          $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:JULIA_PKG_SERVER,Env:JULIA_DEPOT_PATH,Env:JULIA_PROJECT,Env:JULIA_LOAD_PATH -ErrorAction SilentlyContinue
           $launcher=(Get-Command julia -CommandType Application|Select-Object -First 1).Source; if([IO.Path]::GetExtension($launcher) -ne '.exe'){throw "native Julia launcher is not an executable: $launcher"}
-          $project=Join-Path $env:USERPROFILE 'project'; $auth=Join-Path $env:USERPROFILE '.julia/servers/pkg.julialang.org/auth.toml'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:LOCALAPPDATA,$project,(Split-Path $auth)|Out-Null
+          $project=Join-Path $boundary 'project'; $auth=Join-Path $env:USERPROFILE '.julia/servers/pkg.julialang.org/auth.toml'; New-Item -ItemType Directory -Force $env:LOCALAPPDATA,$project,(Split-Path $auth)|Out-Null
           & reg.exe add 'HKCU\Environment' /v JULIA_PKG_SERVER /t REG_SZ /d 'https://pkg.julialang.org' /f|Out-Null
-          [IO.File]::WriteAllText($auth,'token = "fixture-only"',[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project 'Project.toml'),'[deps]',[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project 'Manifest.toml'),'# preserved manifest',[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'Project.toml') IsReadOnly $true; Set-ItemProperty (Join-Path $project 'Manifest.toml') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"julia","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+          [IO.File]::WriteAllText($auth,'token = "fixture-only"',[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project 'Project.toml'),'[deps]',[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project 'Manifest.toml'),'# preserved manifest',[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'Project.toml') IsReadOnly $true; Set-ItemProperty (Join-Path $project 'Manifest.toml') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"julia","scope":"user","mirrors":{"julia--language-registry":"98bc4ef0f2e9c0531365555f"}}]}',[Text.UTF8Encoding]::new($false))
           $authBefore=(Get-FileHash $auth -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'Project.toml') -Algorithm SHA256).Hash; $manifestBefore=(Get-FileHash (Join-Path $project 'Manifest.toml') -Algorithm SHA256).Hash
           Push-Location $project
           try{
-            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool julia --scope julia=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool julia --scope julia=user --mirror julia:julia--language-registry=98bc4ef0f2e9c0531365555f --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
             $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'julia'); if($tools.Count -ne 1){throw 'Julia not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains('Windows') -or -not $evidence.Contains('Windows user environment') -or -not $evidence.Contains('active project is detected')){throw 'native persistence/platform evidence missing'}
             $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or -not [string]::Equals([string]($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress), [string]($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress))){throw 'frontend plans differ'}
-            @('','n')|& $binary tui --offline --tool julia --scope julia=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=nju') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
+            @('','n')|& $binary tui --offline --tool julia --scope julia=user --mirror julia:julia--language-registry=98bc4ef0f2e9c0531365555f|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=nju') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Julia apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
             $value=(Get-ItemProperty 'HKCU:\Environment' JULIA_PKG_SERVER).JULIA_PKG_SERVER; if($value -ne 'https://mirrors.nju.edu.cn/julia'){throw "registry mirror mismatch: $value"}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'julia'){throw 'restore failed'}
@@ -111,6 +111,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: julia-native-${{ matrix.name }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/mirrorswitch-julia-boundary/home/project/*.json
+          path: ${{ runner.temp }}/mirrorswitch-julia-boundary/project/*.json
           if-no-files-found: warn
           retention-days: 7
