@@ -47,8 +47,8 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
+          $gitRoot=Join-Path $env:ProgramFiles 'Git'; $gitGpg=Join-Path $gitRoot 'usr/bin/gpg.exe'
           if(-not(Get-Command gpg -ErrorAction SilentlyContinue)){
-            $gitGpg=Join-Path $env:ProgramFiles 'Git/usr/bin/gpg.exe'
             if(Test-Path $gitGpg){$gpgDir=Split-Path $gitGpg; $env:PATH="$gpgDir;$env:PATH"; $gpgDir|Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append}
             else{choco install gnupg -y --no-progress; $env:PATH="C:\Program Files (x86)\GnuPG\bin;$env:PATH"}
           }
@@ -56,8 +56,9 @@ jobs:
           $target=Join-Path $bin 'ghcup.exe'; Invoke-WebRequest "https://github.com/haskell/ghcup-hs/releases/download/v0.2.6.2/${{ matrix.asset }}" -OutFile $target
           if((Get-FileHash $target -Algorithm SHA256).Hash.ToLowerInvariant() -ne '${{ matrix.digest }}'){throw 'GHCup executable checksum mismatch'}
           $key=Join-Path $env:RUNNER_TEMP 'ghcup-metadata-key.asc'; Invoke-WebRequest 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C' -OutFile $key
-          $gnupgPath=$gnupg.Replace('\','/'); $keyPath=$key.Replace('\','/'); $env:GNUPGHOME=$gnupgPath; gpg --batch --import $keyPath
-          $fingerprints=(gpg --batch --with-colons --fingerprint 7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C) -join "`n"; if(-not $fingerprints.Contains('7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C')){throw 'metadata signing key fingerprint mismatch'}
+          $gpg=(Get-Command gpg).Source; if($gpg.StartsWith($gitRoot,[StringComparison]::OrdinalIgnoreCase)){$cygpath=Join-Path $gitRoot 'usr/bin/cygpath.exe'; $gnupgPath=(& $cygpath -u $gnupg).Trim(); $keyPath=(& $cygpath -u $key).Trim()}else{$gnupgPath=$gnupg; $keyPath=$key}
+          $env:GNUPGHOME=$gnupgPath; & $gpg --batch --import $keyPath
+          $fingerprints=(& $gpg --batch --with-colons --fingerprint 7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C) -join "`n"; if(-not $fingerprints.Contains('7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C')){throw 'metadata signing key fingerprint mismatch'}
           $bin|Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "GNUPGHOME=$gnupgPath"|Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Install Rust toolchain
