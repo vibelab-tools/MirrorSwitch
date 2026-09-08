@@ -41,7 +41,6 @@ jobs:
           if [ '${{ matrix.generation }}' = classic ]; then
             npm install --global yarn@1.22.22
           else
-            npm install --global corepack@0.34.0
             corepack enable
             corepack prepare yarn@4.9.2 --activate
           fi
