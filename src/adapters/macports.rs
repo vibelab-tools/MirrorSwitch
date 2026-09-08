@@ -24,7 +24,9 @@ const DEFAULT_PUBKEY: &str = "/opt/local/share/macports/macports-pubkey.pem";
 const UPSTREAM: &str = "macports--static-files";
 const MANAGED_BEGIN: &str = "# BEGIN MirrorSwitch MacPorts archives";
 const MANAGED_END: &str = "# END MirrorSwitch MacPorts archives";
-const OFFICIAL_SOURCE: &str = "rsync://rsync.macports.org/macports/release/tarballs/ports.tar";
+const OFFICIAL_SOURCE: &str = "rsync://rsync.macports.org/macports/release/tarballs/ports.tar.gz";
+const OFFICIAL_UNCOMPRESSED_SOURCE: &str =
+    "rsync://rsync.macports.org/macports/release/tarballs/ports.tar";
 const OFFICIAL_ARCHIVES: &str = "https://packages.macports.org";
 const MIRROR_ROOTS: &[&str] = &[
     "https://mirrors.aliyun.com/macports",
@@ -964,7 +966,10 @@ fn archive_probe(os_major: u32, architecture: Architecture) -> Result<ArchivePro
 }
 
 fn is_public_source(url: &str) -> bool {
-    normalize_url(url) == normalize_url(OFFICIAL_SOURCE) || is_mirror_source(url)
+    [OFFICIAL_SOURCE, OFFICIAL_UNCOMPRESSED_SOURCE]
+        .iter()
+        .any(|source| normalize_url(url) == normalize_url(source))
+        || is_mirror_source(url)
 }
 
 fn is_mirror_source(url: &str) -> bool {

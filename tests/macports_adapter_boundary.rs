@@ -65,7 +65,7 @@ fn install(root: &Path, darwin: u32, build_from_source: &str, sync_exit: i32) {
     write(
         root,
         "/opt/local/etc/macports/sources.conf",
-        b"# preserve local precedence\nfile:///Users/test/custom-ports [nosync]\nrsync://rsync.macports.org/macports/release/tarballs/ports.tar [default]\n",
+        b"# preserve local precedence\nfile:///Users/test/custom-ports [nosync]\nrsync://rsync.macports.org/macports/release/tarballs/ports.tar.gz [default]\n",
     );
     write(
         root,

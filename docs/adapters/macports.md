@@ -15,9 +15,10 @@ its rmd160 signature file with reviewed SHA-256 values before latency ranking.
 ## Managed state
 
 The adapter changes only the one `[default]` public tree URI in `sources.conf`. Local and custom
-trees keep their order and flags. The selected HTTPS `ports.tar` retains MacPorts' signed
-tarball behavior; a default source marked `nosync`, multiple defaults, or an unknown default is
-not rewritten.
+trees keep their order and flags. Official `ports.tar.gz` and `ports.tar` inputs are accepted;
+the selected HTTPS mirror uses signed `ports.tar`. This avoids the MacPorts 2.12 compressed-source
+extraction failure without disabling signed tree verification. A default source marked `nosync`,
+multiple defaults, or an unknown default is not rewritten.
 
 For binary packages, MirrorSwitch creates a marked `macports_archives` entry when no override
 exists, or replaces the URL of an existing override only when all of its URLs are reviewed public
