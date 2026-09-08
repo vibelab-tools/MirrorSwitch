@@ -100,7 +100,10 @@ grep -F 'mirrorswitch-maven: https://repo.huaweicloud.com/repository/maven' "$ph
 grep -F 'mirrorswitch-ivy: https://repo.huaweicloud.com/repository/ivy/' "$physical" >/dev/null || exit 63
 grep -F 'sbt-native-packager' "$PWD"/project/plugins.sbt >/dev/null || exit 64
 grep -F 'commons-lang3' "$PWD"/build.sbt >/dev/null || exit 65
-[ {verification_exit} -eq 0 ] || exit {verification_exit}
+if [ {verification_exit} -ne 0 ]; then
+  printf '%s\n' '[error] controlled sbt verification failure' >&2
+  exit {verification_exit}
+fi
 printf '%s\n' \
   '[info] ArrayBuffer(https://repo.huaweicloud.com/repository/ivy/, https://repo.huaweicloud.com/repository/maven/)' \
   '[success] dependency update completed' \
@@ -455,6 +458,11 @@ fn failed_real_resolution_restores_repository_and_all_verification_files() {
     let error = adapter
         .verify(&context, &mut runtime, &receipt)
         .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("detail: [error] controlled sbt verification failure")
+    );
     assert!(error.to_string().contains("configuration restored: true"));
     assert_eq!(fs::read(repositories).unwrap(), original);
     assert!(

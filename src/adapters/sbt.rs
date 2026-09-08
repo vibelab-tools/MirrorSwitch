@@ -1227,7 +1227,42 @@ fn run_sbt_in(
     arguments: &[String],
 ) -> Result<String, AdapterError> {
     let output = runtime.run_in(directory, "sbt", arguments)?;
+    if !output.status.success() {
+        let detail = verification_failure_detail(&output)
+            .map(|detail| format!("; detail: {detail}"))
+            .unwrap_or_default();
+        return Err(AdapterError::Runtime(format!(
+            "sbt dependency/plugin verification failed with status {}{detail}",
+            output.status
+        )));
+    }
     command_output(output, "sbt dependency/plugin verification")
+}
+
+fn verification_failure_detail(output: &std::process::Output) -> Option<String> {
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    stderr
+        .lines()
+        .chain(stdout.lines())
+        .map(strip_ansi)
+        .map(|line| line.trim().to_owned())
+        .filter(|line| line.starts_with("[error]"))
+        .find(|line| {
+            let lower = line.to_ascii_lowercase();
+            ![
+                "http://",
+                "https://",
+                "password",
+                "credential",
+                "token",
+                "secret",
+                "authorization",
+            ]
+            .iter()
+            .any(|marker| lower.contains(marker))
+        })
+        .map(|line| line.chars().take(240).collect())
 }
 
 fn command_output(output: std::process::Output, label: &str) -> Result<String, AdapterError> {
