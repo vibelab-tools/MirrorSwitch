@@ -109,7 +109,7 @@ printf '%s' "$last" | grep -F 'package-refresh-contents' >/dev/null || exit 61
 printf '%s' "$last" | grep -F 'mirrors.ustc.edu.cn/elpa/gnu/' >/dev/null || exit 62
 printf '%s' "$last" | grep -F 'mirrors.nju.edu.cn/elpa/nongnu/' >/dev/null || exit 63
 printf '%s' "$last" | grep -F 'mirrors.tuna.tsinghua.edu.cn/elpa/melpa/' >/dev/null || exit 64
-[ {verification_exit} -eq 0 ] || exit {verification_exit}
+[ {verification_exit} -eq 0 ] || {{ echo 'native package refresh diagnostic' >&2; exit {verification_exit}; }}
 echo 'MIRRORSWITCH_ELPA_VERIFY=gnu,nongnu,melpa'
 "#,
         ),
@@ -463,6 +463,11 @@ fn failed_batch_refresh_restores_init() {
         .verify(&context, &mut runtime, &receipt)
         .unwrap_err();
     assert!(error.to_string().contains("restored: true"));
+    assert!(
+        error
+            .to_string()
+            .contains("native package refresh diagnostic")
+    );
     assert_eq!(fs::read(init).unwrap(), original);
 }
 

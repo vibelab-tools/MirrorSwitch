@@ -743,9 +743,16 @@ fn run_emacs(
         .collect::<Vec<_>>();
     let output = runtime.run("emacs", &arguments)?;
     if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let detail = stderr.trim().chars().take(1024).collect::<String>();
+        let detail = if detail.is_empty() {
+            String::new()
+        } else {
+            format!(": {detail}")
+        };
         return Err(AdapterError::Runtime(format!(
-            "{label} failed with status {}",
-            output.status
+            "{label} failed with status {}{detail}",
+            output.status,
         )));
     }
     let stdout = String::from_utf8(output.stdout)
