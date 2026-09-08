@@ -87,6 +87,7 @@ jobs:
           binary="$PWD/target/release/mirrorswitch"
           config="$HOME/.cocoapods/repos/master/.git/config"
           config_before=$(shasum -a 256 "$config" | awk '{print $1}')
+          printf '{"version":1,"tools":[{"id":"cocoapods","scope":"user","mirrors":{"cocoapods--git-mirror":"6bf8c435edff7ed506917aa5"}}]}\n' > request.json
 
           "$binary" status --offline --json > status.json
           python3 - <<'PY'
@@ -94,33 +95,40 @@ jobs:
           status = json.load(open("status.json"))
           assert [item["adapter_key"] for item in status["detected_tools"] if item["adapter_key"] == "cocoapods"] == ["cocoapods"]
           PY
-          "$binary" plan --offline --tool cocoapods --scope cocoapods=user --json > plan.json
+          "$binary" plan --offline --tool cocoapods --scope cocoapods=user --mirror cocoapods:cocoapods--git-mirror=6bf8c435edff7ed506917aa5 --json > plan-cli.json
+          "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - <<'PY'
           import json
-          plan = json.load(open("plan.json"))
-          assert plan["ok"] is True
-          tools = plan["plan"]["tools"]
+          cli = json.load(open("plan-cli.json")); config = json.load(open("plan-config.json"))
+          assert cli["ok"] is True and config["ok"] is True
+          assert cli["plan"]["tools"][0]["plan"] == config["plan"]["tools"][0]["plan"]
+          tools = cli["plan"]["tools"]
           assert [item["adapter_key"] for item in tools] == ["cocoapods"]
-          assert {item["provider_id"] for item in tools[0]["selection"]["selections"]} <= {"nju", "tuna"}
+          assert [(item["provider_id"], item["candidate_id"]) for item in tools[0]["selection"]["selections"]] == [("nju", "6bf8c435edff7ed506917aa5")]
           assert tools[0]["plan"]["changes"][0]["target"].endswith("/.cocoapods/repos/master/.git/config")
           PY
 
-          "$binary" apply --offline --tool cocoapods --scope cocoapods=user --yes --json > apply.json
+          "$binary" apply --offline --config request.json --yes --json > apply.json
           transaction_id=$(python3 - <<'PY'
           import json
           result = json.load(open("apply.json"))["result"]
           assert result["successful"] is True
           applied = [item for item in result["tools"] if item["status"] == "applied"]
-          assert len(applied) == 1
+          assert len(applied) == 1 and applied[0]["verification"]["valid"] is True
           print(applied[0]["receipt"]["transaction_id"])
           PY
           )
-          printf '\nn\n' | "$binary" tui --offline --tool cocoapods --scope cocoapods=user > tui.txt
-          grep -E 'mirror=(nju|tuna)' tui.txt
+          printf '\nn\n' | "$binary" tui --offline --tool cocoapods --scope cocoapods=user --mirror cocoapods:cocoapods--git-mirror=6bf8c435edff7ed506917aa5 > tui.txt
+          grep -F 'mirror=nju' tui.txt
+          "$binary" apply --offline --config request.json --yes --json > idempotent.json
+          python3 - <<'PY'
+          import json
+          result=json.load(open('idempotent.json'))['result']; assert result['successful'] and not [item for item in result['tools'] if item['status']=='applied']
+          PY
           "$binary" restore "$transaction_id" --yes --json > restore.json
           python3 - <<'PY'
           import json
-          assert json.load(open("restore.json"))["receipt"]["verified"] is True
+          restore=json.load(open("restore.json")); assert restore["adapter_key"] == "cocoapods" and restore["receipt"]["verified"] is True
           PY
 
           test "$config_before" = "$(shasum -a 256 "$config" | awk '{print $1}')"
@@ -130,8 +138,11 @@ jobs:
         with:
           name: cocoapods-boundary-${{ matrix.arch }}-${{ github.run_id }}
           path: |
-            plan.json
+            plan-cli.json
+            plan-config.json
             apply.json
+            idempotent.json
+            request.json
             status.json
             restore.json
             tui.txt
