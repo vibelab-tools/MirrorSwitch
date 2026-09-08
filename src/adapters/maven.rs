@@ -365,7 +365,12 @@ impl Adapter for MavenAdapter {
                     HELP_GOAL,
                     "-DshowPasswords=false",
                 ],
-            )?;
+            )
+            .map_err(|error| {
+                AdapterError::Runtime(format!(
+                    "Maven effective-settings verification failed: {error}"
+                ))
+            })?;
             if !effective.contains(&format!("<id>{}</id>", central.id))
                 || !effective.contains(&format!("<url>{}</url>", central.url))
                 || !effective.contains("<mirrorOf>central</mirrorOf>")
@@ -389,7 +394,10 @@ impl Adapter for MavenAdapter {
                     &format!("-Dartifact={VERIFY_ARTIFACT}"),
                     "-Dtransitive=false",
                 ],
-            )?;
+            )
+            .map_err(|error| {
+                AdapterError::Runtime(format!("Maven dependency verification failed: {error}"))
+            })?;
             let artifact_dir = repository.join("org/apache/commons/commons-lang3/3.14.0");
             let artifact = runtime
                 .read(&artifact_dir.join("commons-lang3-3.14.0.jar"))?
