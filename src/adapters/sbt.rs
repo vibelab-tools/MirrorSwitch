@@ -1263,11 +1263,21 @@ fn verification_failure_detail(output: &std::process::Output) -> Option<String> 
             .any(|marker| lower.contains(marker))
         })
         .collect::<Vec<_>>();
-    lines
+    let detail = lines
         .iter()
         .find(|line| line.starts_with("[error]"))
-        .or_else(|| lines.last())
-        .map(|line| line.chars().take(240).collect())
+        .cloned()
+        .or_else(|| {
+            let start = lines.len().saturating_sub(2);
+            (!lines.is_empty()).then(|| {
+                lines[start..]
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
+        })?;
+    Some(detail.chars().take(240).collect())
 }
 
 fn command_output(output: std::process::Output, label: &str) -> Result<String, AdapterError> {
