@@ -1032,9 +1032,32 @@ fn command_success(output: std::process::Output, label: &str) -> Result<(), Adap
     if output.status.success() {
         Ok(())
     } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let detail = stderr
+            .split_whitespace()
+            .chain(stdout.split_whitespace())
+            .map(|token| {
+                if token.contains("://") {
+                    "<url>".to_owned()
+                } else {
+                    token.to_owned()
+                }
+            })
+            .take(80)
+            .collect::<Vec<_>>()
+            .join(" ")
+            .chars()
+            .take(512)
+            .collect::<String>();
         Err(AdapterError::Runtime(format!(
-            "{label} failed with status {}",
-            output.status
+            "{label} failed with status {}{}",
+            output.status,
+            if detail.is_empty() {
+                String::new()
+            } else {
+                format!(": {detail}")
+            }
         )))
     }
 }

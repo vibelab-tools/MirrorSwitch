@@ -94,7 +94,7 @@ fn install(root: &Path, darwin: u32, build_from_source: &str, sync_exit: i32) {
         root,
         "/opt/local/bin/port",
         format!(
-            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{calls}'\nif [ \"$1\" = version ]; then echo 'Version: 2.11.6'; exit 0; fi\nif [ \"$1\" = -q ] && [ \"$2\" = sync ]; then grep -q 'mirrors.*macports/release/tarballs/ports.tar.gz' '{sources}'; exit {sync_exit}; fi\nif [ \"$1\" = -q ] && [ \"$2\" = info ] && [ \"$3\" = zlib ]; then echo 'zlib @1.3.2_0'; exit 0; fi\nif [ \"$1\" = -q ] && [ \"$2\" = archivefetch ] && [ \"$3\" = zlib ]; then grep -q 'mirrors.*macports/packages' '{archives}'; exit 0; fi\nexit 64\n",
+            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{calls}'\nif [ \"$1\" = version ]; then echo 'Version: 2.11.6'; exit 0; fi\nif [ \"$1\" = -q ] && [ \"$2\" = sync ]; then grep -q 'mirrors.*macports/release/tarballs/ports.tar.gz' '{sources}' || exit 65; if [ '{sync_exit}' -ne 0 ]; then echo 'signature verification failed at https://build:fixture-only@private.example/tree' >&2; fi; exit {sync_exit}; fi\nif [ \"$1\" = -q ] && [ \"$2\" = info ] && [ \"$3\" = zlib ]; then echo 'zlib @1.3.2_0'; exit 0; fi\nif [ \"$1\" = -q ] && [ \"$2\" = archivefetch ] && [ \"$3\" = zlib ]; then grep -q 'mirrors.*macports/packages' '{archives}'; exit 0; fi\nexit 64\n",
             calls = calls.display(),
             sources = sources.display(),
             archives = archives.display(),
@@ -305,6 +305,12 @@ fn verification_failure_restores_and_unsafe_signature_or_binary_policy_is_reject
         .verify(&context, &mut runtime, &receipt)
         .unwrap_err();
     assert!(error.to_string().contains("configuration restored: true"));
+    assert!(
+        error
+            .to_string()
+            .contains("signature verification failed at <url>")
+    );
+    assert!(!error.to_string().contains("fixture-only"));
     assert_eq!(fs::read(&sources).unwrap(), original_sources);
     assert_eq!(fs::read(&archives).unwrap(), original_archives);
 
