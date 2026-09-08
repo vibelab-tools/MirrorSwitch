@@ -101,7 +101,7 @@ grep -F 'mirrorswitch-ivy: https://repo.huaweicloud.com/repository/ivy/' "$physi
 grep -F 'sbt-native-packager' "$PWD"/project/plugins.sbt >/dev/null || exit 64
 grep -F 'commons-lang3' "$PWD"/build.sbt >/dev/null || exit 65
 if [ {verification_exit} -ne 0 ]; then
-  printf '%s\n' '[error] controlled sbt verification failure' >&2
+  printf '%s\n' 'controlled sbt verification failure' >&2
   exit {verification_exit}
 fi
 printf '%s\n' \
@@ -461,7 +461,7 @@ fn failed_real_resolution_restores_repository_and_all_verification_files() {
     assert!(
         error
             .to_string()
-            .contains("detail: [error] controlled sbt verification failure")
+            .contains("detail: controlled sbt verification failure")
     );
     assert!(error.to_string().contains("configuration restored: true"));
     assert_eq!(fs::read(repositories).unwrap(), original);

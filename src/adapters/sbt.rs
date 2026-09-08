@@ -1242,13 +1242,13 @@ fn run_sbt_in(
 fn verification_failure_detail(output: &std::process::Output) -> Option<String> {
     let stderr = String::from_utf8_lossy(&output.stderr);
     let stdout = String::from_utf8_lossy(&output.stdout);
-    stderr
+    let lines = stderr
         .lines()
         .chain(stdout.lines())
         .map(strip_ansi)
         .map(|line| line.trim().to_owned())
-        .filter(|line| line.starts_with("[error]"))
-        .find(|line| {
+        .filter(|line| !line.is_empty())
+        .filter(|line| {
             let lower = line.to_ascii_lowercase();
             ![
                 "http://",
@@ -1262,6 +1262,11 @@ fn verification_failure_detail(output: &std::process::Output) -> Option<String> 
             .iter()
             .any(|marker| lower.contains(marker))
         })
+        .collect::<Vec<_>>();
+    lines
+        .iter()
+        .find(|line| line.starts_with("[error]"))
+        .or_else(|| lines.last())
         .map(|line| line.chars().take(240).collect())
 }
 
