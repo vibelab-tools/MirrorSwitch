@@ -647,7 +647,11 @@ fn cabal_snapshot(
         )));
     }
     let project_files = project_config_files(runtime)?;
-    let verification_config = home.join(".mirrorswitch/verification/cabal/config");
+    let verification_config = home
+        .join(".mirrorswitch")
+        .join("verification")
+        .join("cabal")
+        .join("config");
     validate_user_path(&home, &verification_config, "Cabal verification config")?;
     Ok(CabalSnapshot {
         cabal_version,
@@ -668,9 +672,9 @@ fn cabal_config_path(
 ) -> Result<PathBuf, AdapterError> {
     if version < (3, 10, 0) {
         if context.os == OperatingSystem::Windows {
-            return Ok(windows_app_data(runtime)?.join("cabal/config"));
+            return Ok(windows_app_data(runtime)?.join("cabal").join("config"));
         }
-        return Ok(home.join(".cabal/config"));
+        return Ok(home.join(".cabal").join("config"));
     }
     if let Some(value) = nonempty_environment(runtime, "CABAL_CONFIG") {
         return environment_user_path(context, runtime, home, &value, "CABAL_CONFIG");
@@ -685,11 +689,11 @@ fn cabal_config_path(
         None if context.os == OperatingSystem::Windows => windows_app_data(runtime)?,
         None => home.join(".config"),
     };
-    let xdg_config = xdg.join("cabal/config");
+    let xdg_config = xdg.join("cabal").join("config");
     let legacy = if context.os == OperatingSystem::Windows {
-        windows_app_data(runtime)?.join("cabal/config")
+        windows_app_data(runtime)?.join("cabal").join("config")
     } else {
-        home.join(".cabal/config")
+        home.join(".cabal").join("config")
     };
     if runtime.read(&xdg_config)?.is_some() {
         Ok(xdg_config)
