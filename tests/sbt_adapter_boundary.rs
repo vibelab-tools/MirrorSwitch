@@ -76,11 +76,11 @@ fn install_sbt(root: &Path, version: &str, verification_exit: i32, numeric_versi
             r#"#!/bin/sh
 if [ "$1" = --numeric-version ]; then
   [ {numeric_version} = true ] || exit 2
-  printf '%s\n' '{version}'
+  printf '\033[32m%s\033[0m\n' '{version}'
   exit 0
 fi
 if [ "$1" = --version ]; then
-  printf '%s\n' 'sbt version in this project: {version}'
+  printf '\033[32m%s\033[0m\n' 'sbt version in this project: {version}'
   exit 0
 fi
 repositories=
@@ -213,6 +213,8 @@ resolvers += "private-plugins" at "https://packages.example/plugins"
         .selection_request(&context, &detected, &current)
         .unwrap();
     assert_eq!(request.required_upstreams, [MAVEN_UPSTREAM, IVY_UPSTREAM]);
+    assert_eq!(request.repository_versions[MAVEN_UPSTREAM], "sbt-1.x");
+    assert_eq!(request.repository_versions[IVY_UPSTREAM], "sbt-1.x");
     assert_eq!(
         request.required_endpoint_roles,
         [
@@ -286,6 +288,11 @@ fn sbt_two_arm64_and_missing_repository_file_produce_the_same_plan_for_all_entri
     let current = adapter
         .read_current(&context, &runtime, &detected, ConfigurationScope::User)
         .unwrap();
+    let request = adapter
+        .selection_request(&context, &detected, &current)
+        .unwrap();
+    assert_eq!(request.repository_versions[MAVEN_UPSTREAM], "sbt-2.x");
+    assert_eq!(request.repository_versions[IVY_UPSTREAM], "sbt-2.x");
     let selected = selections();
     let cli = adapter.plan(&context, &current, &selected).unwrap();
     let config = adapter.plan(&context, &current, &selected).unwrap();

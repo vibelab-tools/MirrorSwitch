@@ -196,18 +196,21 @@ impl Adapter for SbtAdapter {
     ) -> Result<SelectionRequest, AdapterError> {
         require_supported_context(context)?;
         require_current(current)?;
-        reviewed_version(
-            detected.version.as_deref().ok_or_else(|| {
-                AdapterError::InvalidConfiguration("sbt version is missing".into())
-            })?,
-        )?;
+        let version = detected
+            .version
+            .as_deref()
+            .ok_or_else(|| AdapterError::InvalidConfiguration("sbt version is missing".into()))?;
+        let repository_version = sbt_repository_version(version)?;
         Ok(SelectionRequest {
             tool_id: "sbt".into(),
             adapter_key: "sbt".into(),
             context: context.clone(),
             tool_version: detected.version.clone(),
             required_upstreams: vec![MAVEN_UPSTREAM.into(), IVY_UPSTREAM.into()],
-            repository_versions: BTreeMap::new(),
+            repository_versions: BTreeMap::from([
+                (MAVEN_UPSTREAM.into(), repository_version.into()),
+                (IVY_UPSTREAM.into(), repository_version.into()),
+            ]),
             probe_contexts: BTreeMap::new(),
             required_compatibility_evidence: vec![
                 CompatibilityDimension::OperatingSystem,
@@ -1126,21 +1129,40 @@ fn sbt_version(runtime: &dyn Runtime) -> Result<String, AdapterError> {
 }
 
 fn parse_sbt_version(output: &str) -> Option<String> {
+    let lines = output.lines().map(strip_ansi).collect::<Vec<_>>();
     for prefix in ["sbt version in this project:", "sbt version:"] {
-        if let Some(version) = output
-            .lines()
-            .map(str::trim)
+        if let Some(version) = lines
+            .iter()
+            .map(|line| line.trim())
             .find_map(|line| line.strip_prefix(prefix).map(str::trim))
             && valid_version_token(version)
         {
             return Some(version.into());
         }
     }
-    output
-        .lines()
-        .map(str::trim)
+    lines
+        .iter()
+        .map(|line| line.trim())
         .find(|line| valid_version_token(line))
-        .map(str::to_owned)
+        .map(|line| (*line).to_owned())
+}
+
+fn strip_ansi(value: &str) -> String {
+    let mut result = String::with_capacity(value.len());
+    let mut characters = value.chars().peekable();
+    while let Some(character) = characters.next() {
+        if character == '\u{001b}' && characters.peek() == Some(&'[') {
+            characters.next();
+            for code in characters.by_ref() {
+                if ('@'..='~').contains(&code) {
+                    break;
+                }
+            }
+        } else {
+            result.push(character);
+        }
+    }
+    result
 }
 
 fn valid_version_token(value: &str) -> bool {
@@ -1157,15 +1179,20 @@ fn valid_version_token(value: &str) -> bool {
 }
 
 fn reviewed_version(version: &str) -> Result<(), AdapterError> {
+    sbt_repository_version(version).map(|_| ())
+}
+
+fn sbt_repository_version(version: &str) -> Result<&'static str, AdapterError> {
     let mut parts = version.split(['.', '-']);
     let major = parts.next().and_then(|part| part.parse::<u64>().ok());
     let minor = parts.next().and_then(|part| part.parse::<u64>().ok());
-    if !matches!((major, minor), (Some(1 | 2), Some(_))) {
-        return Err(AdapterError::Unsupported(format!(
+    match (major, minor) {
+        (Some(1), Some(_)) => Ok("sbt-1.x"),
+        (Some(2), Some(_)) => Ok("sbt-2.x"),
+        _ => Err(AdapterError::Unsupported(format!(
             "sbt {version} is outside the reviewed 1.x and 2.x repositories model"
-        )));
+        ))),
     }
-    Ok(())
 }
 
 fn run_command(
