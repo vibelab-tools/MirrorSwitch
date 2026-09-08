@@ -76,8 +76,7 @@ jobs:
           r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1 and a[0]['verification']['valid']; print(a[0]['receipt']['transaction_id'])
           PY
           )
-          source "$profile"; nvm ls-remote --no-colors node|grep -F 'v24.1.0'
-          if test "$(uname -m)" = arm64; then ! grep -F NVM_IOJS_ORG_MIRROR "$profile"; else nvm ls-remote --no-colors iojs|grep -Fx iojs-v3.3.1; fi
+          /bin/zsh -d -f -c 'source "$PROFILE"; test "${NVM_NODEJS_ORG_MIRROR%/}" = https://mirrors.nju.edu.cn/nodejs-release; nvm --version|grep -Fx "$NVM_VERSION"; if test "$(uname -m)" = arm64; then test -z "${NVM_IOJS_ORG_MIRROR:-}"; else test "${NVM_IOJS_ORG_MIRROR%/}" = https://repo.huaweicloud.com/iojs; fi'
           "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
           python3 - <<'PY'
           import json
