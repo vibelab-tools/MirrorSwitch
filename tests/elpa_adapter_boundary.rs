@@ -106,6 +106,7 @@ case "$last" in
     ;;
 esac
 printf '%s' "$last" | grep -F 'package-refresh-contents' >/dev/null || exit 61
+printf '%s' "$last" | grep -F 'executable-find "gpg"' >/dev/null || exit 65
 printf '%s' "$last" | grep -F 'mirrors.ustc.edu.cn/elpa/gnu/' >/dev/null || exit 62
 printf '%s' "$last" | grep -F 'mirrors.nju.edu.cn/elpa/nongnu/' >/dev/null || exit 63
 printf '%s' "$last" | grep -F 'mirrors.tuna.tsinghua.edu.cn/elpa/melpa/' >/dev/null || exit 64

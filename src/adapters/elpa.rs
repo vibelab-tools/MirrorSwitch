@@ -697,7 +697,7 @@ fn verification_script(
             .ok_or_else(|| AdapterError::Verification(format!("ELPA verification lacks {name}")))
     };
     Ok(format!(
-        "(progn (require 'package) (let ((package-user-dir \"{directory}\") (package-check-signature 'allow-unsigned) (package-archives '((\"gnu\" . \"{}\") (\"nongnu\" . \"{}\") (\"melpa\" . \"{}\")))) (unwind-protect (progn (package-refresh-contents) (dolist (name '(\"gnu\" \"nongnu\" \"melpa\")) (unless (file-exists-p (expand-file-name (concat \"archives/\" name \"/archive-contents\") package-user-dir)) (error \"archive missing: %s\" name))) (princ \"MIRRORSWITCH_ELPA_VERIFY=gnu,nongnu,melpa\")) (when (file-directory-p package-user-dir) (delete-directory package-user-dir t)))))",
+        "(progn (require 'package) (require 'epg) (let ((package-user-dir \"{directory}\") (package-check-signature 'allow-unsigned) (epg-gpg-program (or (executable-find \"gpg2\") (executable-find \"gpg\") epg-gpg-program)) (package-archives '((\"gnu\" . \"{}\") (\"nongnu\" . \"{}\") (\"melpa\" . \"{}\")))) (unwind-protect (progn (package-refresh-contents) (dolist (name '(\"gnu\" \"nongnu\" \"melpa\")) (unless (file-exists-p (expand-file-name (concat \"archives/\" name \"/archive-contents\") package-user-dir)) (error \"archive missing: %s\" name))) (princ \"MIRRORSWITCH_ELPA_VERIFY=gnu,nongnu,melpa\")) (when (file-directory-p package-user-dir) (delete-directory package-user-dir t)))))",
         endpoint("gnu")?,
         endpoint("nongnu")?,
         endpoint("melpa")?,

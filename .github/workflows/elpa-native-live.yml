@@ -51,6 +51,12 @@ jobs:
           emacs --version
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
           rustup default "$RUST_TOOLCHAIN"
+      - name: Validate Windows GnuPG
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          gpg --version
+          if($LASTEXITCODE -ne 0){throw 'native GnuPG is unavailable'}
       - name: Restore shared Rust dependency cache
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
