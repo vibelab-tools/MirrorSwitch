@@ -66,8 +66,9 @@ jobs:
           binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-cpan-boundary"; export SHELL=/bin/zsh ZDOTDIR="$boundary/zdot"
           unset PROFILE BASH_ENV PERL_CPANM_OPT
           project="$boundary/project"; profile="$ZDOTDIR/.zshrc"; mkdir -p "$project" "$ZDOTDIR"
+          PERL_MM_USE_DEFAULT=1 perl -MCPAN -MCPAN::HandleConfig -e 'CPAN::HandleConfig->init'
           cpan_home=$(PERL_MM_USE_DEFAULT=1 perl -MCPAN -MCPAN::HandleConfig -e 'print CPAN::HandleConfig::cpan_home()'|tail -n 1); config="$cpan_home/CPAN/MyConfig.pm"; mkdir -p "$(dirname "$config")"
-          printf '%s\n' '$CPAN::Config = {' "  'auto_commit' => q[0]," "  'http_proxy' => q[]," "  'pushy_https' => q[1]," "  'randomize_urllist' => q[1]," "  'urllist' => [q[https://www.cpan.org/]]," "  'yaml_module' => q[YAML]," '};' '1;' '__END__' > "$config"; chmod 0600 "$config"
+          test -f "$config"; chmod 0600 "$config"
           printf '%s\n' '# native zsh policy' "export PERL_CPANM_OPT='--quiet --mirror https://www.cpan.org/ --cascade-search'" > "$profile"; chmod 0600 "$profile"
           printf '%s\n' "requires 'Private::Module', url => 'https://build:fixture-only@packages.invalid.example/dist.tar.gz';" > "$project/cpanfile"; chmod 0400 "$project/cpanfile"
           printf '{"version":1,"tools":[{"id":"cpan","scope":"user"}]}\n' > "$project/request.json"
@@ -104,8 +105,8 @@ jobs:
           $prior=[Environment]::GetEnvironmentVariable('PERL_CPANM_OPT','User'); [Environment]::SetEnvironmentVariable('PERL_CPANM_OPT','--mirror https://www.cpan.org/','User')
           try{
             $project=Join-Path $boundary 'project'; New-Item -ItemType Directory -Force $project|Out-Null
-            $env:PERL_MM_USE_DEFAULT='1'; $cpanOutput=@(& perl -MCPAN -MCPAN::HandleConfig -e 'print CPAN::HandleConfig::cpan_home()'); if($LASTEXITCODE -ne 0){throw 'CPAN home discovery failed'}; $cpanHome=$cpanOutput[-1].Trim(); Remove-Item Env:PERL_MM_USE_DEFAULT; $config=Join-Path $cpanHome 'CPAN/MyConfig.pm'; New-Item -ItemType Directory -Force (Split-Path $config)|Out-Null
-            $contents=@('$CPAN::Config = {','  ''auto_commit'' => q[0],','  ''http_proxy'' => q[],','  ''pushy_https'' => q[1],','  ''randomize_urllist'' => q[1],','  ''urllist'' => [q[https://www.cpan.org/]],','  ''yaml_module'' => q[YAML],','};','1;','__END__') -join "`r`n"; $contents+="`r`n"; [IO.File]::WriteAllText($config,$contents,[Text.UTF8Encoding]::new($true))
+            $env:PERL_MM_USE_DEFAULT='1'; & perl -MCPAN -MCPAN::HandleConfig -e 'CPAN::HandleConfig->init'; if($LASTEXITCODE -ne 0){throw 'CPAN configuration initialization failed'}; $cpanOutput=@(& perl -MCPAN -MCPAN::HandleConfig -e 'print CPAN::HandleConfig::cpan_home()'); if($LASTEXITCODE -ne 0){throw 'CPAN home discovery failed'}; $cpanHome=$cpanOutput[-1].Trim(); Remove-Item Env:PERL_MM_USE_DEFAULT; $config=Join-Path $cpanHome 'CPAN/MyConfig.pm'; if(-not(Test-Path $config)){throw 'CPAN user configuration is missing'}
+            $contents=[IO.File]::ReadAllText($config).Replace("`r`n","`n").Replace("`n","`r`n"); [IO.File]::WriteAllText($config,$contents,[Text.UTF8Encoding]::new($true)); $initialBytes=[IO.File]::ReadAllBytes($config); if($initialBytes[0] -ne 0xEF -or $initialBytes[1] -ne 0xBB -or $initialBytes[2] -ne 0xBF){throw 'CPAN fixture BOM is missing'}
             [IO.File]::WriteAllText((Join-Path $project 'cpanfile'),"requires 'Private::Module', url => 'https://build:fixture-only@packages.invalid.example/dist.tar.gz';`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'cpanfile') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"cpan","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
             $configBefore=(Get-FileHash $config -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'cpanfile') -Algorithm SHA256).Hash
             Push-Location $project
