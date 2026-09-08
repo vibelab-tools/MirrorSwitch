@@ -33,7 +33,8 @@ jobs:
           version: "2026"
           cache: false
           repository: https://mirrors.nju.edu.cn/CTAN/systems/texlive/tlnet
-      - name: Install Rust toolchain
+      - name: Validate TeX Live and install Rust on macOS
+        if: runner.os == 'macOS'
         shell: bash
         run: |
           tlmgr --version
@@ -41,6 +42,16 @@ jobs:
           kpsewhich -var-value=TEXMFHOME
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
           rustup default "$RUST_TOOLCHAIN"
+      - name: Validate TeX Live and install Rust on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          tlmgr --version; if($LASTEXITCODE -ne 0){throw 'tlmgr version failed'}
+          tlmgr print-platform; if($LASTEXITCODE -ne 0){throw 'tlmgr platform discovery failed'}
+          kpsewhich -var-value=TEXMFHOME; if($LASTEXITCODE -ne 0){throw 'TEXMFHOME discovery failed'}
+          rustup toolchain install $env:RUST_TOOLCHAIN --profile minimal
+          rustup default $env:RUST_TOOLCHAIN
       - name: Restore shared Rust dependency cache
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
@@ -68,11 +79,12 @@ jobs:
           user_before=$(shasum -a 256 "$user_db"|awk '{print $1}'); system_before=$(shasum -a 256 "$system_db"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/texlive.project"|awk '{print $1}'); mode=$(stat -f '%Lp' "$user_db")
           cd "$project"
           "$binary" status --offline --json > status.json; "$binary" plan --offline --tool tlmgr --scope tlmgr=user --mirror tlmgr:ctan--language-registry=14d922d2ede9c4af514f0929 --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
-          python3 - "$root" "$texmfhome" <<'PY'
+          python3 - "$root" "$user_db" <<'PY'
           import json, pathlib, sys
           status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='tlmgr']; assert len(tools)==1
-          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and sys.argv[2] in evidence and str(pathlib.Path.cwd()) in evidence and 'Macos' in evidence and 'universal-darwin' in evidence
+          evidence='\n'.join(tools[0]['detected']['evidence']); assert sys.argv[1] in evidence and str(pathlib.Path.cwd()) in evidence and 'selected user home is ' in evidence and 'Macos' in evidence and 'universal-darwin' in evidence
           a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
+          assert pathlib.Path(a['plan']['tools'][0]['plan']['changes'][0]['target']) == pathlib.Path(sys.argv[2])
           PY
           printf '\nn\n'|"$binary" tui --offline --tool tlmgr --scope tlmgr=user --mirror tlmgr:ctan--language-registry=14d922d2ede9c4af514f0929 > tui.txt; grep -F 'mirror=nju' tui.txt
           "$binary" apply --offline --config request.json --yes --json > apply.json
@@ -101,8 +113,9 @@ jobs:
           Push-Location $project
           try{
             (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool tlmgr --scope tlmgr=user --mirror tlmgr:ctan--language-registry=14d922d2ede9c4af514f0929 --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
-            $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'tlmgr'); if($tools.Count -ne 1){throw 'tlmgr not detected'}; $evidence=($tools[0].detected.evidence -join "`n").Replace('/','\'); if(-not $evidence.Contains($root.Replace('/','\')) -or -not $evidence.Contains($texmfhome.Replace('/','\')) -or -not $evidence.Contains($project.Replace('/','\')) -or -not $evidence.Contains('Windows') -or -not $evidence.Contains('TeX Live platform windows')){throw 'native path/platform evidence missing'}
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'tlmgr'); if($tools.Count -ne 1){throw 'tlmgr not detected'}; $evidence=($tools[0].detected.evidence -join "`n").Replace('/','\'); if(-not $evidence.Contains($root.Replace('/','\')) -or -not $evidence.Contains($project.Replace('/','\')) -or -not $evidence.Contains('selected user home is ') -or -not $evidence.Contains('Windows') -or -not $evidence.Contains('TeX Live platform windows')){throw 'native path/platform evidence missing'}
             $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or -not [string]::Equals([string]($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress), [string]($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress))){throw 'frontend plans differ'}
+            if($a.plan.tools[0].plan.changes[0].target.Replace('/','\') -ne $userDb.Replace('/','\')){throw 'user tree target mismatch'}
             @('','n')|& $binary tui --offline --tool tlmgr --scope tlmgr=user --mirror tlmgr:ctan--language-registry=14d922d2ede9c4af514f0929|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=nju')){throw 'tlmgr mirror missing'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'tlmgr apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1 -or -not $applied[0].verification.valid){throw 'verified transaction missing'}; $id=$applied[0].receipt.transaction_id
             $repositories=(tlmgr --usermode repository list) -join "`n"; if($repositories -notmatch 'mirrors\.(aliyun|nju|tuna)|repo\.huaweicloud\.com'){throw 'native tlmgr did not load selected repository'}
