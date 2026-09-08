@@ -52,8 +52,9 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-nvm-boundary"; export SHELL=/bin/zsh ZDOTDIR="$boundary/zdot" NVM_DIR="$HOME/.nvm"; unset PROFILE NVM_NODEJS_ORG_MIRROR NVM_IOJS_ORG_MIRROR NVM_AUTH_HEADER
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-nvm-boundary"; export SHELL=/bin/zsh ZDOTDIR="$boundary/zdot" NVM_DIR="$HOME/.nvm"; unset NVM_NODEJS_ORG_MIRROR NVM_IOJS_ORG_MIRROR NVM_AUTH_HEADER
           project="$boundary/project"; profile="$ZDOTDIR/.zshrc"; mkdir -p "$project" "$ZDOTDIR" "$NVM_DIR"; cp "$RUNNER_TEMP/nvm-$NVM_VERSION/nvm.sh" "$NVM_DIR/nvm.sh"
+          export PROFILE="$profile"
           printf '%s\n' '# native zsh policy' "export PRIVATE_NODE_TOKEN='fixture-only'" 'export NVM_DIR="$HOME/.nvm"' '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' > "$profile"; chmod 0600 "$profile"
           printf '%s\n' 'v24.1.0' > "$project/.nvmrc"; chmod 0400 "$project/.nvmrc"
           printf '{"version":1,"tools":[{"id":"nvm","scope":"user","mirrors":{"nodejs--release-artifacts":"f013929104aae6e0430080ed"}}]}\n' > "$project/request.json"
