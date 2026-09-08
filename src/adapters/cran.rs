@@ -532,7 +532,7 @@ fn cran_fixture(context: &SystemContext, r_version: &str) -> Result<CranFixture,
             package_type: "binary",
             index_path: "bin/windows/contrib/4.6/PACKAGES.gz",
             archive_path: "bin/windows/contrib/4.6/digest_0.6.39.zip",
-            archive_sha256: "87fb005dbe912caeab037ae0da169a614a2392673a518302b125537ef2bc36e0",
+            archive_sha256: "057b2629b6077bcf4173519dbfedbf4a2a2ba886678a8225e748c034ae275b56",
         },
         (OperatingSystem::Windows, Architecture::Arm64) => {
             unreachable!("Windows arm64 is rejected before CRAN fixture selection")

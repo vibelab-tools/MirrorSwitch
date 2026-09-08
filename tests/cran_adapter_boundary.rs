@@ -97,7 +97,7 @@ fn install_r(
     } else if platform.contains("mingw") {
         (
             "digest_0.6.39.zip",
-            "87fb005dbe912caeab037ae0da169a614a2392673a518302b125537ef2bc36e0",
+            "057b2629b6077bcf4173519dbfedbf4a2a2ba886678a8225e748c034ae275b56",
             "/x64",
         )
     } else {
