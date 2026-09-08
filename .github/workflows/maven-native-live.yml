@@ -61,16 +61,16 @@ jobs:
           printf '%s\n' '<settings><mirrors><mirror><id>private-external</id><url>https://packages.invalid.example/maven/</url><mirrorOf>external:*,!central</mirrorOf></mirror></mirrors><servers><server><id>private</id><username>fixture</username><password>fixture-only</password></server></servers></settings>' > "$settings"
           chmod 0600 "$settings"
           printf '%s\n' '<project><modelVersion>4.0.0</modelVersion><groupId>test</groupId><artifactId>native-probe</artifactId><version>1.0.0</version></project>' > "$project/pom.xml"
-          printf '{"version":1,"tools":[{"id":"maven","scope":"user"}]}\n' > "$project/request.json"
+          printf '{"version":1,"tools":[{"id":"maven","scope":"user","mirrors":{"maven--language-registry":"db9b7a0fc0ae0fc71a804a32"}}]}\n' > "$project/request.json"
           before=$(shasum -a 256 "$settings"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/pom.xml"|awk '{print $1}'); mode=$(stat -f '%Lp' "$settings")
           cd "$project"
-          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool maven --scope maven=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool maven --scope maven=user --mirror maven:maven--language-registry=db9b7a0fc0ae0fc71a804a32 --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - <<'PY'
           import json
           s=json.load(open('status.json')); assert [t['adapter_key'] for t in s['detected_tools'] if t['adapter_key']=='maven']==['maven']
           a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
           PY
-          printf '\nn\n'|"$binary" tui --offline --tool maven --scope maven=user > tui.txt; grep -E 'mirror=(aliyun|huaweicloud|nju)' tui.txt
+          printf '\nn\n'|"$binary" tui --offline --tool maven --scope maven=user --mirror maven:maven--language-registry=db9b7a0fc0ae0fc71a804a32 > tui.txt; grep -F 'mirror=huaweicloud' tui.txt
           "$binary" apply --offline --config request.json --yes --json > apply.json
           id=$(python3 - <<'PY'
           import json
@@ -92,14 +92,14 @@ jobs:
           $project=Join-Path $env:USERPROFILE 'project'; $settings=Join-Path $env:USERPROFILE '.m2/settings.xml'; New-Item -ItemType Directory -Force $project,(Split-Path $settings),$env:LOCALAPPDATA|Out-Null
           $xml="<?xml version=`"1.0`" encoding=`"UTF-8`"?>`r`n<settings><mirrors><mirror><id>private-external</id><url>https://packages.invalid.example/maven/</url><mirrorOf>external:*,!central</mirrorOf></mirror></mirrors><servers><server><id>private</id><username>fixture</username><password>fixture-only</password></server></servers></settings>`r`n"
           [IO.File]::WriteAllText($settings,$xml,[Text.UTF8Encoding]::new($true))
-          '<project><modelVersion>4.0.0</modelVersion><groupId>test</groupId><artifactId>native-probe</artifactId><version>1.0.0</version></project>'|Set-Content -Encoding utf8 (Join-Path $project 'pom.xml'); '{"version":1,"tools":[{"id":"maven","scope":"user"}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
+          '<project><modelVersion>4.0.0</modelVersion><groupId>test</groupId><artifactId>native-probe</artifactId><version>1.0.0</version></project>'|Set-Content -Encoding utf8 (Join-Path $project 'pom.xml'); '{"version":1,"tools":[{"id":"maven","scope":"user","mirrors":{"maven--language-registry":"db9b7a0fc0ae0fc71a804a32"}}]}'|Set-Content -Encoding utf8 (Join-Path $project 'request.json')
           $before=(Get-FileHash $settings -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'pom.xml') -Algorithm SHA256).Hash
           Push-Location $project
           try{
-            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool maven --scope maven=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool maven --scope maven=user --mirror maven:maven--language-registry=db9b7a0fc0ae0fc71a804a32 --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
             $s=Get-Content status.json -Raw|ConvertFrom-Json; if(@($s.detected_tools|Where-Object adapter_key -eq 'maven').Count -ne 1){throw 'Maven not detected'}
             $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or -not [string]::Equals([string]($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress), [string]($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress))){throw 'frontend plans differ'}
-            @('','n')|& $binary tui --offline --tool maven --scope maven=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(aliyun|huaweicloud|nju)')){throw 'Maven mirror missing'}
+            @('','n')|& $binary tui --offline --tool maven --scope maven=user --mirror maven:maven--language-registry=db9b7a0fc0ae0fc71a804a32|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=huaweicloud')){throw 'Maven mirror missing'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Maven apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}
             (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'maven'){throw 'restore failed'}
