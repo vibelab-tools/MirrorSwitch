@@ -55,10 +55,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install gnupg --version=2.5.20 --yes --no-progress
-          if($LASTEXITCODE -ne 0){throw 'native GnuPG installation failed'}
-          $gpg=@((Join-Path $env:ProgramFiles 'GnuPG/bin/gpg.exe'),(Join-Path ${env:ProgramFiles(x86)} 'GnuPG/bin/gpg.exe'))|Where-Object {Test-Path $_}|Select-Object -First 1
-          if(-not $gpg){throw 'native GnuPG executable is missing'}
+          & C:\msys64\usr\bin\bash.exe -lc 'pacman -Sy --needed --noconfirm mingw-w64-ucrt-x86_64-gnupg'
+          if($LASTEXITCODE -ne 0){throw 'native UCRT64 GnuPG installation failed'}
+          $gpg='C:\msys64\ucrt64\bin\gpg.exe'; if(-not(Test-Path $gpg)){throw 'native GnuPG executable is missing'}
           Split-Path $gpg|Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           & $gpg --version
       - name: Restore shared Rust dependency cache
