@@ -44,8 +44,7 @@ cat("R_REPOSITORIES\t", if (nzchar(Sys.getenv("R_REPOSITORIES", unset = ""))) "s
 repos <- getOption("repos")
 repo_names <- names(repos)
 if (is.null(repo_names)) repo_names <- rep("", length(repos))
-for (index in seq_along(repos))
-    cat("REPOSITORY\t", index, "\t", repo_names[[index]], "\t", unname(repos[[index]]), "\n", sep = "")
+for (index in seq_along(repos)) cat("REPOSITORY\t", index, "\t", repo_names[[index]], "\t", unname(repos[[index]]), "\n", sep = "")
 "#;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -707,7 +706,12 @@ fn rstudio_preference_state(
 
 fn inspect_runtime(runtime: &dyn Runtime) -> Result<Snapshot, AdapterError> {
     #[cfg(windows)]
-    let script = INSPECT_SCRIPT.replace('\n', ";");
+    let script = INSPECT_SCRIPT
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join(";");
     #[cfg(not(windows))]
     let script = INSPECT_SCRIPT.to_owned();
     let arguments = vec!["-e".into(), script];
