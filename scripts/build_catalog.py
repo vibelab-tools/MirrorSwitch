@@ -1896,16 +1896,18 @@ def runtime_properties(
                     "contains": f"Package: {package}",
                 }
             )
-            probes.append(
-                {
-                    "endpoint_role": "artifacts",
-                    "method": "get",
-                    "path": archive_path,
-                    "expected_status": [200],
-                    "expected_content_type": "application/octet-stream",
-                    "sha256": "{bioc_soft_archive_sha}" if index == 0 else sha256,
-                }
+            archive_probe = {
+                "endpoint_role": "artifacts",
+                "method": "get",
+                "path": archive_path,
+                "expected_status": [200],
+            }
+            if index != 0:
+                archive_probe["expected_content_type"] = "application/octet-stream"
+            archive_probe["sha256"] = (
+                "{bioc_soft_archive_sha}" if index == 0 else sha256
             )
+            probes.append(archive_probe)
     elif (
         tool_id == "sbt"
         and upstream_key in {SBT_MAVEN_UPSTREAM, SBT_IVY_UPSTREAM}

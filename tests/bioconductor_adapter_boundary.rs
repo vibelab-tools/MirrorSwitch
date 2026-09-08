@@ -633,6 +633,7 @@ fn embedded_catalog_has_two_complete_and_one_inert_inventory_candidates() {
         );
         assert_eq!(candidate.probes[0].path, "/{bioc_soft_index_path}");
         assert_eq!(candidate.probes[1].path, "/{bioc_soft_archive_path}");
+        assert_eq!(candidate.probes[1].expected_content_type, None);
         assert_eq!(candidate.probes[3].sha256.as_deref(), Some(ANNOTATION_SHA));
         assert_eq!(candidate.probes[5].sha256.as_deref(), Some(EXPERIMENT_SHA));
         assert_eq!(candidate.probes[7].sha256.as_deref(), Some(WORKFLOW_SHA));
