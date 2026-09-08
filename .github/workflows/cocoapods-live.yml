@@ -85,9 +85,13 @@ jobs:
         run: |
           set -Eeuo pipefail
           binary="$PWD/target/release/mirrorswitch"
+          boundary="$RUNNER_TEMP/mirrorswitch-cocoapods-boundary"; project="$boundary/project"; mkdir -p "$project"
+          printf '%s\n' "source 'ssh://private.invalid.example/specs.git'" "source 'https://github.com/CocoaPods/Specs.git'" "platform :ios, '15.0'" "target 'Fixture' do" "  pod 'AFNetworking', '4.0.1'" 'end' > "$project/Podfile"
+          printf '%s\n' 'PODS:' '  - AFNetworking (4.0.1)' > "$project/Podfile.lock"; chmod 0400 "$project/Podfile" "$project/Podfile.lock"
           config="$HOME/.cocoapods/repos/master/.git/config"
           config_before=$(shasum -a 256 "$config" | awk '{print $1}')
-          printf '{"version":1,"tools":[{"id":"cocoapods","scope":"user","mirrors":{"cocoapods--git-mirror":"6bf8c435edff7ed506917aa5"}}]}\n' > request.json
+          podfile_before=$(shasum -a 256 "$project/Podfile" | awk '{print $1}'); lock_before=$(shasum -a 256 "$project/Podfile.lock" | awk '{print $1}')
+          cd "$project"; printf '{"version":1,"tools":[{"id":"cocoapods","scope":"user","mirrors":{"cocoapods--git-mirror":"6bf8c435edff7ed506917aa5"}}]}\n' > request.json
 
           "$binary" status --offline --json > status.json
           python3 - <<'PY'
@@ -132,19 +136,14 @@ jobs:
           PY
 
           test "$config_before" = "$(shasum -a 256 "$config" | awk '{print $1}')"
+          test "$podfile_before" = "$(shasum -a 256 Podfile | awk '{print $1}')"; test "$lock_before" = "$(shasum -a 256 Podfile.lock | awk '{print $1}')"
       - name: Save redacted boundary evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: cocoapods-boundary-${{ matrix.arch }}-${{ github.run_id }}
           path: |
-            plan-cli.json
-            plan-config.json
-            apply.json
-            idempotent.json
-            request.json
-            status.json
-            restore.json
-            tui.txt
+            ${{ runner.temp }}/mirrorswitch-cocoapods-boundary/project/*.json
+            ${{ runner.temp }}/mirrorswitch-cocoapods-boundary/project/tui.txt
           if-no-files-found: warn
           retention-days: 7
