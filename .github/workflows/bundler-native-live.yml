@@ -27,14 +27,9 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.4.10"
-          bundler: "4.0.19"
       - name: Install Rust toolchain
         shell: bash
         run: |
-          ruby --version && bundle --version
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
           rustup default "$RUST_TOOLCHAIN"
       - name: Restore shared Rust dependency cache
@@ -49,6 +44,12 @@ jobs:
         run: cargo test --locked --test bundler_adapter_boundary --test transaction_boundary --test restore_dispatch_boundary -- --test-threads=1
       - name: Build native release executable
         run: cargo build --locked --release --bin mirrorswitch
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+          bundler: "4.0.19"
+      - name: Verify Ruby and Bundler toolchains
+        run: ruby --version && bundle --version
       - name: Exercise macOS native configs, frontends, lock query, and recovery
         if: runner.os == 'macOS'
         shell: bash
