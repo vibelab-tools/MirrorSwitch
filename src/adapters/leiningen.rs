@@ -1365,6 +1365,14 @@ fn failure_detail(output: &std::process::Output) -> Option<String> {
             .any(|marker| lower.contains(marker))
         })
         .collect::<Vec<_>>();
+    if let Some(line) = lines.iter().find(|line| {
+        let lower = line.to_ascii_lowercase();
+        ["error", "exception", "failed", "could not"]
+            .iter()
+            .any(|marker| lower.contains(marker))
+    }) {
+        return Some(line.chars().take(240).collect());
+    }
     let start = lines.len().saturating_sub(2);
     (!lines.is_empty()).then(|| lines[start..].join(" ").chars().take(240).collect())
 }
