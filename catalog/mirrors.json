@@ -12435,86 +12435,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "4a1a1a2921b5e203779566a0",
-      "provider_id": "nju",
-      "upstream_id": "opam-repository--git-mirror",
-      "tool_id": "opam",
-      "catalog_state": "cataloged",
-      "delivery_mode": "mirror",
-      "raw_names": [
-        "opam-repository.git"
-      ],
-      "endpoints": [
-        {
-          "role": "index",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/opam-repository.git"
-        },
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/opam-repository.git"
-        },
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/git/opam-repository.git"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "architectures": [
-          "x86_64",
-          "arm64"
-        ],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": [
-          "da8b7e6fa7491ffc5dc8eee7f8f60452a1b26ce7"
-        ]
-      },
-      "probes": [
-        {
-          "endpoint_role": "index",
-          "method": "get",
-          "path": "/info/refs",
-          "expected_status": [
-            200
-          ],
-          "contains": "da8b7e6fa7491ffc5dc8eee7f8f60452a1b26ce7"
-        },
-        {
-          "endpoint_role": "metadata",
-          "method": "get",
-          "path": "/HEAD",
-          "expected_status": [
-            200
-          ],
-          "contains": "ref: refs/heads/master"
-        },
-        {
-          "endpoint_role": "artifacts",
-          "method": "get",
-          "path": "/objects/info/packs",
-          "expected_status": [
-            200
-          ],
-          "contains": "P pack-"
-        }
-      ],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/addition.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "4b0478958231d9f6fe08e23f",
       "provider_id": "aliyun",
       "upstream_id": "centos-debuginfo--repository-metadata",
@@ -33161,6 +33081,86 @@
       ],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "e88b4d497a2c26b2f7ae36a2",
+      "provider_id": "nju",
+      "upstream_id": "opam-repository--git-mirror",
+      "tool_id": "opam",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "opam-repository.git"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/opam-repository.git"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/opam-repository.git"
+        },
+        {
+          "role": "artifacts",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/git/opam-repository.git"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [
+          "5caa3166da37f7aafe35d10c51ed9e1e932f2ab6"
+        ]
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/info/refs",
+          "expected_status": [
+            200
+          ],
+          "contains": "5caa3166da37f7aafe35d10c51ed9e1e932f2ab6"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/HEAD",
+          "expected_status": [
+            200
+          ],
+          "contains": "ref: refs/heads/master"
+        },
+        {
+          "endpoint_role": "artifacts",
+          "method": "get",
+          "path": "/objects/info/packs",
+          "expected_status": [
+            200
+          ],
+          "contains": "P pack-"
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/addition.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },

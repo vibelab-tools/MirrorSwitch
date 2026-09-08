@@ -392,7 +392,7 @@ OPAM_REPOSITORY_UPSTREAM = "opam-repository--git-mirror"
 OPAM_CACHE_UPSTREAM = "opam-cache--binary-cache"
 OPAM_REPOSITORY_ENDPOINT = "https://mirrors.nju.edu.cn/git/opam-repository.git"
 OPAM_CACHE_ENDPOINT = "https://mirror.sjtu.edu.cn/opam-cache/"
-OPAM_REPOSITORY_REVISION = "da8b7e6fa7491ffc5dc8eee7f8f60452a1b26ce7"
+OPAM_REPOSITORY_REVISION = "5caa3166da37f7aafe35d10c51ed9e1e932f2ab6"
 OPAM_CACHE_SHA256 = (
     "61f0b75950614ac5378c6ec0d822cce6463402d919d5810b736fc46522b3a73e"
 )

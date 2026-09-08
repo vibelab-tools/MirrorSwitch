@@ -24,7 +24,7 @@ const CACHE_UPSTREAM: &str = "opam-cache--binary-cache";
 const NJU: &str = "https://mirrors.nju.edu.cn/git/opam-repository.git";
 const NJU_CONFIG: &str = "git+https://mirrors.nju.edu.cn/git/opam-repository.git";
 const SJTUG: &str = "https://mirror.sjtu.edu.cn/opam-cache";
-const REVISION: &str = "da8b7e6fa7491ffc5dc8eee7f8f60452a1b26ce7";
+const REVISION: &str = "5caa3166da37f7aafe35d10c51ed9e1e932f2ab6";
 const CACHE_SHA: &str = "61f0b75950614ac5378c6ec0d822cce6463402d919d5810b736fc46522b3a73e";
 
 fn context(root: &Path, architecture: Architecture) -> SystemContext {

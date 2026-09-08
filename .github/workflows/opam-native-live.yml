@@ -67,11 +67,11 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-opam-boundary"; export HOME="$boundary/home"
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-opam-boundary"
           unset OPAMROOT OPAMFETCH OPAMYES OPAMROOTISOK
-          mkdir -p "$HOME/project"
+          project="$boundary/project"; mkdir -p "$project"
           opam init --bare --disable-sandboxing --no-setup --yes default https://opam.ocaml.org
-          root=$(opam var root --safe); config="$root/config"; repos="$root/repo/repos-config"; project="$HOME/project"
+          root=$(opam var root --safe); config="$root/config"; repos="$root/repo/repos-config"
           printf '%s\n' 'opam-version: "2.0"' > "$project/opam.locked"; chmod 0400 "$project/opam.locked"
           printf '%s\n' 'opam-version: "2.0"' 'synopsis: "preserved local switch"' > "$project/.opam-switch/switch-config" 2>/dev/null || { mkdir -p "$project/.opam-switch"; printf '%s\n' 'opam-version: "2.0"' 'synopsis: "preserved local switch"' > "$project/.opam-switch/switch-config"; }; chmod 0400 "$project/.opam-switch/switch-config"
           printf '{"version":1,"tools":[{"id":"opam","scope":"user"}]}\n' > "$project/request.json"
@@ -103,8 +103,8 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-opam-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:OPAMROOT,Env:OPAMFETCH,Env:OPAMYES,Env:OPAMROOTISOK -ErrorAction SilentlyContinue
-          $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:LOCALAPPDATA,$project,(Join-Path $project '.opam-switch')|Out-Null
+          Remove-Item Env:OPAMROOT,Env:OPAMFETCH,Env:OPAMYES,Env:OPAMROOTISOK -ErrorAction SilentlyContinue
+          $project=Join-Path $boundary 'project'; New-Item -ItemType Directory -Force $project,(Join-Path $project '.opam-switch')|Out-Null
           opam init --bare --disable-sandboxing --no-setup --yes default https://opam.ocaml.org
           $root=opam var root --safe; $config=Join-Path $root 'config'; $repos=Join-Path $root 'repo/repos-config'; [IO.File]::WriteAllText((Join-Path $project 'opam.locked'),'opam-version: "2.0"',[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project '.opam-switch/switch-config'),"opam-version: `"2.0`"`r`nsynopsis: `"preserved local switch`"`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'opam.locked') IsReadOnly $true; Set-ItemProperty (Join-Path $project '.opam-switch/switch-config') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"opam","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
           $configBefore=(Get-FileHash $config -Algorithm SHA256).Hash; $reposBefore=(Get-FileHash $repos -Algorithm SHA256).Hash; $switchBefore=(Get-FileHash (Join-Path $project '.opam-switch/switch-config') -Algorithm SHA256).Hash; $lockBefore=(Get-FileHash (Join-Path $project 'opam.locked') -Algorithm SHA256).Hash
@@ -124,6 +124,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: opam-native-${{ matrix.name }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/mirrorswitch-opam-boundary/home/project/*.json
+          path: ${{ runner.temp }}/mirrorswitch-opam-boundary/project/*.json
           if-no-files-found: warn
           retention-days: 7
