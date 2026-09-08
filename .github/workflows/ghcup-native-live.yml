@@ -56,10 +56,10 @@ jobs:
           $target=Join-Path $bin 'ghcup.exe'; Invoke-WebRequest "https://github.com/haskell/ghcup-hs/releases/download/v0.2.6.2/${{ matrix.asset }}" -OutFile $target
           if((Get-FileHash $target -Algorithm SHA256).Hash.ToLowerInvariant() -ne '${{ matrix.digest }}'){throw 'GHCup executable checksum mismatch'}
           $key=Join-Path $env:RUNNER_TEMP 'ghcup-metadata-key.asc'; Invoke-WebRequest 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C' -OutFile $key
-          $env:GNUPGHOME=$gnupg; gpg --batch --import $key
+          $gnupgPath=$gnupg.Replace('\','/'); $keyPath=$key.Replace('\','/'); $env:GNUPGHOME=$gnupgPath; gpg --batch --import $keyPath
           $fingerprints=(gpg --batch --with-colons --fingerprint 7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C) -join "`n"; if(-not $fingerprints.Contains('7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C')){throw 'metadata signing key fingerprint mismatch'}
           $bin|Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "GNUPGHOME=$gnupg"|Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "GNUPGHOME=$gnupgPath"|Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Install Rust toolchain
         shell: bash
         run: |
