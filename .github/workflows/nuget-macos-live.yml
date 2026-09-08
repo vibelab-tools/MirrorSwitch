@@ -61,9 +61,10 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-nuget-boundary"; export HOME="$boundary/home"; unset NUGET_COMMON_APPLICATION_DATA
-          project="$HOME/project"; dotnet_user="$HOME/.nuget/NuGet/NuGet.Config"; cli_user="$HOME/.config/NuGet/NuGet.Config"; dotnet_extra="$HOME/.nuget/config/20-extra.Config"; cli_extra="$HOME/.config/NuGet/config/20-extra.Config"; machine='/Library/Application Support/NuGet/Config/MirrorSwitch.Native.Config'
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-nuget-boundary"; unset NUGET_COMMON_APPLICATION_DATA
+          project="$boundary/project"; dotnet_user="$HOME/.nuget/NuGet/NuGet.Config"; cli_user="$HOME/.config/NuGet/NuGet.Config"; dotnet_extra="$HOME/.nuget/config/20-extra.Config"; cli_extra="$HOME/.config/NuGet/config/20-extra.Config"; machine='/Library/Application Support/NuGet/Config/MirrorSwitch.Native.Config'
           test ! -e "$machine"; trap 'sudo rm -f "$machine"' EXIT
+          test ! -e "$dotnet_user"; test ! -e "$cli_user"; test ! -e "$dotnet_extra"; test ! -e "$cli_extra"
           mkdir -p "$project" "$(dirname "$dotnet_user")" "$(dirname "$cli_user")" "$(dirname "$dotnet_extra")" "$(dirname "$cli_extra")"; sudo mkdir -p "$(dirname "$machine")"
           printf '%s\n' '<configuration><packageSources><add key="machine-private" value="https://machine.invalid.example/v3/index.json" /></packageSources></configuration>'|sudo tee "$machine" >/dev/null
           printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' '<configuration>' '  <packageSources><add key="private" value="https://build:fixture-only@private.invalid.example/v3/index.json" /><add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" /></packageSources>' '  <packageSourceCredentials><private><add key="ClearTextPassword" value="fixture-only" /></private></packageSourceCredentials>' '  <packageSourceMapping><packageSource key="private"><package pattern="Corp.*" /></packageSource><packageSource key="nuget.org"><package pattern="*" /></packageSource></packageSourceMapping>' '</configuration>' > "$dotnet_user"; chmod 0600 "$dotnet_user"
@@ -86,7 +87,7 @@ jobs:
           "$binary" apply --offline --config request.json --yes --json > apply.json
           id=$(python3 - <<'PY'
           import json
-          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1 and a[0]['verification']['valid']; print(a[0]['receipt']['transaction_id'])
           PY
           )
           dotnet nuget list source --format Detailed --configfile "$dotnet_user"|grep -F repo.huaweicloud.com/repository/nuget/v3/index.json
@@ -103,6 +104,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: nuget-macos-${{ matrix.name }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/mirrorswitch-nuget-boundary/home/project/*.json
+          path: ${{ runner.temp }}/mirrorswitch-nuget-boundary/project/*.json
           if-no-files-found: warn
           retention-days: 7
