@@ -50,14 +50,14 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-elpa-boundary"; export HOME="$boundary/home"; unset XDG_CONFIG_HOME
-          project="$HOME/project"; emacs_dir=$(emacs --batch -Q --eval '(princ (expand-file-name user-emacs-directory))'); init="$emacs_dir/init.el"; mkdir -p "$emacs_dir" "$project"
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-elpa-boundary"; unset XDG_CONFIG_HOME
+          project="$boundary/project"; emacs_dir=$(emacs --batch -Q --eval '(princ (expand-file-name user-emacs-directory))'); init="$emacs_dir/init.el"; mkdir -p "$emacs_dir" "$project"
           printf '%s\n' ';; native user policy' '(setq custom-file "~/.emacs.d/private.el")' '(setq package-archives '\''(("private" . "https://build:fixture-only@packages.invalid.example/elpa/")))' '(setq package-archive-priorities '\''(("private" . 100)))' > "$init"; chmod 0600 "$init"
           printf '%s\n' '((nil . ((private-token . "project-fixture-only"))))' > "$project/.dir-locals.el"; chmod 0400 "$project/.dir-locals.el"
-          printf '{"version":1,"tools":[{"id":"elpa","scope":"user"}]}\n' > "$project/request.json"
+          printf '{"version":1,"tools":[{"id":"elpa","scope":"user","mirrors":{"gnu-elpa--language-registry":"70056565864f30de2af28c87","nongnu-elpa--language-registry":"d8499ba0083968fdb26601e6","melpa--language-registry":"ec3eb1905d37cd16f1981873"}}]}\n' > "$project/request.json"
           before=$(shasum -a 256 "$init"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/.dir-locals.el"|awk '{print $1}'); mode=$(stat -f '%Lp' "$init")
           cd "$project"
-          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool elpa --scope elpa=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool elpa --scope elpa=user --mirror elpa:gnu-elpa--language-registry=70056565864f30de2af28c87 --mirror elpa:nongnu-elpa--language-registry=d8499ba0083968fdb26601e6 --mirror elpa:melpa--language-registry=ec3eb1905d37cd16f1981873 --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - "$init" "$emacs_dir" <<'PY'
           import json, pathlib, sys
           status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='elpa']; assert len(tools)==1
@@ -65,11 +65,11 @@ jobs:
           a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
           assert 'fixture-only' not in pathlib.Path('status.json').read_text()+pathlib.Path('plan-cli.json').read_text()+pathlib.Path('plan-config.json').read_text()
           PY
-          printf '\nn\n'|"$binary" tui --offline --tool elpa --scope elpa=user > tui.txt; grep -E 'mirror=(nju|tuna|ustc)' tui.txt; ! grep -F 'fixture-only' tui.txt
+          printf '\nn\n'|"$binary" tui --offline --tool elpa --scope elpa=user --mirror elpa:gnu-elpa--language-registry=70056565864f30de2af28c87 --mirror elpa:nongnu-elpa--language-registry=d8499ba0083968fdb26601e6 --mirror elpa:melpa--language-registry=ec3eb1905d37cd16f1981873 > tui.txt; test "$(grep -c 'mirror=nju' tui.txt)" -eq 3; ! grep -F 'fixture-only' tui.txt
           "$binary" apply --offline --config request.json --yes --json > apply.json
           id=$(python3 - <<'PY'
           import json
-          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1; print(a[0]['receipt']['transaction_id'])
+          r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1 and a[0]['verification']['valid']; print(a[0]['receipt']['transaction_id'])
           PY
           )
           emacs --batch -Q --load "$init" --eval '(progn (dolist (name '\''("gnu" "nongnu" "melpa")) (unless (string-match-p "mirrors\\.\\(nju\\|tuna\\|ustc\\)" (cdr (assoc name package-archives))) (error "archive mismatch: %s" name))) (princ "MIRRORSWITCH_ELPA_NATIVE=ok"))'|grep -F MIRRORSWITCH_ELPA_NATIVE=ok
@@ -84,19 +84,19 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-elpa-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:XDG_CONFIG_HOME -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA|Out-Null
+          Remove-Item Env:XDG_CONFIG_HOME -ErrorAction SilentlyContinue
           $native=((& emacs --batch -Q --eval '(princ (format "%s|%s" system-type system-configuration))') -join '').Trim(); if($native -notmatch '^windows-nt\|x86_64'){throw "Emacs is not native Windows x64: $native"}
-          $emacsDir=((& emacs --batch -Q --eval '(princ (expand-file-name user-emacs-directory))') -join '').Trim(); $init=Join-Path $emacsDir 'init.el'; $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $emacsDir,$project|Out-Null
+          $emacsDir=((& emacs --batch -Q --eval '(princ (expand-file-name user-emacs-directory))') -join '').Trim(); $init=Join-Path $emacsDir 'init.el'; $project=Join-Path $boundary 'project'; New-Item -ItemType Directory -Force $emacsDir,$project|Out-Null
           $contents=";; native user policy`r`n(setq custom-file `"~/.emacs.d/private.el`")`r`n(setq package-archives '((`"private`" . `"https://build:fixture-only@packages.invalid.example/elpa/`")))`r`n(setq package-archive-priorities '((`"private`" . 100)))`r`n"; [IO.File]::WriteAllText($init,$contents,[Text.UTF8Encoding]::new($true))
-          [IO.File]::WriteAllText((Join-Path $project '.dir-locals.el'),'((nil . ((private-token . "project-fixture-only"))))',[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project '.dir-locals.el') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"elpa","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+          [IO.File]::WriteAllText((Join-Path $project '.dir-locals.el'),'((nil . ((private-token . "project-fixture-only"))))',[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project '.dir-locals.el') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"elpa","scope":"user","mirrors":{"gnu-elpa--language-registry":"70056565864f30de2af28c87","nongnu-elpa--language-registry":"d8499ba0083968fdb26601e6","melpa--language-registry":"ec3eb1905d37cd16f1981873"}}]}',[Text.UTF8Encoding]::new($false))
           $before=(Get-FileHash $init -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project '.dir-locals.el') -Algorithm SHA256).Hash
           Push-Location $project
           try{
-            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool elpa --scope elpa=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
-            $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'elpa'); if($tools.Count -ne 1){throw 'ELPA not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains($init) -or -not $evidence.Contains($emacsDir.TrimEnd('/','\')) -or -not $evidence.Contains($project) -or -not $evidence.Contains('Windows') -or -not $evidence.Contains('x86_64')){throw 'native path/platform evidence missing'}
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool elpa --scope elpa=user --mirror elpa:gnu-elpa--language-registry=70056565864f30de2af28c87 --mirror elpa:nongnu-elpa--language-registry=d8499ba0083968fdb26601e6 --mirror elpa:melpa--language-registry=ec3eb1905d37cd16f1981873 --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'elpa'); if($tools.Count -ne 1){throw 'ELPA not detected'}; $evidence=($tools[0].detected.evidence -join "`n").Replace('/','\'); if(-not $evidence.Contains($init.Replace('/','\')) -or -not $evidence.Contains($emacsDir.TrimEnd('/','\').Replace('/','\')) -or -not $evidence.Contains($project.Replace('/','\')) -or -not $evidence.Contains('Windows') -or -not $evidence.Contains('x86_64')){throw 'native path/platform evidence missing'}
             $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or -not [string]::Equals([string]($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress), [string]($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress)) -or (Get-Content status.json,plan-cli.json,plan-config.json -Raw)-match 'fixture-only'){throw 'frontend plans differ or private policy leaked'}
-            @('','n')|& $binary tui --offline --tool elpa --scope elpa=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(nju|tuna|ustc)') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
-            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'ELPA apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
+            @('','n')|& $binary tui --offline --tool elpa --scope elpa=user --mirror elpa:gnu-elpa--language-registry=70056565864f30de2af28c87 --mirror elpa:nongnu-elpa--language-registry=d8499ba0083968fdb26601e6 --mirror elpa:melpa--language-registry=ec3eb1905d37cd16f1981873|Set-Content -Encoding utf8 tui.txt; if(@((Get-Content tui.txt)|Where-Object {$_ -match 'mirror=nju'}).Count -ne 3 -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
+            (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'ELPA apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1 -or -not $applied[0].verification.valid){throw 'verified transaction missing'}; $id=$applied[0].receipt.transaction_id
             $script="(progn (dolist (name '(`"gnu`" `"nongnu`" `"melpa`")) (unless (string-match-p `"mirrors\\.\\(nju\\|tuna\\|ustc\\)`" (cdr (assoc name package-archives))) (error `"archive mismatch: %s`" name))) (princ `"MIRRORSWITCH_ELPA_NATIVE=ok`"))"; & emacs --batch -Q --load $init --eval $script; if($LASTEXITCODE -ne 0){throw 'native archive query failed'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'elpa'){throw 'restore failed'}
           }finally{Pop-Location}
@@ -106,6 +106,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: elpa-native-${{ matrix.name }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/mirrorswitch-elpa-boundary/home/project/*.json
+          path: ${{ runner.temp }}/mirrorswitch-elpa-boundary/project/*.json
           if-no-files-found: warn
           retention-days: 7
