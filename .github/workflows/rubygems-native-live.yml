@@ -53,9 +53,9 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-rubygems-boundary"; export HOME="$boundary/home"
+          binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-rubygems-boundary"
           unset GEMRC GEM_HOME GEM_PATH RUBYGEMS_GEMDEPS
-          project="$HOME/project"; mkdir -p "$HOME" "$project"
+          project="$boundary/project"; mkdir -p "$project"
           gemrc=$(ruby -rrubygems -e 'print Gem.configuration.config_file_name'); credentials=$(gem environment credentials); gem_home=$(gem environment home)
           case "$gemrc" in "$HOME"/*) ;; *) echo "gemrc is outside HOME: $gemrc" >&2; exit 1;; esac
           case "$credentials" in "$HOME"/*) ;; *) echo "credentials are outside HOME: $credentials" >&2; exit 1;; esac
@@ -63,10 +63,10 @@ jobs:
           printf '%s\n' '---' ':sources:' '- https://rubygems.org/' '- https://fixture-only@packages.invalid.example/' ':ssl_verify_mode: 1' 'gem: --no-document' > "$gemrc"; chmod 0600 "$gemrc"
           printf '%s\n' ':fixture: fixture-only' > "$credentials"; chmod 0600 "$credentials"
           printf '%s\n' "source 'https://packages.invalid.example/'" > "$project/Gemfile"; chmod 0400 "$project/Gemfile"
-          printf '{"version":1,"tools":[{"id":"rubygems","scope":"user"}]}\n' > "$project/request.json"
+          printf '{"version":1,"tools":[{"id":"rubygems","scope":"user","mirrors":{"rubygems--language-registry":"3f74c8a174f4a132b80c511c"}}]}\n' > "$project/request.json"
           before=$(shasum -a 256 "$gemrc"|awk '{print $1}'); credentials_before=$(shasum -a 256 "$credentials"|awk '{print $1}'); project_before=$(shasum -a 256 "$project/Gemfile"|awk '{print $1}'); mode=$(stat -f '%Lp' "$gemrc"); certs_before=$(gem cert --list)
           cd "$project"
-          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool rubygems --scope rubygems=user --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
+          "$binary" status --offline --json > status.json; "$binary" plan --offline --tool rubygems --scope rubygems=user --mirror rubygems:rubygems--language-registry=3f74c8a174f4a132b80c511c --json > plan-cli.json; "$binary" plan --offline --config request.json --json > plan-config.json
           python3 - "$gemrc" "$gem_home" <<'PY'
           import json, sys
           status=json.load(open('status.json')); tools=[t for t in status['detected_tools'] if t['adapter_key']=='rubygems']; assert len(tools)==1
@@ -74,7 +74,7 @@ jobs:
           a=json.load(open('plan-cli.json')); b=json.load(open('plan-config.json')); assert a['ok'] and b['ok'] and a['plan']['tools'][0]['plan']==b['plan']['tools'][0]['plan']
           assert 'fixture-only' not in open('status.json').read()+open('plan-cli.json').read()+open('plan-config.json').read()
           PY
-          printf '\nn\n'|"$binary" tui --offline --tool rubygems --scope rubygems=user > tui.txt; grep -E 'mirror=(aliyun|nju|tuna|ustc)' tui.txt; ! grep -F 'fixture-only' tui.txt
+          printf '\nn\n'|"$binary" tui --offline --tool rubygems --scope rubygems=user --mirror rubygems:rubygems--language-registry=3f74c8a174f4a132b80c511c > tui.txt; grep -F 'mirror=aliyun' tui.txt; ! grep -F 'fixture-only' tui.txt
           "$binary" apply --offline --config request.json --yes --json > apply.json
           id=$(python3 - <<'PY'
           import json
@@ -92,19 +92,19 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'; $binary=Join-Path $PWD 'target/release/mirrorswitch.exe'; $boundary=Join-Path $env:RUNNER_TEMP 'mirrorswitch-rubygems-boundary'
-          $env:USERPROFILE=Join-Path $boundary 'home'; $env:HOME=$env:USERPROFILE; $env:APPDATA=Join-Path $env:USERPROFILE 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $env:USERPROFILE 'AppData/Local'; Remove-Item Env:GEMRC,Env:GEM_HOME,Env:GEM_PATH,Env:RUBYGEMS_GEMDEPS -ErrorAction SilentlyContinue
-          $project=Join-Path $env:USERPROFILE 'project'; New-Item -ItemType Directory -Force $env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA,$project|Out-Null
+          $env:APPDATA=Join-Path $boundary 'AppData/Roaming'; $env:LOCALAPPDATA=Join-Path $boundary 'AppData/Local'; Remove-Item Env:GEMRC,Env:GEM_HOME,Env:GEM_PATH,Env:RUBYGEMS_GEMDEPS -ErrorAction SilentlyContinue
+          $project=Join-Path $boundary 'project'; New-Item -ItemType Directory -Force $env:APPDATA,$env:LOCALAPPDATA,$project|Out-Null
           $gemrc=ruby -rrubygems -e 'print Gem.configuration.config_file_name'; $credentials=gem environment credentials; $gemHome=gem environment home
           if(-not([IO.Path]::GetFullPath($gemrc).StartsWith([IO.Path]::GetFullPath($env:USERPROFILE),[StringComparison]::OrdinalIgnoreCase))){throw "gemrc is outside USERPROFILE: $gemrc"}; if(-not([IO.Path]::GetFullPath($credentials).StartsWith([IO.Path]::GetFullPath($env:USERPROFILE),[StringComparison]::OrdinalIgnoreCase))){throw "credentials are outside USERPROFILE: $credentials"}
           New-Item -ItemType Directory -Force (Split-Path $gemrc),(Split-Path $credentials)|Out-Null
-          $config="---`r`n:sources:`r`n- https://rubygems.org/`r`n- https://fixture-only@packages.invalid.example/`r`n:ssl_verify_mode: 1`r`ngem: --no-document`r`n"; [IO.File]::WriteAllText($gemrc,$config,[Text.UTF8Encoding]::new($true)); [IO.File]::WriteAllText($credentials,":fixture: fixture-only`r`n",[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project 'Gemfile'),"source 'https://packages.invalid.example/'`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'Gemfile') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"rubygems","scope":"user"}]}',[Text.UTF8Encoding]::new($false))
+          $config="---`r`n:sources:`r`n- https://rubygems.org/`r`n- https://fixture-only@packages.invalid.example/`r`n:ssl_verify_mode: 1`r`ngem: --no-document`r`n"; [IO.File]::WriteAllText($gemrc,$config,[Text.UTF8Encoding]::new($true)); [IO.File]::WriteAllText($credentials,":fixture: fixture-only`r`n",[Text.UTF8Encoding]::new($false)); [IO.File]::WriteAllText((Join-Path $project 'Gemfile'),"source 'https://packages.invalid.example/'`r`n",[Text.UTF8Encoding]::new($false)); Set-ItemProperty (Join-Path $project 'Gemfile') IsReadOnly $true; [IO.File]::WriteAllText((Join-Path $project 'request.json'),'{"version":1,"tools":[{"id":"rubygems","scope":"user","mirrors":{"rubygems--language-registry":"3f74c8a174f4a132b80c511c"}}]}',[Text.UTF8Encoding]::new($false))
           $before=(Get-FileHash $gemrc -Algorithm SHA256).Hash; $credentialsBefore=(Get-FileHash $credentials -Algorithm SHA256).Hash; $projectBefore=(Get-FileHash (Join-Path $project 'Gemfile') -Algorithm SHA256).Hash; $certsBefore=(gem cert --list|Out-String)
           Push-Location $project
           try{
-            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool rubygems --scope rubygems=user --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
+            (& $binary status --offline --json)|Set-Content -Encoding utf8 status.json; (& $binary plan --offline --tool rubygems --scope rubygems=user --mirror rubygems:rubygems--language-registry=3f74c8a174f4a132b80c511c --json)|Set-Content -Encoding utf8 plan-cli.json; (& $binary plan --offline --config request.json --json)|Set-Content -Encoding utf8 plan-config.json
             $s=Get-Content status.json -Raw|ConvertFrom-Json; $tools=@($s.detected_tools|Where-Object adapter_key -eq 'rubygems'); if($tools.Count -ne 1){throw 'RubyGems not detected'}; $evidence=$tools[0].detected.evidence -join "`n"; if(-not $evidence.Contains($gemrc) -or -not $evidence.Contains($gemHome) -or -not $evidence.Contains('Windows')){throw 'native path/platform evidence missing'}
             $a=Get-Content plan-cli.json -Raw|ConvertFrom-Json; $b=Get-Content plan-config.json -Raw|ConvertFrom-Json; if(-not $a.ok -or -not $b.ok -or -not [string]::Equals([string]($a.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress), [string]($b.plan.tools[0].plan|ConvertTo-Json -Depth 100 -Compress))){throw 'frontend plans differ'}; if((Get-Content status.json,plan-cli.json,plan-config.json -Raw)-match 'fixture-only'){throw 'credential leaked in preview'}
-            @('','n')|& $binary tui --offline --tool rubygems --scope rubygems=user|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=(aliyun|nju|tuna|ustc)') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
+            @('','n')|& $binary tui --offline --tool rubygems --scope rubygems=user --mirror rubygems:rubygems--language-registry=3f74c8a174f4a132b80c511c|Set-Content -Encoding utf8 tui.txt; if(-not((Get-Content tui.txt)-match 'mirror=aliyun') -or (Get-Content tui.txt -Raw).Contains('fixture-only')){throw 'TUI output invalid'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'RubyGems apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1){throw 'transaction missing'}; $id=$applied[0].receipt.transaction_id
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'rubygems'){throw 'restore failed'}
           }finally{Pop-Location}
@@ -114,6 +114,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: rubygems-native-${{ matrix.name }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/mirrorswitch-rubygems-boundary/home/project/*.json
+          path: ${{ runner.temp }}/mirrorswitch-rubygems-boundary/project/*.json
           if-no-files-found: warn
           retention-days: 7
