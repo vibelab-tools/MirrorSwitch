@@ -449,7 +449,8 @@ fn config_path(context: &SystemContext, runtime: &dyn Runtime) -> Result<PathBuf
     let path = if context.os == OperatingSystem::Windows {
         environment_path(runtime, "GHCUP_INSTALL_BASE_PREFIX")?
             .unwrap_or_else(|| PathBuf::from(r"C:\"))
-            .join("ghcup/config.yaml")
+            .join("ghcup")
+            .join("config.yaml")
     } else if runtime.environment_variable("GHCUP_USE_XDG_DIRS").is_some() {
         environment_path(runtime, "XDG_CONFIG_HOME")?
             .unwrap_or_else(|| home.join(".config"))
