@@ -707,7 +707,7 @@ fn rstudio_preference_state(
 
 fn inspect_runtime(runtime: &dyn Runtime) -> Result<Snapshot, AdapterError> {
     #[cfg(windows)]
-    let script = INSPECT_SCRIPT.replace('\n', " ");
+    let script = INSPECT_SCRIPT.replace('\n', ";");
     #[cfg(not(windows))]
     let script = INSPECT_SCRIPT.to_owned();
     let arguments = vec!["-e".into(), script];
