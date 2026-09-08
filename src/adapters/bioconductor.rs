@@ -42,8 +42,7 @@ cat("BIOC_VERSION\t", as.character(BiocManager::version()), "\n", sep = "")
 mirror <- getOption("BioC_mirror", "https://bioconductor.org")
 cat("BIOC_MIRROR\t", as.character(mirror[[1L]]), "\n", sep = "")
 repos <- suppressWarnings(BiocManager::repositories())
-for (index in seq_along(repos))
-    cat("REPOSITORY\t", names(repos)[[index]], "\t", unname(repos[[index]]), "\n", sep = "")
+for (index in seq_along(repos)) cat("REPOSITORY\t", names(repos)[[index]], "\t", unname(repos[[index]]), "\n", sep = "")
 "#;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -643,7 +642,16 @@ fn project_profile_precedes_user(
 }
 
 fn inspect_runtime(runtime: &dyn Runtime) -> Result<Snapshot, AdapterError> {
-    let arguments = vec!["-e".into(), INSPECT_SCRIPT.into()];
+    #[cfg(windows)]
+    let script = INSPECT_SCRIPT
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join(";");
+    #[cfg(not(windows))]
+    let script = INSPECT_SCRIPT.to_owned();
+    let arguments = vec!["-e".into(), script];
     let output = match runtime.project_dir() {
         Some(directory) => {
             validate_path(&directory, "project")?;
