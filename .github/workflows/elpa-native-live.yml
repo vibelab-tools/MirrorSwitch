@@ -70,7 +70,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           binary="$PWD/target/release/mirrorswitch"; boundary="$RUNNER_TEMP/mirrorswitch-elpa-boundary"; unset XDG_CONFIG_HOME
-          project="$boundary/project"; emacs_dir=$(emacs --batch -Q --eval '(princ (expand-file-name user-emacs-directory))'); init="$emacs_dir/init.el"; mkdir -p "$emacs_dir" "$project"
+          project="$boundary/project"; emacs_dir=$(emacs --batch -Q --eval '(princ (expand-file-name user-emacs-directory))'); init="${emacs_dir%/}/init.el"; mkdir -p "$emacs_dir" "$project"
           printf '%s\n' ';; native user policy' '(setq custom-file "~/.emacs.d/private.el")' '(setq package-archives '\''(("private" . "https://build:fixture-only@packages.invalid.example/elpa/")))' '(setq package-archive-priorities '\''(("private" . 100)))' > "$init"; chmod 0600 "$init"
           printf '%s\n' '((nil . ((private-token . "project-fixture-only"))))' > "$project/.dir-locals.el"; chmod 0400 "$project/.dir-locals.el"
           printf '{"version":1,"tools":[{"id":"elpa","scope":"user","mirrors":{"gnu-elpa--language-registry":"70056565864f30de2af28c87","nongnu-elpa--language-registry":"d8499ba0083968fdb26601e6","melpa--language-registry":"ec3eb1905d37cd16f1981873"}}]}\n' > "$project/request.json"
