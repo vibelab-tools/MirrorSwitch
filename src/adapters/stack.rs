@@ -856,7 +856,7 @@ fn stack_snapshot(
         let data = match nonempty_environment(runtime, "XDG_DATA_HOME") {
             Some(value) => environment_user_path(context, runtime, &home, &value, "XDG_DATA_HOME")?,
             None if context.os == OperatingSystem::Windows => windows_app_data(runtime)?,
-            None => home.join(".local/share"),
+            None => home.join(".local").join("share"),
         };
         data.join("stack")
     } else if context.os == OperatingSystem::Windows {
@@ -876,13 +876,16 @@ fn stack_snapshot(
             None if context.os == OperatingSystem::Windows => windows_app_data(runtime)?,
             None => home.join(".config"),
         };
-        xdg.join("stack/config.yaml")
+        xdg.join("stack").join("config.yaml")
     } else {
         stack_root.join("config.yaml")
     };
     validate_user_config_path(context, runtime, &home, &user_config)?;
     let project_config = project_config_path(runtime)?;
-    let verification = home.join(".mirrorswitch/verification/stack");
+    let verification = home
+        .join(".mirrorswitch")
+        .join("verification")
+        .join("stack");
     validate_user_path(&home, &verification, "Stack verification root")?;
     Ok(StackSnapshot {
         version,
