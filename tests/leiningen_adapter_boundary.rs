@@ -447,6 +447,7 @@ fn macos_and_windows_preserve_native_profiles_and_verification_commands() {
             original.splice(..0, [0xef, 0xbb, 0xbf]);
         }
         let profile = write(root, "/home/developer/.lein/profiles.clj", &original);
+        write(root, "/etc/leiningen/profiles.clj", b"{:user {}}\n");
         let project_contents = b"(defproject native \"0.1.0\" :dependencies [[org.clojure/clojure \"1.12.0\"]] :repositories [[\"private\" \"https://packages.invalid.example/\"]])\n";
         let project = write(root, "/work/project/project.clj", project_contents);
         let context = native_context(root, os, architecture);
@@ -456,6 +457,13 @@ fn macos_and_windows_preserve_native_profiles_and_verification_commands() {
         let current = adapter
             .read_current(&context, &runtime, &detected, ConfigurationScope::User)
             .unwrap();
+        assert_eq!(
+            current
+                .documents
+                .iter()
+                .any(|document| { document.path == Path::new("/etc/leiningen/profiles.clj") }),
+            os != OperatingSystem::Windows
+        );
         assert!(!serde_json::to_string(&current).unwrap().contains("secret"));
         let selected = selections();
         let plan = adapter.plan(&context, &current, &selected).unwrap();

@@ -85,7 +85,7 @@ impl Adapter for LeiningenAdapter {
         let version = lein_version(&output)?;
         reviewed_version(&version)?;
         let layout = config_layout(runtime)?;
-        let project = project_observation(runtime, &layout)?;
+        let project = project_observation(runtime, &layout, context.os)?;
         let mut evidence = vec![
             format!("Leiningen {version}"),
             java_evidence(&output),
@@ -163,7 +163,7 @@ impl Adapter for LeiningenAdapter {
             contents: user.contents,
         });
 
-        for (path, kind) in read_only_paths(runtime, &layout)? {
+        for (path, kind) in read_only_paths(runtime, &layout, context.os)? {
             let document = read_document(runtime, &path)?;
             if !document.exists {
                 continue;
@@ -516,17 +516,18 @@ fn config_layout(runtime: &dyn Runtime) -> Result<Layout, AdapterError> {
 fn read_only_paths(
     runtime: &dyn Runtime,
     layout: &Layout,
+    os: OperatingSystem,
 ) -> Result<Vec<(PathBuf, ReadOnlyKind)>, AdapterError> {
-    let mut paths = vec![
-        (
+    let mut paths = vec![(
+        layout.lein_home.join("profiles.d/user.clj"),
+        ReadOnlyKind::UserProfileOverride,
+    )];
+    if os != OperatingSystem::Windows {
+        paths.push((
             PathBuf::from("/etc/leiningen/profiles.clj"),
             ReadOnlyKind::System,
-        ),
-        (
-            layout.lein_home.join("profiles.d/user.clj"),
-            ReadOnlyKind::UserProfileOverride,
-        ),
-    ];
+        ));
+    }
     if let Some(project) = runtime.project_dir() {
         validate_path(&project)?;
         paths.extend([
@@ -546,9 +547,10 @@ fn read_only_paths(
 fn project_observation(
     runtime: &dyn Runtime,
     layout: &Layout,
+    os: OperatingSystem,
 ) -> Result<ProjectObservation, AdapterError> {
     let mut observation = ProjectObservation::default();
-    for (path, kind) in read_only_paths(runtime, layout)? {
+    for (path, kind) in read_only_paths(runtime, layout, os)? {
         if !matches!(kind, ReadOnlyKind::Project | ReadOnlyKind::ProjectProfiles) {
             continue;
         }
