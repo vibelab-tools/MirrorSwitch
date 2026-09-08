@@ -90,7 +90,7 @@ jobs:
           r=json.load(open('apply.json'))['result']; assert r['successful']; a=[t for t in r['tools'] if t['status']=='applied']; assert len(a)==1 and a[0]['verification']['valid']; print(a[0]['receipt']['transaction_id'])
           PY
           )
-          source "$profile"; printf '%s\n' "$FNM_NODE_DIST_MIRROR"|grep -E 'mirrors\.(aliyun|nju|tuna|ustc)|repo\.huaweicloud\.com'
+          configured=$(zsh -c 'source "$1"; print -r -- "$FNM_NODE_DIST_MIRROR"' _ "$profile"); printf '%s\n' "$configured"|grep -E 'mirrors\.(aliyun|nju|tuna|ustc)|repo\.huaweicloud\.com'
           "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
           python3 - <<'PY'
           import json
