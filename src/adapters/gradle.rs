@@ -65,7 +65,7 @@ impl Adapter for GradleAdapter {
     ) -> Result<Option<DetectedTool>, AdapterError> {
         require_supported_context(context)?;
         let project = project_dir(runtime)?;
-        let command = gradle_command(runtime, project.as_deref());
+        let command = gradle_command(runtime, project.as_deref(), context.os);
         let layout = config_layout(runtime, project.as_deref())?;
         if command.is_none() && layout.wrapper.is_none() {
             return Ok(None);
@@ -156,7 +156,7 @@ impl Adapter for GradleAdapter {
                 ));
             }
             let project = project.as_deref().expect("validated project");
-            if gradle_wrapper_command(runtime, project).is_none() {
+            if gradle_wrapper_command(runtime, project, context.os).is_none() {
                 return Err(AdapterError::Unsupported(
                     "Gradle project scope requires an executable gradlew wrapper".into(),
                 ));
@@ -491,9 +491,10 @@ impl Adapter for GradleAdapter {
                         "managed Gradle verification project is not canonical".into(),
                     ));
                 }
-                let command = gradle_command(runtime, project.as_deref()).ok_or_else(|| {
-                    AdapterError::Verification("Gradle command disappeared".into())
-                })?;
+                let command =
+                    gradle_command(runtime, project.as_deref(), context.os).ok_or_else(|| {
+                        AdapterError::Verification("Gradle command disappeared".into())
+                    })?;
                 let verification_dir = layout.verification_settings.parent().ok_or_else(|| {
                     AdapterError::Verification(
                         "managed Gradle verification project has no parent directory".into(),
@@ -536,9 +537,10 @@ impl Adapter for GradleAdapter {
                 let project = project.as_deref().ok_or_else(|| {
                     AdapterError::Verification("Gradle project disappeared".into())
                 })?;
-                let command = gradle_wrapper_command(runtime, project).ok_or_else(|| {
-                    AdapterError::Verification("executable Gradle wrapper disappeared".into())
-                })?;
+                let command =
+                    gradle_wrapper_command(runtime, project, context.os).ok_or_else(|| {
+                        AdapterError::Verification("executable Gradle wrapper disappeared".into())
+                    })?;
                 let output = run_gradle(runtime, Some(project), &command, &["--version"])?;
                 let observed = gradle_version(&output)?;
                 if version_number(&observed)? != wrapper.version {
@@ -754,14 +756,26 @@ fn is_init_script(path: &Path) -> bool {
         .is_some_and(|name| name.ends_with(".gradle") || name.ends_with(".gradle.kts"))
 }
 
-fn gradle_command(runtime: &dyn Runtime, project: Option<&Path>) -> Option<String> {
+fn gradle_command(
+    runtime: &dyn Runtime,
+    project: Option<&Path>,
+    os: OperatingSystem,
+) -> Option<String> {
     project
-        .and_then(|project| gradle_wrapper_command(runtime, project))
+        .and_then(|project| gradle_wrapper_command(runtime, project, os))
         .or_else(|| runtime.command_exists("gradle").then(|| "gradle".into()))
 }
 
-fn gradle_wrapper_command(runtime: &dyn Runtime, project: &Path) -> Option<String> {
-    ["gradlew", "gradlew.bat"].into_iter().find_map(|name| {
+fn gradle_wrapper_command(
+    runtime: &dyn Runtime,
+    project: &Path,
+    os: OperatingSystem,
+) -> Option<String> {
+    let names: &[&str] = match os {
+        OperatingSystem::Windows => &["gradlew.bat"],
+        OperatingSystem::Linux | OperatingSystem::Macos => &["gradlew"],
+    };
+    names.iter().find_map(|name| {
         let path = project.join(name);
         let command = path.to_str()?;
         runtime.command_exists(command).then(|| command.into())

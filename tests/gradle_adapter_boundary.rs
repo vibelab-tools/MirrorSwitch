@@ -722,6 +722,14 @@ fn macos_user_and_windows_bat_wrapper_boundaries_are_reversible() {
         NJU_GRADLE,
         0,
     );
+    install_gradle(
+        root,
+        "/work/project/gradlew",
+        "9.7.1",
+        "/work/project/gradle/wrapper/gradle-wrapper.properties",
+        NJU_GRADLE,
+        0,
+    );
     let text = format!(
         "# native wrapper\r\ndistributionBase=GRADLE_USER_HOME\r\ndistributionUrl=https\\://services.gradle.org/distributions/gradle-9.7.1-bin.zip\r\ndistributionSha256Sum={CHECKSUM}\r\nnetworkTimeout=10000\r\nzipStoreBase=GRADLE_USER_HOME\r\n"
     );
