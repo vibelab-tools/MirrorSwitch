@@ -102,7 +102,7 @@ jobs:
           )
           grep -F 'url: https://mirrors.nju.edu.cn/hackage' "$config"; grep -F 'https://build:fixture-only@packages.invalid.example/hackage' "$config"; grep -F 'secure: True' "$config"
           cabal --config-file="$config" user-config diff >/dev/null
-          cabal --config-file="$config" build --offline all
+          verification="$HOME/.mirrorswitch/verification/cabal/config"; cabal --config-file="$verification" build --offline all
           "$binary" apply --offline --config request.json --yes --json > idempotent.json; "$binary" restore "$id" --yes --json > restore.json
           python3 - <<'PY'
           import json
@@ -130,7 +130,7 @@ jobs:
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 apply.json; $r=Get-Content apply.json -Raw|ConvertFrom-Json; if(-not $r.result.successful){throw 'Cabal apply failed'}; $applied=@($r.result.tools|Where-Object status -eq 'applied'); if($applied.Count -ne 1 -or -not $applied[0].verification.valid){throw 'verified transaction missing'}; $id=$applied[0].receipt.transaction_id
             $configured=[IO.File]::ReadAllText($config); if(-not $configured.Contains('url: https://mirrors.nju.edu.cn/hackage') -or -not $configured.Contains('https://build:fixture-only@packages.invalid.example/hackage') -or -not $configured.Contains('secure: True') -or -not $configured.Contains("`r`n")){throw 'native configuration policy or CRLF was not preserved'}; $bytes=[IO.File]::ReadAllBytes($config); if($bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'UTF-8 BOM was not preserved'}
             $configArg="--config-file=$config"; & cabal $configArg user-config diff|Out-Null; if($LASTEXITCODE -ne 0){throw 'native Cabal rejected the applied config'}
-            & cabal $configArg build --offline all; if($LASTEXITCODE -ne 0){throw 'native Cabal build failed'}
+            $verification=Join-Path $env:USERPROFILE '.mirrorswitch/verification/cabal/config'; & cabal "--config-file=$verification" build --offline all; if($LASTEXITCODE -ne 0){throw 'native Cabal build failed'}
             (& $binary apply --offline --config request.json --yes --json)|Set-Content -Encoding utf8 idempotent.json; $again=Get-Content idempotent.json -Raw|ConvertFrom-Json; if(-not $again.result.successful -or @($again.result.tools|Where-Object status -eq 'applied').Count -ne 0){throw 'not idempotent'}; (& $binary restore $id --yes --json)|Set-Content -Encoding utf8 restore.json; $restore=Get-Content restore.json -Raw|ConvertFrom-Json; if(-not $restore.receipt.verified -or $restore.adapter_key -ne 'cabal'){throw 'restore failed'}
           }finally{Pop-Location}
           $verification=Join-Path $env:USERPROFILE '.mirrorswitch/verification/cabal/config'; if($before -ne (Get-FileHash $config -Algorithm SHA256).Hash -or $projectBefore -ne (Get-FileHash (Join-Path $project 'cabal.project') -Algorithm SHA256).Hash -or (Test-Path $verification)){throw 'Cabal state not restored exactly'}
