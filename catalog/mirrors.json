@@ -1,13 +1,18 @@
 {
   "schema_version": 2,
-  "content_version": "2026.08.28+8ecf27bc8caa",
-  "content_revision": 20260906060753,
-  "generated_at": "2026-09-06T06:07:53Z",
+  "content_version": "2026.09.09+2c2224fc1be4",
+  "content_revision": 20260909025922,
+  "generated_at": "2026-09-09T02:59:22Z",
   "providers": [
     {
       "id": "aliyun",
       "display_name": "Alibaba Cloud",
       "catalog_source": "https://developer.aliyun.com/mirror/"
+    },
+    {
+      "id": "daocloud",
+      "display_name": "DaoCloud",
+      "catalog_source": "https://github.com/DaoCloud/public-image-mirror"
     },
     {
       "id": "huaweicloud",
@@ -18,6 +23,11 @@
       "id": "nju",
       "display_name": "Nanjing University",
       "catalog_source": "https://mirrors.nju.edu.cn/"
+    },
+    {
+      "id": "onepanel",
+      "display_name": "1Panel",
+      "catalog_source": "https://1panel.cn/docs/v2/user_manual/containers/setting/"
     },
     {
       "id": "sjtug",
@@ -423,6 +433,7 @@
       "display_name": "docker-hub",
       "content_kind": "container-registry",
       "aliases": [
+        "docker-hub",
         "dockerhub"
       ]
     },
@@ -1711,10 +1722,11 @@
       "id": "docker-registry",
       "adapter_key": "docker-registry",
       "display_name": "docker-registry",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/75",
       "supported_scopes": [
-        "system"
+        "system",
+        "user"
       ],
       "composition": "single"
     },
@@ -22882,6 +22894,85 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "a11e02a2a185cbebb7fac15b",
+      "provider_id": "daocloud",
+      "upstream_id": "docker-hub--container-registry",
+      "tool_id": "docker-registry",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "docker-hub"
+      ],
+      "endpoints": [
+        {
+          "role": "registry",
+          "protocol": "https",
+          "url": "https://docker.m.daocloud.io/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/library/alpine/manifests/sha256:{manifest_hash}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "expected_content_type": "application/vnd.oci.image.manifest.v1+json",
+          "contains": "sha256:{config_hash}"
+        },
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/library/alpine/manifests/sha256:{manifest_hash}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "expected_content_type": "application/vnd.oci.image.manifest.v1+json",
+          "contains": "sha256:{layer_hash}"
+        },
+        {
+          "endpoint_role": "registry",
+          "method": "head",
+          "path": "/v2/library/alpine/blobs/sha256:{config_hash}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
+        },
+        {
+          "endpoint_role": "registry",
+          "method": "head",
+          "path": "/v2/library/alpine/blobs/sha256:{layer_hash}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/DaoCloud/public-image-mirror/main/README.md"
+      ],
+      "observed_at": "2026-09-09T02:59:22Z"
+    },
+    {
       "id": "a18b2f6a1aa3a530d2c06512",
       "provider_id": "nju",
       "upstream_id": "homebrew-base--git-mirror",
@@ -34530,6 +34621,85 @@
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "f0a36a45c2c41a0bc2b93d89",
+      "provider_id": "onepanel",
+      "upstream_id": "docker-hub--container-registry",
+      "tool_id": "docker-registry",
+      "catalog_state": "cataloged",
+      "delivery_mode": "proxy",
+      "raw_names": [
+        "docker-hub"
+      ],
+      "endpoints": [
+        {
+          "role": "registry",
+          "protocol": "https",
+          "url": "https://docker.1panel.live/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/library/alpine/manifests/sha256:{manifest_hash}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "expected_content_type": "application/vnd.oci.image.manifest.v1+json",
+          "contains": "sha256:{config_hash}"
+        },
+        {
+          "endpoint_role": "registry",
+          "method": "get",
+          "path": "/v2/library/alpine/manifests/sha256:{manifest_hash}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+          "expected_content_type": "application/vnd.oci.image.manifest.v1+json",
+          "contains": "sha256:{layer_hash}"
+        },
+        {
+          "endpoint_role": "registry",
+          "method": "head",
+          "path": "/v2/library/alpine/blobs/sha256:{config_hash}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
+        },
+        {
+          "endpoint_role": "registry",
+          "method": "head",
+          "path": "/v2/library/alpine/blobs/sha256:{layer_hash}",
+          "expected_status": [
+            200
+          ],
+          "accept": "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
+        }
+      ],
+      "source_urls": [
+        "https://1panel.cn/docs/v2/user_manual/containers/setting/"
+      ],
+      "observed_at": "2026-09-09T02:59:22Z"
     },
     {
       "id": "f138ded7c16011611073fa6f",

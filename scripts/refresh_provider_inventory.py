@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refresh the six-provider public mirror inventory from official listings."""
+"""Refresh the reviewed public mirror inventory from official listings."""
 
 from __future__ import annotations
 
@@ -59,6 +59,20 @@ PROVIDERS = {
         "display_name": "SJTUG",
         "homepage": "https://mirror.sjtu.edu.cn/",
         "sources": ["https://mirror.sjtu.edu.cn/lug/v1/manager/summary"],
+    },
+    "daocloud": {
+        "display_name": "DaoCloud",
+        "homepage": "https://github.com/DaoCloud/public-image-mirror",
+        "sources": [
+            "https://raw.githubusercontent.com/DaoCloud/public-image-mirror/main/README.md"
+        ],
+    },
+    "onepanel": {
+        "display_name": "1Panel",
+        "homepage": "https://1panel.cn/docs/v2/user_manual/containers/setting/",
+        "sources": [
+            "https://1panel.cn/docs/v2/user_manual/containers/setting/"
+        ],
     },
 }
 
@@ -781,6 +795,41 @@ def collect_sjtug(observed_at: str) -> tuple[list[dict[str, Any]], list[dict[str
     return records, [fetched.source_snapshot(len(workers), len(records), excluded)]
 
 
+def collect_documented_docker_mirror(
+    provider_id: str, mirror_url: str, observed_at: str
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    url = PROVIDERS[provider_id]["sources"][0]
+    fetched = fetch(url)
+    if mirror_url.removeprefix("https://").encode() not in fetched.body:
+        raise RuntimeError(f"published Docker mirror missing from {url}: {mirror_url}")
+    record = make_record(
+        provider_id,
+        "docker-hub",
+        url,
+        observed_at,
+        [endpoint(mirror_url, "published-docker-daemon-instructions")],
+        {"upstream": "https://registry-1.docker.io"},
+    )
+    record["compatibility"]["architectures"] = ["x86_64", "arm64"]
+    record["compatibility"]["evidence"] = (
+        "The provider publishes this Docker daemon mirror; the adapter must still "
+        "validate an architecture-specific manifest, config blob, and layer blob."
+    )
+    return [record], [fetched.source_snapshot(1, 1, [])]
+
+
+def collect_daocloud(observed_at: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    return collect_documented_docker_mirror(
+        "daocloud", "https://docker.m.daocloud.io", observed_at
+    )
+
+
+def collect_onepanel(observed_at: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    return collect_documented_docker_mirror(
+        "onepanel", "https://docker.1panel.live", observed_at
+    )
+
+
 COLLECTORS: dict[str, Callable[[str], tuple[list[dict[str, Any]], list[dict[str, Any]]]]] = {
     "aliyun": collect_aliyun,
     "huaweicloud": collect_huawei,
@@ -788,6 +837,8 @@ COLLECTORS: dict[str, Callable[[str], tuple[list[dict[str, Any]], list[dict[str,
     "tuna": collect_tuna,
     "nju": collect_nju,
     "sjtug": collect_sjtug,
+    "daocloud": collect_daocloud,
+    "onepanel": collect_onepanel,
 }
 
 
@@ -872,7 +923,7 @@ def main() -> int:
         "schema_version": 1,
         "generated_at": utc_now(),
         "observed_at": observed_at,
-        "scope": "Entries listed by the six official public provider sources at observation time; listing is not support.",
+        "scope": "Entries listed by reviewed official public provider sources at observation time; listing is not support.",
         "providers": provider_documents,
         "entries": entries,
         "content_probes": probes,

@@ -227,6 +227,7 @@ pub fn category_for(tool_id: &str) -> &'static str {
         tool_id,
         "containerd"
             | "docker-ce"
+            | "docker-registry"
             | "podman-registry"
             | "kubernetes-images"
             | "kubernetes-packages"

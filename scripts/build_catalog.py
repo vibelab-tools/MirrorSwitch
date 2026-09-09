@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "112"
+CATALOG_FORMAT_REVISION = "113"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -442,6 +442,11 @@ DOCKER_CE_ENDPOINTS = {
     "tuna": "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/",
     "ustc": "https://mirrors.ustc.edu.cn/docker-ce/",
 }
+DOCKER_REGISTRY_UPSTREAM = "docker-hub--container-registry"
+DOCKER_REGISTRY_ENDPOINTS = {
+    "daocloud": "https://docker.m.daocloud.io/",
+    "onepanel": "https://docker.1panel.live/",
+}
 ELPA_ARCHIVES = {
     "gnu": ("gnu-elpa", "a68-mode-1.3.tar"),
     "nongnu": ("nongnu-elpa", "adoc-mode-0.9.0.tar"),
@@ -808,6 +813,8 @@ def tool_scopes(tool_id: str) -> list[str]:
         return ["system"]
     if tool_id == "docker-ce":
         return ["system"]
+    if tool_id == "docker-registry":
+        return ["system", "user"]
     if tool_id == "elpa":
         return ["user"]
     if tool_id == "ros":
@@ -1025,6 +1032,19 @@ def candidate_endpoints(
         return [
             {"role": role, "protocol": "https", "url": endpoint}
             for role in ["index", "metadata", "packages"]
+        ]
+    if (
+        tool_id == "docker-registry"
+        and upstream_key == DOCKER_REGISTRY_UPSTREAM
+        and entry["provider_id"] in DOCKER_REGISTRY_ENDPOINTS
+        and entry["raw_name"] == "docker-hub"
+    ):
+        return [
+            {
+                "role": "registry",
+                "protocol": "https",
+                "url": DOCKER_REGISTRY_ENDPOINTS[entry["provider_id"]],
+            }
         ]
     if (
         tool_id == "docker-ce"
@@ -3626,6 +3646,52 @@ def runtime_properties(
             ],
         ]
     elif (
+        tool_id == "docker-registry"
+        and upstream_key == DOCKER_REGISTRY_UPSTREAM
+        and entry["provider_id"] in DOCKER_REGISTRY_ENDPOINTS
+        and entry["raw_name"] == "docker-hub"
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = []
+        compatibility["repository_versions"] = []
+        delivery_mode = "proxy"
+        probes = [
+            {
+                "endpoint_role": "registry",
+                "method": "get",
+                "path": "/v2/library/alpine/manifests/sha256:{manifest_hash}",
+                "expected_status": [200],
+                "accept": OCI_MANIFEST_ACCEPT,
+                "expected_content_type": "application/vnd.oci.image.manifest.v1+json",
+                "contains": "sha256:{config_hash}",
+            },
+            {
+                "endpoint_role": "registry",
+                "method": "get",
+                "path": "/v2/library/alpine/manifests/sha256:{manifest_hash}",
+                "expected_status": [200],
+                "accept": OCI_MANIFEST_ACCEPT,
+                "expected_content_type": "application/vnd.oci.image.manifest.v1+json",
+                "contains": "sha256:{layer_hash}",
+            },
+            {
+                "endpoint_role": "registry",
+                "method": "head",
+                "path": "/v2/library/alpine/blobs/sha256:{config_hash}",
+                "expected_status": [200],
+                "accept": OCI_MANIFEST_ACCEPT,
+            },
+            {
+                "endpoint_role": "registry",
+                "method": "head",
+                "path": "/v2/library/alpine/blobs/sha256:{layer_hash}",
+                "expected_status": [200],
+                "accept": OCI_MANIFEST_ACCEPT,
+            },
+        ]
+    elif (
         tool_id == "docker-ce"
         and upstream_key == DOCKER_CE_UPSTREAM
         and entry["provider_id"] in DOCKER_CE_ENDPOINTS
@@ -4629,6 +4695,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "cygwin",
                         "dnf",
                         "docker-ce",
+                        "docker-registry",
                         "elasticstack",
                         "elpa",
                         "dart-pub",

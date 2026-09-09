@@ -1,8 +1,10 @@
 # Runtime catalog and updates
 
 `catalog/mirrors.json` is the single runtime catalog consumed by MirrorSwitch. It is generated
-from the reviewed six-provider discovery snapshot in `catalog/provider-inventory.json`; the
-inventory remains provenance input and is not a second runtime manifest.
+from the reviewed provider discovery snapshot in `catalog/provider-inventory.json`; the inventory
+remains provenance input and is not a second runtime manifest. The original six broad mirror
+directories remain the baseline, while additional providers require a published tool-specific
+configuration endpoint and independent content probes.
 
 Regenerate the catalog deterministically after reviewing an inventory change:
 

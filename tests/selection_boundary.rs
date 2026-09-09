@@ -578,6 +578,78 @@ fn real_http_probe_uses_repository_metadata_path_and_validates_content() {
 }
 
 #[test]
+fn real_oci_probe_follows_anonymous_bearer_challenge_without_exposing_the_token() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = thread::spawn(move || {
+        let (mut initial, _) = listener.accept().unwrap();
+        let mut initial_request = [0_u8; 2048];
+        let length = initial.read(&mut initial_request).unwrap();
+        let initial_request = String::from_utf8_lossy(&initial_request[..length]);
+        assert!(initial_request.starts_with("GET /v2/library/alpine/manifests/test HTTP/1.1"));
+        write!(
+            initial,
+            "HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Bearer realm=\"http://{address}/token\",service=\"registry.test\",scope=\"repository:library/alpine:pull\"\r\nContent-Length: 0\r\n\r\n"
+        )
+        .unwrap();
+        drop(initial);
+
+        let (mut token, _) = listener.accept().unwrap();
+        let mut token_request = [0_u8; 2048];
+        let length = token.read(&mut token_request).unwrap();
+        let token_request = String::from_utf8_lossy(&token_request[..length]);
+        assert!(token_request.starts_with(
+            "GET /token?service=registry.test&scope=repository%3Alibrary%2Falpine%3Apull HTTP/1.1"
+        ));
+        let body = br#"{"token":"public-test-token"}"#;
+        write!(
+            token,
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        )
+        .unwrap();
+        token.write_all(body).unwrap();
+        drop(token);
+
+        let (mut authenticated, _) = listener.accept().unwrap();
+        let mut authenticated_request = [0_u8; 2048];
+        let length = authenticated.read(&mut authenticated_request).unwrap();
+        let authenticated_request = String::from_utf8_lossy(&authenticated_request[..length]);
+        assert!(
+            authenticated_request
+                .to_ascii_lowercase()
+                .contains("authorization: bearer public-test-token")
+        );
+        let body = br#"{"schemaVersion":2,"config":{"digest":"sha256:test"}}"#;
+        write!(
+            authenticated,
+            "HTTP/1.1 200 OK\r\nContent-Type: application/vnd.oci.image.manifest.v1+json\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        )
+        .unwrap();
+        authenticated.write_all(body).unwrap();
+    });
+
+    let observation = HttpCandidateProber
+        .probe_with_accept(
+            mirrorswitch::catalog::HttpMethod::Get,
+            &format!("http://{address}/v2/library/alpine/manifests/test"),
+            Some("application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"),
+            ProbeLimits {
+                timeout: Duration::from_secs(1),
+                max_bytes: 1024,
+            },
+        )
+        .unwrap();
+    server.join().unwrap();
+    assert_eq!(observation.status, 200);
+    assert_eq!(
+        observation.content_type.as_deref(),
+        Some("application/vnd.oci.image.manifest.v1+json")
+    );
+}
+
+#[test]
 fn repository_path_probe_context_cannot_escape_the_mirror_endpoint() {
     let mut catalog = catalog();
     catalog.candidates.retain(|candidate| candidate.id == "tie");

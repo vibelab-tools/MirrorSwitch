@@ -16,6 +16,7 @@ mod cygwin;
 mod dart_pub;
 mod dnf;
 mod docker_ce;
+mod docker_registry;
 mod elasticstack;
 mod elpa;
 mod flatpak;
@@ -92,6 +93,7 @@ pub use cygwin::CygwinAdapter;
 pub use dart_pub::DartPubAdapter;
 pub use dnf::DnfAdapter;
 pub use docker_ce::DockerCeAdapter;
+pub use docker_registry::DockerRegistryAdapter;
 pub use elasticstack::ElasticStackAdapter;
 pub use elpa::ElpaAdapter;
 pub use flatpak::FlatpakAdapter;
@@ -163,6 +165,7 @@ static CRAN: CranAdapter = CranAdapter;
 static CYGWIN: CygwinAdapter = CygwinAdapter;
 static DNF: DnfAdapter = DnfAdapter;
 static DOCKER_CE: DockerCeAdapter = DockerCeAdapter;
+static DOCKER_REGISTRY: DockerRegistryAdapter = DockerRegistryAdapter;
 static ELPA: ElpaAdapter = ElpaAdapter;
 static ELASTICSTACK: ElasticStackAdapter = ElasticStackAdapter;
 static DART_PUB: DartPubAdapter = DartPubAdapter;
@@ -224,6 +227,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &APT,
         &DNF,
         &DOCKER_CE,
+        &DOCKER_REGISTRY,
         &ELPA,
         &ELASTICSTACK,
         &YUM,

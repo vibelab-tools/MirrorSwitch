@@ -5,7 +5,7 @@ use serde_json::Value;
 const INVENTORY: &str = include_str!("../catalog/provider-inventory.json");
 
 #[test]
-fn inventory_covers_six_official_sources_with_strict_record_fields() {
+fn inventory_covers_reviewed_official_sources_with_strict_record_fields() {
     let document: Value = serde_json::from_str(INVENTORY).unwrap();
     assert_eq!(document["schema_version"], 1);
     let observed_at = document["observed_at"].as_str().unwrap();
@@ -18,7 +18,16 @@ fn inventory_covers_six_official_sources_with_strict_record_fields() {
         .collect();
     assert_eq!(
         provider_ids,
-        HashSet::from(["aliyun", "huaweicloud", "ustc", "tuna", "nju", "sjtug"])
+        HashSet::from([
+            "aliyun",
+            "huaweicloud",
+            "ustc",
+            "tuna",
+            "nju",
+            "sjtug",
+            "daocloud",
+            "onepanel",
+        ])
     );
 
     let allowed_content_types = HashSet::from([
@@ -48,7 +57,7 @@ fn inventory_covers_six_official_sources_with_strict_record_fields() {
         let source_url = entry["source_url"].as_str().unwrap();
         assert!(source_url.starts_with("https://"));
         assert!(identities.insert((provider, raw_name, source_url)));
-        assert_eq!(entry["observed_at"], observed_at);
+        assert!(entry["observed_at"].as_str().unwrap().ends_with('Z'));
 
         let normalized = entry["normalized_upstream"].as_str().unwrap();
         assert!(!normalized.is_empty());
@@ -120,7 +129,37 @@ fn inventory_covers_six_official_sources_with_strict_record_fields() {
 }
 
 #[test]
-fn content_checks_probe_repository_metadata_instead_of_provider_roots() {
+fn inventory_records_two_published_docker_hub_daemon_mirrors() {
+    let document: Value = serde_json::from_str(INVENTORY).unwrap();
+    let entries = document["entries"].as_array().unwrap();
+    let mirrors: HashMap<_, _> = entries
+        .iter()
+        .filter(|entry| ["daocloud", "onepanel"].contains(&entry["provider_id"].as_str().unwrap()))
+        .map(|entry| {
+            (
+                entry["provider_id"].as_str().unwrap(),
+                entry["public_endpoints"][0]["url"].as_str().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(mirrors["daocloud"], "https://docker.m.daocloud.io");
+    assert_eq!(mirrors["onepanel"], "https://docker.1panel.live");
+    assert!(
+        entries
+            .iter()
+            .filter(|entry| mirrors.contains_key(entry["provider_id"].as_str().unwrap()))
+            .all(|entry| {
+                entry["normalized_upstream"] == "docker-hub"
+                    && entry["content_type"] == "container-registry"
+                    && entry["compatibility"]["architectures"]
+                        == serde_json::json!(["x86_64", "arm64"])
+                    && entry["adapter_targets"][0]["tool_id"] == "docker-registry"
+            })
+    );
+}
+
+#[test]
+fn baseline_content_checks_probe_repository_metadata_instead_of_provider_roots() {
     let document: Value = serde_json::from_str(INVENTORY).unwrap();
     let probes = document["content_probes"].as_array().unwrap();
     assert_eq!(probes.len(), 6);

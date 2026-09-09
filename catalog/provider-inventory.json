@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-28T10:52:55Z",
-  "observed_at": "2026-08-28T10:52:05Z",
-  "scope": "Entries listed by the six official public provider sources at observation time; listing is not support.",
+  "generated_at": "2026-09-09T02:59:22Z",
+  "observed_at": "2026-09-09T02:59:22Z",
+  "scope": "Entries listed by reviewed official public provider sources at their recorded observation times; listing is not support.",
   "providers": [
     {
       "id": "aliyun",
@@ -170,6 +170,44 @@
         }
       ],
       "included_entries": 123
+    },
+    {
+      "id": "daocloud",
+      "display_name": "DaoCloud",
+      "homepage": "https://github.com/DaoCloud/public-image-mirror",
+      "sources": [
+        "https://raw.githubusercontent.com/DaoCloud/public-image-mirror/main/README.md"
+      ],
+      "source_snapshots": [
+        {
+          "url": "https://raw.githubusercontent.com/DaoCloud/public-image-mirror/main/README.md",
+          "retrieved_at": "2026-09-09T02:59:22Z",
+          "sha256": "d2065b96c28d660d8b03ec20d1814b9893574e1ad05c5168d02823bf5a54df93",
+          "discovered_entries": 1,
+          "included_entries": 1,
+          "excluded_entries": []
+        }
+      ],
+      "included_entries": 1
+    },
+    {
+      "id": "onepanel",
+      "display_name": "1Panel",
+      "homepage": "https://1panel.cn/docs/v2/user_manual/containers/setting/",
+      "sources": [
+        "https://1panel.cn/docs/v2/user_manual/containers/setting/"
+      ],
+      "source_snapshots": [
+        {
+          "url": "https://1panel.cn/docs/v2/user_manual/containers/setting/",
+          "retrieved_at": "2026-09-09T02:59:22Z",
+          "sha256": "a6314181117413005cd8068d24a734421b4413466d30b3e2e71a11985bcc9d7c",
+          "discovered_entries": 1,
+          "included_entries": 1,
+          "excluded_entries": []
+        }
+      ],
+      "included_entries": 1
     }
   ],
   "entries": [
@@ -48296,6 +48334,94 @@
       },
       "provider_metadata": {
         "official_mirrorlist": "https://github.com/msys2/MSYS2-packages/blob/master/pacman-mirrors/mirrorlist.msys"
+      }
+    },
+    {
+      "id": "daocloud:943841a5a02ebee3675b",
+      "provider_id": "daocloud",
+      "raw_name": "docker-hub",
+      "normalized_upstream": "docker-hub",
+      "source_url": "https://raw.githubusercontent.com/DaoCloud/public-image-mirror/main/README.md",
+      "observed_at": "2026-09-09T02:59:22Z",
+      "public_endpoints": [
+        {
+          "url": "https://docker.m.daocloud.io",
+          "protocol": "https",
+          "derivation": "published-docker-daemon-instructions"
+        }
+      ],
+      "content_type": "container-registry",
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "distributions": [],
+        "versions": [],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "evidence": "The provider publishes this Docker daemon mirror; the adapter validates an architecture-specific manifest, config blob, and layer blob."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "docker-registry",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/75"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "Docker Registry v2 manifest and blob probes are supplied by the adapter catalog generator."
+      },
+      "provider_metadata": {
+        "upstream": "https://registry-1.docker.io"
+      }
+    },
+    {
+      "id": "onepanel:15ceae679c9298ba153e",
+      "provider_id": "onepanel",
+      "raw_name": "docker-hub",
+      "normalized_upstream": "docker-hub",
+      "source_url": "https://1panel.cn/docs/v2/user_manual/containers/setting/",
+      "observed_at": "2026-09-09T02:59:22Z",
+      "public_endpoints": [
+        {
+          "url": "https://docker.1panel.live",
+          "protocol": "https",
+          "derivation": "published-docker-daemon-instructions"
+        }
+      ],
+      "content_type": "container-registry",
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "distributions": [],
+        "versions": [],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "evidence": "The provider publishes this Docker daemon mirror; the adapter validates an architecture-specific manifest, config blob, and layer blob."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "docker-registry",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/75"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "Docker Registry v2 manifest and blob probes are supplied by the adapter catalog generator."
+      },
+      "provider_metadata": {
+        "upstream": "https://registry-1.docker.io"
       }
     }
   ],

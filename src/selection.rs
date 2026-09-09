@@ -19,6 +19,8 @@ use crate::{
     plan::MirrorSelection,
 };
 
+const OCI_MANIFEST_ACCEPT: &str = "application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SelectionRequest {
     pub tool_id: String,
@@ -110,25 +112,22 @@ impl CandidateProber for HttpCandidateProber {
             .build()
             .map_err(|error| ProbeError::Http(error.to_string()))?;
         let started = Instant::now();
-        let mut retries = 1;
-        let mut response = loop {
-            let request = client.request(
-                match method {
-                    HttpMethod::Head => Method::HEAD,
-                    HttpMethod::Get => Method::GET,
-                },
-                url,
-            );
-            let request = match accept {
-                Some(value) => request.header(reqwest::header::ACCEPT, value),
-                None => request,
-            };
-            match request.send() {
-                Ok(response) => break response,
-                Err(error) if error.is_timeout() && retries > 0 => retries -= 1,
-                Err(error) => return Err(map_reqwest_error(error)),
-            }
-        };
+        let mut response = send_probe_request(&client, method, url, accept, None)?;
+        if response.status() == reqwest::StatusCode::UNAUTHORIZED
+            && accept == Some(OCI_MANIFEST_ACCEPT)
+        {
+            let challenge = response
+                .headers()
+                .get(reqwest::header::WWW_AUTHENTICATE)
+                .and_then(|value| value.to_str().ok())
+                .ok_or_else(|| {
+                    ProbeError::Http(
+                        "OCI registry returned 401 without a valid authentication challenge".into(),
+                    )
+                })?;
+            let token = registry_bearer_token(&client, url, challenge, limits)?;
+            response = send_probe_request(&client, method, url, accept, Some(&token))?;
+        }
         if method == HttpMethod::Get
             && response
                 .content_length()
@@ -165,6 +164,136 @@ impl CandidateProber for HttpCandidateProber {
             latency_ms: started.elapsed().as_millis().try_into().unwrap_or(u64::MAX),
         })
     }
+}
+
+fn send_probe_request(
+    client: &Client,
+    method: HttpMethod,
+    url: &str,
+    accept: Option<&str>,
+    bearer_token: Option<&str>,
+) -> Result<reqwest::blocking::Response, ProbeError> {
+    let mut retries = 1;
+    loop {
+        let mut request = client.request(
+            match method {
+                HttpMethod::Head => Method::HEAD,
+                HttpMethod::Get => Method::GET,
+            },
+            url,
+        );
+        if let Some(value) = accept {
+            request = request.header(reqwest::header::ACCEPT, value);
+        }
+        if let Some(token) = bearer_token {
+            request = request.bearer_auth(token);
+        }
+        match request.send() {
+            Ok(response) => return Ok(response),
+            Err(error) if error.is_timeout() && retries > 0 => retries -= 1,
+            Err(error) => return Err(map_reqwest_error(error)),
+        }
+    }
+}
+
+fn registry_bearer_token(
+    client: &Client,
+    registry_url: &str,
+    challenge: &str,
+    limits: ProbeLimits,
+) -> Result<String, ProbeError> {
+    let parameters = parse_bearer_challenge(challenge)?;
+    let realm = parameters
+        .get("realm")
+        .ok_or_else(|| ProbeError::Http("OCI registry bearer challenge has no realm".into()))?;
+    let registry = reqwest::Url::parse(registry_url)
+        .map_err(|error| ProbeError::Http(format!("invalid OCI registry URL: {error}")))?;
+    let mut token_url = reqwest::Url::parse(realm)
+        .map_err(|error| ProbeError::Http(format!("invalid OCI token realm: {error}")))?;
+    let secure_realm = token_url.scheme() == "https"
+        || (registry.scheme() == "http" && token_url.scheme() == "http");
+    if !secure_realm || !token_url.username().is_empty() || token_url.password().is_some() {
+        return Err(ProbeError::Http(
+            "OCI token realm must not downgrade transport or contain credentials".into(),
+        ));
+    }
+    {
+        let mut query = token_url.query_pairs_mut();
+        for key in ["service", "scope"] {
+            if let Some(value) = parameters.get(key) {
+                query.append_pair(key, value);
+            }
+        }
+    }
+    let mut response = client.get(token_url).send().map_err(map_reqwest_error)?;
+    if !response.status().is_success() {
+        return Err(ProbeError::Http(format!(
+            "OCI token service returned HTTP {}",
+            response.status().as_u16()
+        )));
+    }
+    if response
+        .content_length()
+        .is_some_and(|length| length > limits.max_bytes as u64)
+    {
+        return Err(ProbeError::TooLarge {
+            limit_bytes: limits.max_bytes,
+        });
+    }
+    let mut body = Vec::new();
+    response
+        .by_ref()
+        .take(limits.max_bytes as u64 + 1)
+        .read_to_end(&mut body)
+        .map_err(|error| ProbeError::Http(error.to_string()))?;
+    if body.len() > limits.max_bytes {
+        return Err(ProbeError::TooLarge {
+            limit_bytes: limits.max_bytes,
+        });
+    }
+    let document: serde_json::Value = serde_json::from_slice(&body)
+        .map_err(|error| ProbeError::Http(format!("invalid OCI token response: {error}")))?;
+    let token = document
+        .get("token")
+        .or_else(|| document.get("access_token"))
+        .and_then(serde_json::Value::as_str)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| ProbeError::Http("OCI token response contains no bearer token".into()))?;
+    Ok(token.to_owned())
+}
+
+fn parse_bearer_challenge(challenge: &str) -> Result<BTreeMap<String, String>, ProbeError> {
+    let fields = challenge
+        .strip_prefix("Bearer ")
+        .or_else(|| challenge.strip_prefix("bearer "))
+        .ok_or_else(|| {
+            ProbeError::Http("OCI registry did not offer bearer authentication".into())
+        })?;
+    let mut parameters = BTreeMap::new();
+    for field in fields.split(',') {
+        let (key, value) = field
+            .trim()
+            .split_once('=')
+            .ok_or_else(|| ProbeError::Http("OCI registry bearer challenge is malformed".into()))?;
+        let value = value
+            .strip_prefix('"')
+            .and_then(|value| value.strip_suffix('"'))
+            .ok_or_else(|| {
+                ProbeError::Http("OCI registry bearer challenge values must be quoted".into())
+            })?;
+        if !matches!(key, "realm" | "service" | "scope")
+            || value.is_empty()
+            || value.chars().any(char::is_control)
+            || parameters
+                .insert(key.to_owned(), value.to_owned())
+                .is_some()
+        {
+            return Err(ProbeError::Http(
+                "OCI registry bearer challenge contains unsupported fields".into(),
+            ));
+        }
+    }
+    Ok(parameters)
 }
 
 fn map_reqwest_error(error: reqwest::Error) -> ProbeError {

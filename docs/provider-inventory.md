@@ -1,12 +1,12 @@
-# Six-provider inventory snapshot
+# Reviewed provider inventory snapshot
 
 The checked-in [provider inventory](../catalog/provider-inventory.json) is a
 point-in-time discovery snapshot, not a support claim. It records every entry
-found through the six official public listings, then normalizes aliases,
+found through the initial six official public listings and reviewed tool-specific providers, then normalizes aliases,
 content type, explicitly evidenced platform dimensions, candidate endpoints,
 adapter planning state, and source provenance.
 
-## Snapshot on 2026-08-28
+## Initial broad snapshot on 2026-08-28
 
 | Provider | Official discovery source | Discovered | Included | Notes |
 | --- | --- | ---: | ---: | --- |
@@ -17,14 +17,21 @@ adapter planning state, and source provenance.
 | Nanjing University | [tunasync status](https://mirrors.nju.edu.cn/configs/tunasync.json) + [additional paths](https://mirrors.nju.edu.cn/configs/addition.json) | 371 + 165 | 536 source records | Same names from distinct official sources remain distinct records; explicit addition paths and inheritance are preserved. |
 | SJTUG | [manager status API](https://mirror.sjtu.edu.cn/lug/v1/manager/summary) | 123 worker keys | 122 repositories | Internal `.mirrorz` status worker is excluded with a reason. |
 
-The snapshot contains 1,199 records. Current classification totals are 200
-repository-metadata, 66 language-registry, 11 binary-cache, 4
+## Tool-specific additions on 2026-09-09
+
+| Provider | Published source | Included | Notes |
+| --- | --- | ---: | --- |
+| DaoCloud | [public-image-mirror instructions](https://github.com/DaoCloud/public-image-mirror) | 1 | Publishes `https://docker.m.daocloud.io` for Docker daemon `registry-mirrors`; Registry v2 Bearer auth, architecture manifest, config and layer remain runtime probes. |
+| 1Panel | [container settings documentation](https://1panel.cn/docs/v2/user_manual/containers/setting/) | 1 | Publishes `https://docker.1panel.live` as a Docker mirror; the same runtime content probes apply. |
+
+The snapshot contains 1,203 records. Current classification totals are 209
+repository-metadata, 69 language-registry, 11 binary-cache, 7
 container-registry, 157 Git mirror, 4 release proxy, 2 raw proxy, 66 release
-artifacts, and 689 static/otherwise unclassified file trees. The large final
+artifacts, and 678 static/otherwise unclassified file trees. The large final
 class is intentional: a directory name is not enough evidence to invent a
 configuration protocol.
 
-There are 423 provider records mapped to already-created adapter Issues and 776
+There are 438 provider records mapped to already-created adapter Issues and 765
 kept as `not-supported`. `planned` still does not mean the current binary can
 configure the entry. Each mapping links to the relevant per-tool Issue; shared
 upstreams such as PyPI, npm, Maven, and NuGet retain multiple tool-specific
@@ -48,10 +55,10 @@ supports. Empty arrays mean “unspecified by the provider,” not “all OSes�
 
 ## Content evidence
 
-The refresh run performs one real package-metadata probe per provider. The six
-recorded checks fetch a bounded prefix of an Ubuntu or Debian `InRelease` file
-and require the OpenPGP clear-signed header. All six passed for this snapshot.
-Provider homepages and repository roots are not accepted as content evidence.
+The refresh run retains the six baseline package-metadata probes. Those checks fetch a bounded
+prefix of an Ubuntu or Debian `InRelease` file and require the OpenPGP clear-signed header. The
+tool-specific Docker providers instead receive Registry v2 manifest and blob probes in the runtime
+catalog. Provider homepages and repository roots are not accepted as content evidence.
 
 Every other record remains `pending-adapter`. Its tool-specific Issue must
 define the exact metadata, representative package/artifact, architecture, and
@@ -67,7 +74,7 @@ git diff -- catalog/provider-inventory.json
 cargo test --test provider_inventory_contract
 ```
 
-The refresh uses only Python's standard library. Each official response stores
+The refresh uses only Python's standard library. Each reviewed response stores
 its URL, retrieval time, SHA-256, discovered/included counts, and explicit
 exclusions. Stable record IDs make additions, removals, renames, and source
 moves visible in review. The contract test rejects missing provenance or

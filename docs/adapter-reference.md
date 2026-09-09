@@ -81,6 +81,7 @@ content remain unchanged and are reported.
 | Adapter | Scope | Verification boundary and key limit |
 | --- | --- | --- |
 | `docker-ce` | system | Signed APT/RPM refresh; package repository only, not daemon registry ([#78](https://github.com/vibelab-tools/MirrorSwitch/issues/78)) |
+| `docker-registry` | system/user | Docker Engine, rootless Engine and Linux Desktop daemon JSON; architecture-specific manifest/blob probes and a digest-pinned real pull; restart reported but never automatic ([details](adapters/docker-registry.md)) |
 | `containerd` | system | Effective config plus real registry pull; service restart is reported, never automatic ([#79](https://github.com/vibelab-tools/MirrorSwitch/issues/79)) |
 | `podman-registry` | system/user | Registries.conf parse plus real pull; TLS/auth/custom policy preserved ([#76](https://github.com/vibelab-tools/MirrorSwitch/issues/76)) |
 | `kubernetes-packages` | system | Signed APT/RPM refresh for exact maintained minor channel ([#77](https://github.com/vibelab-tools/MirrorSwitch/issues/77)) |
@@ -100,7 +101,7 @@ content remain unchanged and are reported.
 
 ## Not supported in v0.1.0
 
-The Linux catalog keeps Conan, Docker daemon registry mirrors, Helm, Jenkins Update Center, and
-ROS 2 in `planned` state because their v0.1 acceptance evidence is incomplete. They are not
-compiled adapters and cannot write configuration. macOS and Windows entries are deferred to the
-v0.2.0 milestone and are likewise inert in the Linux binary.
+The Linux catalog keeps Conan, Helm, Jenkins Update Center, and ROS 2 in `planned` state because
+their acceptance evidence remains incomplete. They are not compiled adapters and cannot write
+configuration. Docker daemon registry mirrors were added in the v0.1.x follow-up tracked by
+[#75](https://github.com/vibelab-tools/MirrorSwitch/issues/75).

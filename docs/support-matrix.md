@@ -92,7 +92,7 @@ release gate.
 
 | Configuration surface | Issues | Scope / permission | Required validation | v0.1 status |
 | --- | --- | --- | --- | --- |
-| Docker packages vs Registry | [Docker CE #78](https://github.com/vibelab-tools/MirrorSwitch/issues/78), [Docker daemon #75](https://github.com/vibelab-tools/MirrorSwitch/issues/75) | Docker CE: system/elevated; daemon mirror remains separate | Docker CE distribution/release/channel, signed APT/RPM metadata and dual-architecture packages; never write Registry URLs into package config | Docker CE Supported; daemon mirror Planned |
+| Docker packages vs Registry | [Docker CE #78](https://github.com/vibelab-tools/MirrorSwitch/issues/78), [Docker daemon #75](https://github.com/vibelab-tools/MirrorSwitch/issues/75) | Docker CE: system/elevated; daemon mirror: system Engine or user rootless/Desktop configuration | Docker CE signed package metadata; daemon Registry v2 manifest/config/layer chain and digest-pinned pull; preserve existing daemon policy and never restart automatically | Supported |
 | Container runtimes | [containerd #79](https://github.com/vibelab-tools/MirrorSwitch/issues/79), [Podman #76](https://github.com/vibelab-tools/MirrorSwitch/issues/76) | Podman: explicit system or rootless user drop-in; containerd: system | Podman 4/5 registries.conf v2; containerd 1.7+/2.x config_path + ordered hosts.toml; secure OCI manifests and real pulls; preserve auth/TLS/custom policy | Podman/containerd Supported |
 | Kubernetes | [packages #77](https://github.com/vibelab-tools/MirrorSwitch/issues/77), [control-plane images #74](https://github.com/vibelab-tools/MirrorSwitch/issues/74), [Helm #82](https://github.com/vibelab-tools/MirrorSwitch/issues/82) | Packages: system; control-plane images: user-owned generated plan | Maintained v1.35–v1.37 APT/RPM minor channels, GPG and architecture packages; exact kubeadm image list, OCI multi-arch digest, explicit CoreDNS mapping | Packages/control-plane images Supported; Helm Planned |
 | Robotics | [ROS 1 #81](https://github.com/vibelab-tools/MirrorSwitch/issues/81), [ROS 2 #84](https://github.com/vibelab-tools/MirrorSwitch/issues/84) | System / elevated apply | ROS 1 final Noetic/Focal snapshot with signed APT metadata and amd64/arm64 packages; ROS 2 remains a distinct repository | ROS 1 Supported; ROS 2 Planned |
@@ -105,6 +105,8 @@ release gate.
 
 The initial providers and authoritative discovery endpoints are maintained by
 [the six-provider inventory issue](https://github.com/vibelab-tools/MirrorSwitch/issues/16).
+Additional providers are admitted only from their published configuration documentation and keep
+separate provenance records; Docker daemon support currently adds DaoCloud and 1Panel.
 The checked-in catalog must record provider coverage separately for every
 normalized upstream and content type. Until that catalog entry and its adapter
 probe pass, the matrix status remains `cataloged` or `planned` rather than
