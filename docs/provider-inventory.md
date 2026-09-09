@@ -27,15 +27,16 @@ adapter planning state, and source provenance.
 | Zhejiang University | [MirrorZ status](https://mirrors.zju.edu.cn/api/mirrorz.json) | 1 | Publishes a current ROS 2 mirror with the same runtime package checks. |
 | Xi'an Jiaotong University | [mirror status](https://mirrors.xjtu.edu.cn/.well-known/mirrorz-org-mirrors.json) | 1 | Publishes a current ROS 2 mirror with the same runtime package checks. |
 | Nanyang Institute of Technology | [tunasync status](https://mirror.nyist.edu.cn/static/tunasync.json) | 1 | Publishes a current ROS 2 mirror with the same runtime package checks. |
+| lework Jenkins Update Center | [immutable signed metadata](https://github.com/lework/jenkins-update-center/tree/3df56b0ada4fc57ca1329946697eb0f896389047) | 5 | Five JSONP variants pair one pinned third-party certificate with Alibaba Cloud, Huawei Cloud, Tencent Cloud, TUNA, or USTC plugin artifacts. Each metadata and HPI body has an exact runtime digest. |
 
-The snapshot contains 1,207 records. Current classification totals are 209
+The snapshot contains 1,212 records. Current classification totals are 214
 repository-metadata, 69 language-registry, 11 binary-cache, 7
 container-registry, 157 Git mirror, 4 release proxy, 2 raw proxy, 66 release
 artifacts, and 682 static/otherwise unclassified file trees. The large final
 class is intentional: a directory name is not enough evidence to invent a
 configuration protocol.
 
-There are 442 provider records mapped to already-created adapter Issues and 765
+There are 447 provider records mapped to already-created adapter Issues and 765
 kept as `not-supported`. `planned` still does not mean the current binary can
 configure the entry. Each mapping links to the relevant per-tool Issue; shared
 upstreams such as PyPI, npm, Maven, and NuGet retain multiple tool-specific

@@ -114,6 +114,9 @@ pub trait Adapter: Send + Sync {
         Ok(self.default_scope())
     }
     fn composition_policy(&self) -> CompositionPolicy;
+    fn selected_by_default(&self) -> bool {
+        true
+    }
 
     fn detect(
         &self,

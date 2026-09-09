@@ -61,6 +61,7 @@ macOS and Windows sources without a complete six-provider candidate remain in th
 - [YUM adapter](docs/adapters/yum.md)
 - [Docker daemon Registry Mirrors adapter](docs/adapters/docker-registry.md)
 - [ROS 2 package repository adapter](docs/adapters/ros2.md)
+- [Jenkins Update Center adapter](docs/adapters/jenkins.md)
 - [Pacman adapter](docs/adapters/pacman.md)
 - [Zypper adapter](docs/adapters/zypper.md)
 - [Portage adapter](docs/adapters/portage.md)

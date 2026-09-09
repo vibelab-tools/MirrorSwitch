@@ -518,10 +518,11 @@ fn detect_adapters(
             }
         };
         if adapter.supported_scopes().contains(&default_scope) {
-            let selected = matches!(
-                default_scope,
-                ConfigurationScope::System | ConfigurationScope::User
-            );
+            let selected = adapter.selected_by_default()
+                && matches!(
+                    default_scope,
+                    ConfigurationScope::System | ConfigurationScope::User
+                );
             selections.push(TargetSelection {
                 adapter_key: adapter.key().into(),
                 tool_id: adapter.tool_id().into(),

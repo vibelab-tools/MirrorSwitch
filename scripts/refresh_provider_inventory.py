@@ -20,6 +20,18 @@ from urllib.request import Request, urlopen
 
 
 USER_AGENT = "MirrorSwitch-inventory/0.1 (+https://github.com/vibelab-tools/MirrorSwitch)"
+JENKINS_UPDATE_CENTER_COMMIT = "3df56b0ada4fc57ca1329946697eb0f896389047"
+JENKINS_ARTIFACT_MIRRORS = {
+    "tencent": "https://mirrors.cloud.tencent.com/jenkins/",
+    "huawei": "https://mirrors.huaweicloud.com/jenkins/",
+    "tsinghua": "https://mirrors.tuna.tsinghua.edu.cn/jenkins/",
+    "ustc": "https://mirrors.ustc.edu.cn/jenkins/",
+    "aliyun": "https://mirrors.aliyun.com/jenkins/",
+}
+JENKINS_CDN_ROOT = (
+    "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@"
+    f"{JENKINS_UPDATE_CENTER_COMMIT}"
+)
 
 PROVIDERS = {
     "aliyun": {
@@ -95,6 +107,14 @@ PROVIDERS = {
         "display_name": "Nanyang Institute of Technology",
         "homepage": "https://mirror.nyist.edu.cn/",
         "sources": ["https://mirror.nyist.edu.cn/static/tunasync.json"],
+    },
+    "lework": {
+        "display_name": "lework Jenkins Update Center",
+        "homepage": "https://github.com/lework/jenkins-update-center",
+        "sources": [
+            f"{JENKINS_CDN_ROOT}/updates/{variant}/update-center.json"
+            for variant in JENKINS_ARTIFACT_MIRRORS
+        ],
     },
 }
 
@@ -903,6 +923,70 @@ def collect_nyist(observed_at: str) -> tuple[list[dict[str, Any]], list[dict[str
     return collect_published_ros2_mirror("nyist", observed_at)
 
 
+def collect_lework(observed_at: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    records = []
+    snapshots = []
+    certificate_root = f"{JENKINS_CDN_ROOT}/rootCA/"
+    for variant, artifact_root in JENKINS_ARTIFACT_MIRRORS.items():
+        url = f"{JENKINS_CDN_ROOT}/updates/{variant}/update-center.json"
+        fetched = fetch(url)
+        wrapper = fetched.body.decode("utf-8")
+        if not wrapper.startswith("updateCenter.post(\n") or not wrapper.endswith("\n);"):
+            raise RuntimeError(f"invalid Jenkins Update Center JSONP wrapper: {url}")
+        document = json.loads(wrapper.removeprefix("updateCenter.post(\n").removesuffix("\n);"))
+        signature = document.get("signature", {})
+        if (
+            document.get("updateCenterVersion") != "1"
+            or not str(document.get("core", {}).get("url", "")).startswith(artifact_root)
+            or not str(document.get("plugins", {}).get("git", {}).get("url", "")).startswith(artifact_root)
+            or len(signature.get("certificates", [])) != 1
+            or not signature.get("correct_digest512")
+            or not signature.get("correct_signature512")
+        ):
+            raise RuntimeError(f"incomplete signed Jenkins Update Center chain: {url}")
+        record = make_record(
+            "lework",
+            f"jenkins-update-center-{variant}",
+            url,
+            observed_at,
+            [
+                endpoint(certificate_root, "pinned-update-center-certificate"),
+                endpoint(url.rsplit("/", 1)[0] + "/", "signed-update-center-metadata"),
+                endpoint(artifact_root, "rewritten-plugin-artifact-root"),
+            ],
+            {
+                "commit": JENKINS_UPDATE_CENTER_COMMIT,
+                "artifact_mirror": artifact_root,
+                "core_version": document["core"]["version"],
+                "git_plugin_version": document["plugins"]["git"]["version"],
+            },
+        )
+        record["normalized_upstream"] = "jenkins-update-center"
+        record["content_type"] = "repository-metadata"
+        record["compatibility"] = {
+            "operating_systems": ["linux"],
+            "distributions": [],
+            "versions": [document["core"]["version"]],
+            "architectures": ["x86_64", "arm64"],
+            "evidence": "The immutable JSONP metadata is signed by the pinned third-party certificate and rewrites plugin artifacts to the named public mirror.",
+        }
+        record["adapter_state"] = "planned"
+        record["adapter_targets"] = [
+            {
+                "tool_id": "jenkins",
+                "state": "planned",
+                "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/83",
+            }
+        ]
+        record["validation"] = {
+            "status": "pending-adapter",
+            "reason": "The adapter catalog pins the certificate, signed metadata, and representative HPI digests.",
+        }
+        records.append(record)
+        snapshots.append(fetched.source_snapshot(1, 1, []))
+    return records, snapshots
+
+
 COLLECTORS: dict[str, Callable[[str], tuple[list[dict[str, Any]], list[dict[str, Any]]]]] = {
     "aliyun": collect_aliyun,
     "huaweicloud": collect_huawei,
@@ -916,6 +1000,7 @@ COLLECTORS: dict[str, Callable[[str], tuple[list[dict[str, Any]], list[dict[str,
     "zju": collect_zju,
     "xjtu": collect_xjtu,
     "nyist": collect_nyist,
+    "lework": collect_lework,
 }
 
 

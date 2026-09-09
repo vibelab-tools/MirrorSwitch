@@ -31,6 +31,7 @@ fn inventory_covers_reviewed_official_sources_with_strict_record_fields() {
             "zju",
             "xjtu",
             "nyist",
+            "lework",
         ])
     );
 
@@ -130,6 +131,28 @@ fn inventory_covers_reviewed_official_sources_with_strict_record_fields() {
             );
         }
     }
+}
+
+#[test]
+fn inventory_records_five_immutable_signed_jenkins_update_centers() {
+    let document: Value = serde_json::from_str(INVENTORY).unwrap();
+    let entries = document["entries"].as_array().unwrap();
+    let matches = entries
+        .iter()
+        .filter(|entry| entry["provider_id"] == "lework")
+        .collect::<Vec<_>>();
+    assert_eq!(matches.len(), 5);
+    assert!(matches.iter().all(|entry| {
+        entry["normalized_upstream"] == "jenkins-update-center"
+            && entry["content_type"] == "repository-metadata"
+            && entry["compatibility"]["versions"] == serde_json::json!(["2.581"])
+            && entry["compatibility"]["architectures"] == serde_json::json!(["x86_64", "arm64"])
+            && entry["adapter_targets"][0]["tool_id"] == "jenkins"
+            && entry["source_url"]
+                .as_str()
+                .unwrap()
+                .contains("@3df56b0ada4fc57ca1329946697eb0f896389047/")
+    }));
 }
 
 #[test]

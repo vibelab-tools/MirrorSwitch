@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.09.09+f3f3ef4f9a1a",
-  "content_revision": 20260909034357,
-  "generated_at": "2026-09-09T03:43:57Z",
+  "content_version": "2026.09.09+919146d98ede",
+  "content_revision": 20260909080930,
+  "generated_at": "2026-09-09T08:09:30Z",
   "providers": [
     {
       "id": "aliyun",
@@ -18,6 +18,11 @@
       "id": "huaweicloud",
       "display_name": "Huawei Cloud",
       "catalog_source": "https://mirrors.huaweicloud.com/"
+    },
+    {
+      "id": "lework",
+      "display_name": "lework Jenkins Update Center",
+      "catalog_source": "https://github.com/lework/jenkins-update-center"
     },
     {
       "id": "nju",
@@ -919,6 +924,19 @@
       "content_kind": "static-files",
       "aliases": [
         "jenkins"
+      ]
+    },
+    {
+      "id": "jenkins-update-center--repository-metadata",
+      "family": "jenkins-update-center",
+      "display_name": "jenkins-update-center",
+      "content_kind": "repository-metadata",
+      "aliases": [
+        "jenkins-update-center-aliyun",
+        "jenkins-update-center-huawei",
+        "jenkins-update-center-tencent",
+        "jenkins-update-center-tsinghua",
+        "jenkins-update-center-ustc"
       ]
     },
     {
@@ -1912,7 +1930,7 @@
       "id": "jenkins",
       "adapter_key": "jenkins",
       "display_name": "jenkins",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/83",
       "supported_scopes": [
         "system"
@@ -2929,6 +2947,84 @@
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "02c4d5c1ec7d4f68eddea7a9",
+      "provider_id": "lework",
+      "upstream_id": "jenkins-update-center--repository-metadata",
+      "tool_id": "jenkins",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "jenkins-update-center-ustc"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/rootCA/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/ustc/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/jenkins/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [],
+        "tool_version": "2.581"
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/update-center.crt",
+          "expected_status": [
+            200
+          ],
+          "sha256": "c049e4b441fb42675b7bc8c19895f85837c955784299fb2671323b1963da8d18"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/update-center.json",
+          "expected_status": [
+            200
+          ],
+          "sha256": "a2245e95ae6098a5abe2fc9323ca820ca17fda2959bdca68c0199a6e8021c6d6"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "get",
+          "path": "/plugins/git/5.10.1/git.hpi",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "eb562836855eb8e4155a03154002467051d287ab068b2853cfc1c3b86b669a69"
+        }
+      ],
+      "source_urls": [
+        "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/ustc/update-center.json"
+      ],
+      "observed_at": "2026-09-09T08:09:30Z"
     },
     {
       "id": "02eae4c7e2395f90c33dfea6",
@@ -8431,6 +8527,84 @@
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "292e9eea96d37b03ce411120",
+      "provider_id": "lework",
+      "upstream_id": "jenkins-update-center--repository-metadata",
+      "tool_id": "jenkins",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "jenkins-update-center-huawei"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/rootCA/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/huawei/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.huaweicloud.com/jenkins/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [],
+        "tool_version": "2.581"
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/update-center.crt",
+          "expected_status": [
+            200
+          ],
+          "sha256": "c049e4b441fb42675b7bc8c19895f85837c955784299fb2671323b1963da8d18"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/update-center.json",
+          "expected_status": [
+            200
+          ],
+          "sha256": "1a9414c0be238652c6bb01028fca3b4e520a299095986e6d617b5a422d83d08b"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "get",
+          "path": "/plugins/git/5.10.1/git.hpi",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "eb562836855eb8e4155a03154002467051d287ab068b2853cfc1c3b86b669a69"
+        }
+      ],
+      "source_urls": [
+        "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/huawei/update-center.json"
+      ],
+      "observed_at": "2026-09-09T08:09:30Z"
     },
     {
       "id": "293d9cb8e7ecb3935433426e",
@@ -13962,6 +14136,84 @@
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "5818d1db245b2ce94e7acfda",
+      "provider_id": "lework",
+      "upstream_id": "jenkins-update-center--repository-metadata",
+      "tool_id": "jenkins",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "jenkins-update-center-tencent"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/rootCA/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/tencent/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.cloud.tencent.com/jenkins/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [],
+        "tool_version": "2.581"
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/update-center.crt",
+          "expected_status": [
+            200
+          ],
+          "sha256": "c049e4b441fb42675b7bc8c19895f85837c955784299fb2671323b1963da8d18"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/update-center.json",
+          "expected_status": [
+            200
+          ],
+          "sha256": "3f2b9dc8f26dcdb640c94a9d68a8f7ac863d0316a1f20d9186d4bbd4cd362938"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "get",
+          "path": "/plugins/git/5.10.1/git.hpi",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "eb562836855eb8e4155a03154002467051d287ab068b2853cfc1c3b86b669a69"
+        }
+      ],
+      "source_urls": [
+        "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/tencent/update-center.json"
+      ],
+      "observed_at": "2026-09-09T08:09:30Z"
     },
     {
       "id": "581dfcb128e16d3a818a14e4",
@@ -36436,6 +36688,84 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "f8ed7b35b978c445dc161849",
+      "provider_id": "lework",
+      "upstream_id": "jenkins-update-center--repository-metadata",
+      "tool_id": "jenkins",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "jenkins-update-center-aliyun"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/rootCA/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/aliyun/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/jenkins/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [],
+        "tool_version": "2.581"
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/update-center.crt",
+          "expected_status": [
+            200
+          ],
+          "sha256": "c049e4b441fb42675b7bc8c19895f85837c955784299fb2671323b1963da8d18"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/update-center.json",
+          "expected_status": [
+            200
+          ],
+          "sha256": "1b7df83139370cf8d197c4dab86f9aa46c999023c02123e92f13f8dc64bfae6a"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "get",
+          "path": "/plugins/git/5.10.1/git.hpi",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "eb562836855eb8e4155a03154002467051d287ab068b2853cfc1c3b86b669a69"
+        }
+      ],
+      "source_urls": [
+        "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/aliyun/update-center.json"
+      ],
+      "observed_at": "2026-09-09T08:09:30Z"
+    },
+    {
       "id": "f953b3bd1eca6a46eccc6168",
       "provider_id": "nju",
       "upstream_id": "centos-riscv--repository-metadata",
@@ -37003,6 +37333,84 @@
         "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "fe117a5c5227eaf64ffa3f7b",
+      "provider_id": "lework",
+      "upstream_id": "jenkins-update-center--repository-metadata",
+      "tool_id": "jenkins",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "jenkins-update-center-tsinghua"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/rootCA/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/tsinghua/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/jenkins/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [],
+        "repository_versions": [],
+        "tool_version": "2.581"
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/update-center.crt",
+          "expected_status": [
+            200
+          ],
+          "sha256": "c049e4b441fb42675b7bc8c19895f85837c955784299fb2671323b1963da8d18"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "get",
+          "path": "/update-center.json",
+          "expected_status": [
+            200
+          ],
+          "sha256": "c3269a28e14224033d63bdefcdd40440a3fd58692b851863e59bb19ab2793aa4"
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "get",
+          "path": "/plugins/git/5.10.1/git.hpi",
+          "expected_status": [
+            200,
+            206
+          ],
+          "sha256": "eb562836855eb8e4155a03154002467051d287ab068b2853cfc1c3b86b669a69"
+        }
+      ],
+      "source_urls": [
+        "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/tsinghua/update-center.json"
+      ],
+      "observed_at": "2026-09-09T08:09:30Z"
     },
     {
       "id": "fee09aca345aa2eb8b5680a9",

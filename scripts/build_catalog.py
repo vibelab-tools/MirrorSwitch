@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "114"
+CATALOG_FORMAT_REVISION = "115"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -481,6 +481,33 @@ ROS2_APT_ENDPOINTS = {
 ROS2_RPM_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/ros2-rhel/",
 }
+JENKINS_UPDATE_CENTER_COMMIT = "3df56b0ada4fc57ca1329946697eb0f896389047"
+JENKINS_CORE_VERSION = "2.581"
+JENKINS_GIT_PLUGIN_VERSION = "5.10.1"
+JENKINS_CERTIFICATE_SHA256 = (
+    "c049e4b441fb42675b7bc8c19895f85837c955784299fb2671323b1963da8d18"
+)
+JENKINS_GIT_PLUGIN_SHA256 = (
+    "eb562836855eb8e4155a03154002467051d287ab068b2853cfc1c3b86b669a69"
+)
+JENKINS_METADATA_SHA256 = {
+    "tencent": "3f2b9dc8f26dcdb640c94a9d68a8f7ac863d0316a1f20d9186d4bbd4cd362938",
+    "huawei": "1a9414c0be238652c6bb01028fca3b4e520a299095986e6d617b5a422d83d08b",
+    "tsinghua": "c3269a28e14224033d63bdefcdd40440a3fd58692b851863e59bb19ab2793aa4",
+    "ustc": "a2245e95ae6098a5abe2fc9323ca820ca17fda2959bdca68c0199a6e8021c6d6",
+    "aliyun": "1b7df83139370cf8d197c4dab86f9aa46c999023c02123e92f13f8dc64bfae6a",
+}
+JENKINS_ARTIFACT_ENDPOINTS = {
+    "tencent": "https://mirrors.cloud.tencent.com/jenkins/",
+    "huawei": "https://mirrors.huaweicloud.com/jenkins/",
+    "tsinghua": "https://mirrors.tuna.tsinghua.edu.cn/jenkins/",
+    "ustc": "https://mirrors.ustc.edu.cn/jenkins/",
+    "aliyun": "https://mirrors.aliyun.com/jenkins/",
+}
+JENKINS_CDN_ROOT = (
+    "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@"
+    f"{JENKINS_UPDATE_CENTER_COMMIT}"
+)
 MYSQL_UPSTREAM = "mysql-community--repository-metadata"
 MYSQL_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/mysql/",
@@ -746,6 +773,8 @@ def runtime_upstream_identity(
         return "ros2-apt", "repository-metadata"
     if tool_id == "ros2" and entry["raw_name"] == "ros2-rhel":
         return "ros2-rpm", "repository-metadata"
+    if tool_id == "jenkins" and entry["raw_name"].startswith("jenkins-update-center-"):
+        return "jenkins-update-center", "repository-metadata"
     if tool_id == "mysql" and entry["raw_name"].startswith(("mysql", "mysql-repo")):
         return "mysql-community", "repository-metadata"
     if tool_id == "mongodb" and entry["raw_name"].startswith("mongodb"):
@@ -1083,6 +1112,31 @@ def candidate_endpoints(
             {"role": role, "protocol": "https", "url": endpoint}
             for role in ["index", "metadata", "packages"]
         ]
+    if (
+        tool_id == "jenkins"
+        and upstream_key == "jenkins-update-center--repository-metadata"
+        and entry["provider_id"] == "lework"
+        and entry["raw_name"].startswith("jenkins-update-center-")
+    ):
+        variant = entry["raw_name"].removeprefix("jenkins-update-center-")
+        if variant in JENKINS_ARTIFACT_ENDPOINTS:
+            return [
+                {
+                    "role": "index",
+                    "protocol": "https",
+                    "url": f"{JENKINS_CDN_ROOT}/rootCA/",
+                },
+                {
+                    "role": "metadata",
+                    "protocol": "https",
+                    "url": f"{JENKINS_CDN_ROOT}/updates/{variant}/",
+                },
+                {
+                    "role": "packages",
+                    "protocol": "https",
+                    "url": JENKINS_ARTIFACT_ENDPOINTS[variant],
+                },
+            ]
     if (
         tool_id == "ros2"
         and upstream_key == ROS2_APT_UPSTREAM
@@ -3855,6 +3909,44 @@ def runtime_properties(
                 }
             )
     elif (
+        tool_id == "jenkins"
+        and upstream_key == "jenkins-update-center--repository-metadata"
+        and entry["provider_id"] == "lework"
+        and entry["raw_name"].startswith("jenkins-update-center-")
+    ):
+        variant = entry["raw_name"].removeprefix("jenkins-update-center-")
+        if variant in JENKINS_METADATA_SHA256:
+            compatibility["operating_systems"] = ["linux"]
+            compatibility["architectures"] = ["x86_64", "arm64"]
+            compatibility["environments"] = ["container", "host"]
+            compatibility["distributions"] = []
+            compatibility["tool_version"] = JENKINS_CORE_VERSION
+            compatibility["repository_versions"] = []
+            delivery_mode = "mirror"
+            probes = [
+                {
+                    "endpoint_role": "index",
+                    "method": "get",
+                    "path": "/update-center.crt",
+                    "expected_status": [200],
+                    "sha256": JENKINS_CERTIFICATE_SHA256,
+                },
+                {
+                    "endpoint_role": "metadata",
+                    "method": "get",
+                    "path": "/update-center.json",
+                    "expected_status": [200],
+                    "sha256": JENKINS_METADATA_SHA256[variant],
+                },
+                {
+                    "endpoint_role": "packages",
+                    "method": "get",
+                    "path": f"/plugins/git/{JENKINS_GIT_PLUGIN_VERSION}/git.hpi",
+                    "expected_status": [200, 206],
+                    "sha256": JENKINS_GIT_PLUGIN_SHA256,
+                },
+            ]
+    elif (
         tool_id == "ros2"
         and upstream_key == ROS2_APT_UPSTREAM
         and entry["provider_id"] in ROS2_APT_ENDPOINTS
@@ -4846,6 +4938,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "guix",
                         "influxdb",
                         "julia",
+                        "jenkins",
                         "kubernetes-images",
                         "kubernetes-packages",
                         "leiningen",

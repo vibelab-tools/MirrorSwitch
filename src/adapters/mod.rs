@@ -30,6 +30,7 @@ mod grafana;
 mod guix;
 mod homebrew;
 mod influxdb;
+mod jenkins;
 mod julia;
 mod kubernetes_images;
 mod kubernetes_packages;
@@ -108,6 +109,7 @@ pub use grafana::GrafanaAdapter;
 pub use guix::GuixAdapter;
 pub use homebrew::HomebrewAdapter;
 pub use influxdb::InfluxDbAdapter;
+pub use jenkins::JenkinsAdapter;
 pub use julia::JuliaAdapter;
 pub use kubernetes_images::KubernetesImagesAdapter;
 pub use kubernetes_packages::KubernetesPackagesAdapter;
@@ -182,6 +184,7 @@ static GITLAB_RUNNER: GitLabRunnerAdapter = GitLabRunnerAdapter;
 static GUIX: GuixAdapter = GuixAdapter;
 static HOMEBREW: HomebrewAdapter = HomebrewAdapter;
 static INFLUXDB: InfluxDbAdapter = InfluxDbAdapter;
+static JENKINS: JenkinsAdapter = JenkinsAdapter;
 static JULIA: JuliaAdapter = JuliaAdapter;
 static KUBERNETES_IMAGES: KubernetesImagesAdapter = KubernetesImagesAdapter;
 static KUBERNETES_PACKAGES: KubernetesPackagesAdapter = KubernetesPackagesAdapter;
@@ -245,6 +248,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &GUIX,
         &HOMEBREW,
         &INFLUXDB,
+        &JENKINS,
         &FLATPAK,
         &OPKG,
         &PIP,

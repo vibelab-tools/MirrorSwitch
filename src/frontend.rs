@@ -240,6 +240,7 @@ pub fn category_for(tool_id: &str) -> &'static str {
             | "gitlab-runner"
             | "grafana"
             | "influxdb"
+            | "jenkins"
             | "mariadb"
             | "mongodb"
             | "mysql"

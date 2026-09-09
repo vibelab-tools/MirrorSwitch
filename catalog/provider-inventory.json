@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-09T03:43:57Z",
-  "observed_at": "2026-09-09T03:43:57Z",
+  "generated_at": "2026-09-09T08:09:30Z",
+  "observed_at": "2026-09-09T08:09:30Z",
   "scope": "Entries listed by reviewed official public provider sources at their recorded observation times; listing is not support.",
   "providers": [
     {
@@ -284,6 +284,61 @@
         }
       ],
       "included_entries": 1
+    },
+    {
+      "id": "lework",
+      "display_name": "lework Jenkins Update Center",
+      "homepage": "https://github.com/lework/jenkins-update-center",
+      "sources": [
+        "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/tencent/update-center.json",
+        "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/huawei/update-center.json",
+        "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/tsinghua/update-center.json",
+        "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/ustc/update-center.json",
+        "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/aliyun/update-center.json"
+      ],
+      "source_snapshots": [
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/tencent/update-center.json",
+          "retrieved_at": "2026-09-09T08:09:30Z",
+          "sha256": "3f2b9dc8f26dcdb640c94a9d68a8f7ac863d0316a1f20d9186d4bbd4cd362938",
+          "discovered_entries": 1,
+          "included_entries": 1,
+          "excluded_entries": []
+        },
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/huawei/update-center.json",
+          "retrieved_at": "2026-09-09T08:09:30Z",
+          "sha256": "1a9414c0be238652c6bb01028fca3b4e520a299095986e6d617b5a422d83d08b",
+          "discovered_entries": 1,
+          "included_entries": 1,
+          "excluded_entries": []
+        },
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/tsinghua/update-center.json",
+          "retrieved_at": "2026-09-09T08:09:30Z",
+          "sha256": "c3269a28e14224033d63bdefcdd40440a3fd58692b851863e59bb19ab2793aa4",
+          "discovered_entries": 1,
+          "included_entries": 1,
+          "excluded_entries": []
+        },
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/ustc/update-center.json",
+          "retrieved_at": "2026-09-09T08:09:30Z",
+          "sha256": "a2245e95ae6098a5abe2fc9323ca820ca17fda2959bdca68c0199a6e8021c6d6",
+          "discovered_entries": 1,
+          "included_entries": 1,
+          "excluded_entries": []
+        },
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/aliyun/update-center.json",
+          "retrieved_at": "2026-09-09T08:09:30Z",
+          "sha256": "1b7df83139370cf8d197c4dab86f9aa46c999023c02123e92f13f8dc64bfae6a",
+          "discovered_entries": 1,
+          "included_entries": 1,
+          "excluded_entries": []
+        }
+      ],
+      "included_entries": 5
     }
   ],
   "entries": [
@@ -48666,6 +48721,266 @@
       },
       "provider_metadata": {
         "upstream": "rsync://packages.ros.org/ros2-main/"
+      }
+    },
+    {
+      "id": "lework:3cdf240892b76f79abfa",
+      "provider_id": "lework",
+      "raw_name": "jenkins-update-center-tencent",
+      "normalized_upstream": "jenkins-update-center",
+      "source_url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/tencent/update-center.json",
+      "observed_at": "2026-09-09T08:09:30Z",
+      "public_endpoints": [
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/rootCA/",
+          "protocol": "https",
+          "derivation": "pinned-update-center-certificate"
+        },
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/tencent/",
+          "protocol": "https",
+          "derivation": "signed-update-center-metadata"
+        },
+        {
+          "url": "https://mirrors.cloud.tencent.com/jenkins/",
+          "protocol": "https",
+          "derivation": "rewritten-plugin-artifact-root"
+        }
+      ],
+      "content_type": "repository-metadata",
+      "compatibility": {
+        "operating_systems": ["linux"],
+        "distributions": [],
+        "versions": ["2.581"],
+        "architectures": ["x86_64", "arm64"],
+        "evidence": "The immutable JSONP metadata is signed by the pinned third-party certificate and rewrites plugin artifacts to the named public mirror."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "jenkins",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/83"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "The adapter catalog pins the certificate, signed metadata, and representative HPI digests."
+      },
+      "provider_metadata": {
+        "commit": "3df56b0ada4fc57ca1329946697eb0f896389047",
+        "artifact_mirror": "https://mirrors.cloud.tencent.com/jenkins/",
+        "core_version": "2.581",
+        "git_plugin_version": "5.10.1"
+      }
+    },
+    {
+      "id": "lework:34ce5ea832b283911438",
+      "provider_id": "lework",
+      "raw_name": "jenkins-update-center-huawei",
+      "normalized_upstream": "jenkins-update-center",
+      "source_url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/huawei/update-center.json",
+      "observed_at": "2026-09-09T08:09:30Z",
+      "public_endpoints": [
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/rootCA/",
+          "protocol": "https",
+          "derivation": "pinned-update-center-certificate"
+        },
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/huawei/",
+          "protocol": "https",
+          "derivation": "signed-update-center-metadata"
+        },
+        {
+          "url": "https://mirrors.huaweicloud.com/jenkins/",
+          "protocol": "https",
+          "derivation": "rewritten-plugin-artifact-root"
+        }
+      ],
+      "content_type": "repository-metadata",
+      "compatibility": {
+        "operating_systems": ["linux"],
+        "distributions": [],
+        "versions": ["2.581"],
+        "architectures": ["x86_64", "arm64"],
+        "evidence": "The immutable JSONP metadata is signed by the pinned third-party certificate and rewrites plugin artifacts to the named public mirror."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "jenkins",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/83"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "The adapter catalog pins the certificate, signed metadata, and representative HPI digests."
+      },
+      "provider_metadata": {
+        "commit": "3df56b0ada4fc57ca1329946697eb0f896389047",
+        "artifact_mirror": "https://mirrors.huaweicloud.com/jenkins/",
+        "core_version": "2.581",
+        "git_plugin_version": "5.10.1"
+      }
+    },
+    {
+      "id": "lework:fea47838aafcd42e8513",
+      "provider_id": "lework",
+      "raw_name": "jenkins-update-center-tsinghua",
+      "normalized_upstream": "jenkins-update-center",
+      "source_url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/tsinghua/update-center.json",
+      "observed_at": "2026-09-09T08:09:30Z",
+      "public_endpoints": [
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/rootCA/",
+          "protocol": "https",
+          "derivation": "pinned-update-center-certificate"
+        },
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/tsinghua/",
+          "protocol": "https",
+          "derivation": "signed-update-center-metadata"
+        },
+        {
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/jenkins/",
+          "protocol": "https",
+          "derivation": "rewritten-plugin-artifact-root"
+        }
+      ],
+      "content_type": "repository-metadata",
+      "compatibility": {
+        "operating_systems": ["linux"],
+        "distributions": [],
+        "versions": ["2.581"],
+        "architectures": ["x86_64", "arm64"],
+        "evidence": "The immutable JSONP metadata is signed by the pinned third-party certificate and rewrites plugin artifacts to the named public mirror."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "jenkins",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/83"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "The adapter catalog pins the certificate, signed metadata, and representative HPI digests."
+      },
+      "provider_metadata": {
+        "commit": "3df56b0ada4fc57ca1329946697eb0f896389047",
+        "artifact_mirror": "https://mirrors.tuna.tsinghua.edu.cn/jenkins/",
+        "core_version": "2.581",
+        "git_plugin_version": "5.10.1"
+      }
+    },
+    {
+      "id": "lework:89e700a9282d46c4550a",
+      "provider_id": "lework",
+      "raw_name": "jenkins-update-center-ustc",
+      "normalized_upstream": "jenkins-update-center",
+      "source_url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/ustc/update-center.json",
+      "observed_at": "2026-09-09T08:09:30Z",
+      "public_endpoints": [
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/rootCA/",
+          "protocol": "https",
+          "derivation": "pinned-update-center-certificate"
+        },
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/ustc/",
+          "protocol": "https",
+          "derivation": "signed-update-center-metadata"
+        },
+        {
+          "url": "https://mirrors.ustc.edu.cn/jenkins/",
+          "protocol": "https",
+          "derivation": "rewritten-plugin-artifact-root"
+        }
+      ],
+      "content_type": "repository-metadata",
+      "compatibility": {
+        "operating_systems": ["linux"],
+        "distributions": [],
+        "versions": ["2.581"],
+        "architectures": ["x86_64", "arm64"],
+        "evidence": "The immutable JSONP metadata is signed by the pinned third-party certificate and rewrites plugin artifacts to the named public mirror."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "jenkins",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/83"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "The adapter catalog pins the certificate, signed metadata, and representative HPI digests."
+      },
+      "provider_metadata": {
+        "commit": "3df56b0ada4fc57ca1329946697eb0f896389047",
+        "artifact_mirror": "https://mirrors.ustc.edu.cn/jenkins/",
+        "core_version": "2.581",
+        "git_plugin_version": "5.10.1"
+      }
+    },
+    {
+      "id": "lework:462be58c4d081b373666",
+      "provider_id": "lework",
+      "raw_name": "jenkins-update-center-aliyun",
+      "normalized_upstream": "jenkins-update-center",
+      "source_url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/aliyun/update-center.json",
+      "observed_at": "2026-09-09T08:09:30Z",
+      "public_endpoints": [
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/rootCA/",
+          "protocol": "https",
+          "derivation": "pinned-update-center-certificate"
+        },
+        {
+          "url": "https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@3df56b0ada4fc57ca1329946697eb0f896389047/updates/aliyun/",
+          "protocol": "https",
+          "derivation": "signed-update-center-metadata"
+        },
+        {
+          "url": "https://mirrors.aliyun.com/jenkins/",
+          "protocol": "https",
+          "derivation": "rewritten-plugin-artifact-root"
+        }
+      ],
+      "content_type": "repository-metadata",
+      "compatibility": {
+        "operating_systems": ["linux"],
+        "distributions": [],
+        "versions": ["2.581"],
+        "architectures": ["x86_64", "arm64"],
+        "evidence": "The immutable JSONP metadata is signed by the pinned third-party certificate and rewrites plugin artifacts to the named public mirror."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "jenkins",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/83"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "The adapter catalog pins the certificate, signed metadata, and representative HPI digests."
+      },
+      "provider_metadata": {
+        "commit": "3df56b0ada4fc57ca1329946697eb0f896389047",
+        "artifact_mirror": "https://mirrors.aliyun.com/jenkins/",
+        "core_version": "2.581",
+        "git_plugin_version": "5.10.1"
       }
     }
   ],
