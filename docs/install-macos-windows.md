@@ -1,9 +1,9 @@
 # Install and use MirrorSwitch on macOS and Windows
 
-MirrorSwitch v0.2 is still a preview. The repository contains the native build,
-package, and adapter workflows, but macOS and Windows releases are not published
-until their native gates pass. Do not treat a source build or an unverified
-workflow artifact as a supported release.
+MirrorSwitch v0.2 has passed its tool-specific and four-platform native gates.
+The tagged macOS and Windows archives are not published until the v0.2.0 release
+workflow also passes, so use the commands below with assets from that release,
+not an arbitrary workflow artifact.
 
 The commands below use `VERSION` as a placeholder. Replace it with the version
 shown on the GitHub Release page, and download that release's `SHA256SUMS` file
@@ -28,7 +28,7 @@ sudo install -m 0755 "${asset%.tar.gz}/mirrorswitch" /usr/local/bin/mirrorswitch
 mirrorswitch --version
 ```
 
-Use the Intel archive name on an `x86_64` Mac. The planned v0.2 archive workflow
+Use the Intel archive name on an `x86_64` Mac. The v0.2 archive workflow
 does not apply a Developer ID signature or notarization. If a browser adds the
 quarantine attribute, inspect it after verifying the checksum:
 
@@ -68,6 +68,9 @@ administrator terminal:
 ```powershell
 $Version = 'VERSION'
 $Arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x86_64' }
+if ($Arch -eq 'arm64' -and [Environment]::OSVersion.Version.Build -lt 22000) {
+  throw 'MirrorSwitch does not claim Windows 10 arm64 support'
+}
 $Asset = "mirrorswitch-$Version-windows-$Arch.zip"
 $Expected = ((Get-Content SHA256SUMS | Where-Object { $_ -match "  $([regex]::Escape($Asset))$" }) -split '\s+')[0]
 $Actual = (Get-FileHash $Asset -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -161,8 +164,8 @@ to pass every platform and content check.
 
 The table is a location index, not a support claim. A row is actionable only
 for the OS/architecture combinations marked implemented in the
-[v0.2 support matrix](macos-windows-support-matrix.md), and remains a preview
-until its native workflow passes.
+[v0.2 support matrix](macos-windows-support-matrix.md), and is supported only
+after its linked native workflow has passed.
 
 | Tools | Writable boundary | Preserved/read-only boundary |
 | --- | --- | --- |
@@ -230,10 +233,11 @@ machines, users, Windows and WSL, or architectures.
 
 ## Current support categories
 
-These are implementation categories while native Actions are disabled. The
-linked matrix is the source of truth for architecture-specific limits.
+These are native-verified adapter categories. The linked matrix is the source
+of truth for architecture-specific limits; final archive publication remains a
+separate tagged release gate.
 
-| Platform | Implemented adapters awaiting native release gate | No compatible six-provider source or separate tool |
+| Platform | Native-verified adapters | No compatible six-provider source or separate tool |
 | --- | --- | --- |
 | macOS | Homebrew, Nix, CocoaPods, MacPorts, pip, uv, PDM, Poetry, Conda, npm, pnpm, Yarn, fnm, nvm, pyenv, Maven, Gradle, sbt, Leiningen, Go, Cargo, rustup, RubyGems, Bundler, Composer, Dart Pub, Flutter, Julia, CRAN, Bioconductor, opam, GHCup, Cabal, Stack, CPAN, tlmgr, ELPA, NuGet | Swift Package Manager registry, Carthage, and other decentralized Git-only inputs have no compatible public six-provider mapping |
 | Windows | WinGet, Scoop, MSYS2, Cygwin, host/WSL isolation, NuGet, pip, uv, PDM, Poetry, Conda, npm, pnpm, Yarn, fnm, Maven, Gradle, sbt, Leiningen, Go, Cargo, rustup, RubyGems, Bundler, Composer, Dart Pub, Flutter, Julia, CRAN, Bioconductor, opam, GHCup, Cabal, Stack, CPAN, tlmgr, ELPA | Chocolatey and PowerShell Gallery have no compatible six-provider feed; nvm-windows and pyenv-win are separate tools; Microsoft Store and Visual Studio layouts are not public mirror adapters |
@@ -241,6 +245,19 @@ linked matrix is the source of truth for architecture-specific limits.
 Some listed tools are x64-only on Windows; some have no Windows arm64 runtime or
 package tree. MirrorSwitch reports those combinations as unsupported instead of
 using x64 emulation as native evidence.
+
+## Native verification evidence
+
+The current four-platform product gate is
+[run 34292702579](https://github.com/vibelab-tools/MirrorSwitch/actions/runs/34292702579):
+macOS Intel, Apple Silicon, Windows x86_64, and Windows arm64 all built and ran
+the native Rust boundaries plus CLI/TUI smoke checks. Issue
+[#21](https://github.com/vibelab-tools/MirrorSwitch/issues/21) records the audit
+showing that all 44 tool-specific native workflows have a successful latest run.
+The current Linux regression and package gate is
+[run 34294032031](https://github.com/vibelab-tools/MirrorSwitch/actions/runs/34294032031).
+Each adapter row links to its own closed Issue for the real client commands,
+platform skips, and artifact evidence behind that support statement.
 
 ## Troubleshooting
 
