@@ -291,7 +291,10 @@ fn cli_forwards_one_explicit_distribution_without_host_detection() {
     let wsl = directory.path().join("wsl.exe");
     fs::write(
         &wsl,
-        b"#!/bin/sh\nif [ \"$5\" = --version ]; then echo 'mirrorswitch 0.1.0'; exit 0; fi\nprintf '{\"delegated\":true,\"distribution\":\"%s\",\"command\":\"%s\"}\\n' \"$2\" \"$5\"\nexit 3\n",
+        format!(
+            "#!/bin/sh\nif [ \"$5\" = --version ]; then echo 'mirrorswitch {}'; exit 0; fi\nprintf '{{\"delegated\":true,\"distribution\":\"%s\",\"command\":\"%s\"}}\\n' \"$2\" \"$5\"\nexit 3\n",
+            env!("CARGO_PKG_VERSION")
+        ),
     )
     .unwrap();
     let mut permissions = fs::metadata(&wsl).unwrap().permissions();

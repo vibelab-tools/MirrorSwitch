@@ -1,8 +1,9 @@
 # Install and use MirrorSwitch on macOS and Windows
 
-MirrorSwitch v0.2 has passed its tool-specific and four-platform native gates.
-The tagged macOS and Windows archives are not published until the v0.2.0 release
-workflow also passes, so use the commands below with assets from that release,
+MirrorSwitch v0.2.0 publishes assets only after its tool-specific,
+four-platform, and tagged package gates pass. Download only the assets and
+`SHA256SUMS` published on the
+[v0.2.0 release](https://github.com/vibelab-tools/MirrorSwitch/releases/tag/v0.2.0),
 not an arbitrary workflow artifact.
 
 The commands below use `VERSION` as a placeholder. Replace it with the version
@@ -234,8 +235,8 @@ machines, users, Windows and WSL, or architectures.
 ## Current support categories
 
 These are native-verified adapter categories. The linked matrix is the source
-of truth for architecture-specific limits; final archive publication remains a
-separate tagged release gate.
+of truth for architecture-specific limits, while the release page is the source
+for immutable tagged archives and checksums.
 
 | Platform | Native-verified adapters | No compatible six-provider source or separate tool |
 | --- | --- | --- |

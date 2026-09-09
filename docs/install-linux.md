@@ -1,10 +1,10 @@
 # Install MirrorSwitch on Linux
 
-MirrorSwitch v0.1.0 ships static Linux binaries for `x86_64` and `arm64`, both as generic
+MirrorSwitch v0.2.0 ships static Linux binaries for `x86_64` and `arm64`, both as generic
 archives and as deb/rpm packages. Installation places only the `mirrorswitch` terminal program
 and license/readme files; it does not configure a mirror or start a service.
 
-Packages are attached to the [v0.1.0 GitHub release](https://github.com/vibelab-tools/MirrorSwitch/releases/tag/v0.1.0).
+Packages are attached to the [v0.2.0 GitHub release](https://github.com/vibelab-tools/MirrorSwitch/releases/tag/v0.2.0).
 
 ## Verify a download
 
@@ -22,8 +22,8 @@ files.
 ## Generic archive
 
 ```bash
-tar -xzf mirrorswitch-0.1.0-linux-x86_64.tar.gz
-sudo install -m 0755 mirrorswitch-0.1.0-linux-x86_64/mirrorswitch /usr/local/bin/mirrorswitch
+tar -xzf mirrorswitch-0.2.0-linux-x86_64.tar.gz
+sudo install -m 0755 mirrorswitch-0.2.0-linux-x86_64/mirrorswitch /usr/local/bin/mirrorswitch
 mirrorswitch --version
 ```
 
@@ -37,7 +37,7 @@ sudo rm /usr/local/bin/mirrorswitch
 ## Debian and Ubuntu
 
 ```bash
-sudo dpkg -i mirrorswitch_0.1.0_amd64.deb
+sudo dpkg -i mirrorswitch_0.2.0_amd64.deb
 mirrorswitch --help
 ```
 
@@ -50,7 +50,7 @@ sudo dpkg -r mirrorswitch
 ## Fedora, Rocky, AlmaLinux, and CentOS Stream
 
 ```bash
-sudo rpm -Uvh mirrorswitch-0.1.0-1.x86_64.rpm
+sudo rpm -Uvh mirrorswitch-0.2.0-1.x86_64.rpm
 mirrorswitch --help
 ```
 
@@ -75,7 +75,7 @@ Review every selected provider, target path, digest, permission requirement, ser
 skipped reason. A non-interactive mutation requires `apply --yes`; recovery requires an exact
 transaction ID and `restore TRANSACTION_ID --yes`.
 
-System adapters mark their plans as requiring elevation, but v0.1.0 does not contain a privilege
+System adapters mark their plans as requiring elevation, but v0.2.0 does not contain a privilege
 broker. Run a system-only apply/restore from an already elevated shell. Do not combine user-scope
 and system-scope changes under `sudo`, because the effective home and user configuration can
 change. User and project scopes should run as the owning user.

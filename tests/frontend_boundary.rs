@@ -199,7 +199,7 @@ fn binary_exposes_stable_read_only_commands_and_confirmation_gate() {
     assert!(
         String::from_utf8(version.stdout)
             .unwrap()
-            .starts_with("mirrorswitch 0.1.0")
+            .starts_with(&format!("mirrorswitch {}", env!("CARGO_PKG_VERSION")))
     );
 
     let help = Command::new(binary).arg("--help").output().unwrap();

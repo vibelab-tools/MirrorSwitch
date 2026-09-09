@@ -21,12 +21,12 @@ jobs:
         include:
           - arch: x86_64
             runner: windows-2025
-            linux_archive: mirrorswitch-0.1.0-linux-x86_64.tar.gz
-            linux_directory: mirrorswitch-0.1.0-linux-x86_64
+            linux_archive: mirrorswitch-0.2.0-linux-x86_64.tar.gz
+            linux_directory: mirrorswitch-0.2.0-linux-x86_64
           - arch: arm64
             runner: windows-11-arm
-            linux_archive: mirrorswitch-0.1.0-linux-arm64.tar.gz
-            linux_directory: mirrorswitch-0.1.0-linux-arm64
+            linux_archive: mirrorswitch-0.2.0-linux-arm64.tar.gz
+            linux_directory: mirrorswitch-0.2.0-linux-arm64
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 50
     steps:
@@ -67,7 +67,7 @@ jobs:
           $archive = Join-Path $env:RUNNER_TEMP $env:LINUX_ARCHIVE
           $extract = Join-Path $env:RUNNER_TEMP 'mirrorswitch-linux'
           Invoke-WebRequest -UseBasicParsing `
-            -Uri "https://github.com/vibelab-tools/MirrorSwitch/releases/download/v0.1.0/$($env:LINUX_ARCHIVE)" `
+            -Uri "https://github.com/vibelab-tools/MirrorSwitch/releases/download/v0.2.0/$($env:LINUX_ARCHIVE)" `
             -OutFile $archive
           New-Item -ItemType Directory -Force -Path $extract | Out-Null
           tar -xzf $archive -C $extract

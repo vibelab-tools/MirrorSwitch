@@ -19,15 +19,18 @@ protocol, and content checks before latency is compared.
 
 ## Project status
 
-The current release is [v0.1.0 — Linux MVP](https://github.com/vibelab-tools/MirrorSwitch/releases/tag/v0.1.0).
-Its [delivery milestone](https://github.com/vibelab-tools/MirrorSwitch/milestone/1) is complete.
-Its release artifacts were produced by the [verified tag workflow](https://github.com/vibelab-tools/MirrorSwitch/actions/runs/33628712128).
+The current release is [v0.2.0 — macOS & Windows](https://github.com/vibelab-tools/MirrorSwitch/releases/tag/v0.2.0),
+which also retains the verified Linux packages from the
+[v0.1.0 Linux MVP](https://github.com/vibelab-tools/MirrorSwitch/releases/tag/v0.1.0).
+The v0.2 support matrix and per-tool native evidence are recorded in the
+[delivery milestone](https://github.com/vibelab-tools/MirrorSwitch/milestone/2).
 No adapter is considered supported until its issue acceptance criteria and
 real-boundary checks have passed.
 
 Linux mirror surfaces without a safe complete candidate remain visible in the
-[v0.1.x follow-up milestone](https://github.com/vibelab-tools/MirrorSwitch/milestone/3). macOS and
-Windows are tracked by [v0.2.0](https://github.com/vibelab-tools/MirrorSwitch/milestone/2).
+[v0.1.x follow-up milestone](https://github.com/vibelab-tools/MirrorSwitch/milestone/3).
+macOS and Windows sources without a complete six-provider candidate remain in the
+[v0.2.x follow-up milestone](https://github.com/vibelab-tools/MirrorSwitch/milestone/4).
 
 ## Design baseline
 
@@ -89,6 +92,7 @@ Windows are tracked by [v0.2.0](https://github.com/vibelab-tools/MirrorSwitch/mi
 - [GHCup adapter](docs/adapters/ghcup.md)
 - [sbt adapter](docs/adapters/sbt.md)
 - [v0.1.0 tracking issue](https://github.com/vibelab-tools/MirrorSwitch/issues/1)
+- [v0.2.0 release notes](docs/releases/v0.2.0.md)
 
 ## License
 

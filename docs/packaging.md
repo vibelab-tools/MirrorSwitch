@@ -4,8 +4,8 @@ The Linux release matrix contains predictable per-architecture files:
 
 | Architecture | Generic archive | Debian package | RPM package |
 | --- | --- | --- | --- |
-| `x86_64` | `mirrorswitch-0.1.0-linux-x86_64.tar.gz` | `mirrorswitch_0.1.0_amd64.deb` | `mirrorswitch-0.1.0-1.x86_64.rpm` |
-| `arm64` | `mirrorswitch-0.1.0-linux-arm64.tar.gz` | `mirrorswitch_0.1.0_arm64.deb` | `mirrorswitch-0.1.0-1.aarch64.rpm` |
+| `x86_64` | `mirrorswitch-VERSION-linux-x86_64.tar.gz` | `mirrorswitch_VERSION_amd64.deb` | `mirrorswitch-VERSION-1.x86_64.rpm` |
+| `arm64` | `mirrorswitch-VERSION-linux-arm64.tar.gz` | `mirrorswitch_VERSION_arm64.deb` | `mirrorswitch-VERSION-1.aarch64.rpm` |
 
 Each matrix branch first builds and exercises a native static-musl binary. The packaging job
 downloads that exact verified artifact, validates its SHA-256, and creates the archive, deb, and
