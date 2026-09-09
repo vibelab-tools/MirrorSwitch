@@ -10,9 +10,9 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
     let catalog: MirrorCatalog = serde_json::from_slice(EMBEDDED_CATALOG).unwrap();
 
     catalog.validate(&compiled_adapter_allowlist()).unwrap();
-    assert_eq!(catalog.providers.len(), 8);
+    assert_eq!(catalog.providers.len(), 12);
     assert_eq!(catalog.tools.len(), 78);
-    assert_eq!(catalog.candidates.len(), 555);
+    assert_eq!(catalog.candidates.len(), 559);
     assert_eq!(
         catalog
             .tools
@@ -81,6 +81,7 @@ fn embedded_runtime_catalog_is_valid_and_keeps_planned_tools_inert() {
             "postgresql",
             "pyenv",
             "ros",
+            "ros2",
             "rubygems",
             "rustup",
             "sbt",

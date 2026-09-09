@@ -246,6 +246,7 @@ pub fn category_for(tool_id: &str) -> &'static str {
             | "nginx"
             | "postgresql"
             | "ros"
+            | "ros2"
             | "zabbix"
     ) {
         "infrastructure"

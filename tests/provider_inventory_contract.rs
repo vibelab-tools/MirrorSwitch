@@ -27,6 +27,10 @@ fn inventory_covers_reviewed_official_sources_with_strict_record_fields() {
             "sjtug",
             "daocloud",
             "onepanel",
+            "qlu",
+            "zju",
+            "xjtu",
+            "nyist",
         ])
     );
 
@@ -126,6 +130,30 @@ fn inventory_covers_reviewed_official_sources_with_strict_record_fields() {
             );
         }
     }
+}
+
+#[test]
+fn inventory_records_four_additional_published_ros2_mirrors() {
+    let document: Value = serde_json::from_str(INVENTORY).unwrap();
+    let entries = document["entries"].as_array().unwrap();
+    let expected = HashMap::from([
+        ("qlu", "https://mirrors.qlu.edu.cn/ros2/"),
+        ("zju", "https://mirrors.zju.edu.cn/ros2/"),
+        ("xjtu", "https://mirrors.xjtu.edu.cn/ros2/"),
+        ("nyist", "https://mirror.nyist.edu.cn/ros2/"),
+    ]);
+    let matches = entries
+        .iter()
+        .filter(|entry| expected.contains_key(entry["provider_id"].as_str().unwrap()))
+        .collect::<Vec<_>>();
+    assert_eq!(matches.len(), expected.len());
+    assert!(matches.iter().all(|entry| {
+        entry["raw_name"] == "ros2"
+            && entry["public_endpoints"][0]["url"]
+                == expected[entry["provider_id"].as_str().unwrap()]
+            && entry["compatibility"]["architectures"] == serde_json::json!(["x86_64", "arm64"])
+            && entry["adapter_targets"][0]["tool_id"] == "ros2"
+    }));
 }
 
 #[test]

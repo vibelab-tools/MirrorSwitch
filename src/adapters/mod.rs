@@ -57,6 +57,7 @@ mod portage;
 mod postgresql;
 mod pyenv;
 mod ros;
+mod ros2;
 mod rubygems;
 mod rustup;
 mod sbt;
@@ -134,6 +135,7 @@ pub use portage::PortageAdapter;
 pub use postgresql::PostgreSqlAdapter;
 pub use pyenv::PyenvAdapter;
 pub use ros::RosAdapter;
+pub use ros2::Ros2Adapter;
 pub use rubygems::RubyGemsAdapter;
 pub use rustup::RustupAdapter;
 pub use sbt::SbtAdapter;
@@ -209,6 +211,7 @@ static POSTGRESQL: PostgreSqlAdapter = PostgreSqlAdapter;
 static PYENV: PyenvAdapter = PyenvAdapter;
 static RUBYGEMS: RubyGemsAdapter = RubyGemsAdapter;
 static ROS: RosAdapter = RosAdapter;
+static ROS2: Ros2Adapter = Ros2Adapter;
 static RUSTUP: RustupAdapter = RustupAdapter;
 static SBT: SbtAdapter = SbtAdapter;
 static SCOOP: ScoopAdapter = ScoopAdapter;
@@ -272,6 +275,7 @@ pub fn compiled_adapters() -> Vec<&'static dyn Adapter> {
         &MACPORTS,
         &RUBYGEMS,
         &ROS,
+        &ROS2,
         &BUNDLER,
         &CARGO,
         &CEPH,

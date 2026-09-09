@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-09T02:59:22Z",
-  "observed_at": "2026-09-09T02:59:22Z",
+  "generated_at": "2026-09-09T03:43:57Z",
+  "observed_at": "2026-09-09T03:43:57Z",
   "scope": "Entries listed by reviewed official public provider sources at their recorded observation times; listing is not support.",
   "providers": [
     {
@@ -202,6 +202,82 @@
           "url": "https://1panel.cn/docs/v2/user_manual/containers/setting/",
           "retrieved_at": "2026-09-09T02:59:22Z",
           "sha256": "a6314181117413005cd8068d24a734421b4413466d30b3e2e71a11985bcc9d7c",
+          "discovered_entries": 1,
+          "included_entries": 1,
+          "excluded_entries": []
+        }
+      ],
+      "included_entries": 1
+    },
+    {
+      "id": "qlu",
+      "display_name": "Qilu University of Technology",
+      "homepage": "https://mirrors.qlu.edu.cn/",
+      "sources": [
+        "https://mirrors.qlu.edu.cn/static/tunasync.json"
+      ],
+      "source_snapshots": [
+        {
+          "url": "https://mirrors.qlu.edu.cn/static/tunasync.json",
+          "retrieved_at": "2026-09-09T03:43:57Z",
+          "sha256": "2fda6eaf5255b62699eacec834cfbf1418f8084ae43cfca9fb03ac0c12b44934",
+          "discovered_entries": 1,
+          "included_entries": 1,
+          "excluded_entries": []
+        }
+      ],
+      "included_entries": 1
+    },
+    {
+      "id": "zju",
+      "display_name": "Zhejiang University",
+      "homepage": "https://mirrors.zju.edu.cn/",
+      "sources": [
+        "https://mirrors.zju.edu.cn/api/mirrorz.json"
+      ],
+      "source_snapshots": [
+        {
+          "url": "https://mirrors.zju.edu.cn/api/mirrorz.json",
+          "retrieved_at": "2026-09-09T03:43:57Z",
+          "sha256": "bb27c4688d5bf7dbbd337b5480641d1dc0a8c9709cac018e9b625fe5a14a08ed",
+          "discovered_entries": 1,
+          "included_entries": 1,
+          "excluded_entries": []
+        }
+      ],
+      "included_entries": 1
+    },
+    {
+      "id": "xjtu",
+      "display_name": "Xi'an Jiaotong University",
+      "homepage": "https://mirrors.xjtu.edu.cn/",
+      "sources": [
+        "https://mirrors.xjtu.edu.cn/.well-known/mirrorz-org-mirrors.json"
+      ],
+      "source_snapshots": [
+        {
+          "url": "https://mirrors.xjtu.edu.cn/.well-known/mirrorz-org-mirrors.json",
+          "retrieved_at": "2026-09-09T03:43:57Z",
+          "sha256": "060ff9262bcc245d68db478239aa044a3c18a5a15522a13c6cda5040471c616f",
+          "discovered_entries": 1,
+          "included_entries": 1,
+          "excluded_entries": []
+        }
+      ],
+      "included_entries": 1
+    },
+    {
+      "id": "nyist",
+      "display_name": "Nanyang Institute of Technology",
+      "homepage": "https://mirror.nyist.edu.cn/",
+      "sources": [
+        "https://mirror.nyist.edu.cn/static/tunasync.json"
+      ],
+      "source_snapshots": [
+        {
+          "url": "https://mirror.nyist.edu.cn/static/tunasync.json",
+          "retrieved_at": "2026-09-09T03:43:57Z",
+          "sha256": "868b6b29ed29caf0e9e13c307cc06fe7b383b2b7e6273eb6fe63f9d79bdeeb11",
           "discovered_entries": 1,
           "included_entries": 1,
           "excluded_entries": []
@@ -48422,6 +48498,174 @@
       },
       "provider_metadata": {
         "upstream": "https://registry-1.docker.io"
+      }
+    },
+    {
+      "id": "qlu:969b9a9d4716400b1a68",
+      "provider_id": "qlu",
+      "raw_name": "ros2",
+      "normalized_upstream": "ros2",
+      "source_url": "https://mirrors.qlu.edu.cn/static/tunasync.json",
+      "observed_at": "2026-09-09T03:43:57Z",
+      "public_endpoints": [
+        {
+          "url": "https://mirrors.qlu.edu.cn/ros2/",
+          "protocol": "https",
+          "derivation": "published-provider-status-entry"
+        }
+      ],
+      "content_type": "static-files",
+      "compatibility": {
+        "operating_systems": [],
+        "distributions": [],
+        "versions": [],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "evidence": "The provider status feed publishes ROS 2; the adapter validates signed Ubuntu metadata and a distribution-specific package for each architecture."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "ros2",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/84"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "A tool-specific metadata/artifact probe is required before this entry can become supported."
+      },
+      "provider_metadata": {
+        "upstream": "rsync://packages.ros.org/ros2-main/"
+      }
+    },
+    {
+      "id": "zju:e5312753cdb298b5b58b",
+      "provider_id": "zju",
+      "raw_name": "ros2",
+      "normalized_upstream": "ros2",
+      "source_url": "https://mirrors.zju.edu.cn/api/mirrorz.json",
+      "observed_at": "2026-09-09T03:43:57Z",
+      "public_endpoints": [
+        {
+          "url": "https://mirrors.zju.edu.cn/ros2/",
+          "protocol": "https",
+          "derivation": "published-provider-status-entry"
+        }
+      ],
+      "content_type": "static-files",
+      "compatibility": {
+        "operating_systems": [],
+        "distributions": [],
+        "versions": [],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "evidence": "The provider status feed publishes ROS 2; the adapter validates signed Ubuntu metadata and a distribution-specific package for each architecture."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "ros2",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/84"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "A tool-specific metadata/artifact probe is required before this entry can become supported."
+      },
+      "provider_metadata": {
+        "upstream": "rsync://packages.ros.org/ros2-main/"
+      }
+    },
+    {
+      "id": "xjtu:9f1b4bdde5ca1f691d27",
+      "provider_id": "xjtu",
+      "raw_name": "ros2",
+      "normalized_upstream": "ros2",
+      "source_url": "https://mirrors.xjtu.edu.cn/.well-known/mirrorz-org-mirrors.json",
+      "observed_at": "2026-09-09T03:43:57Z",
+      "public_endpoints": [
+        {
+          "url": "https://mirrors.xjtu.edu.cn/ros2/",
+          "protocol": "https",
+          "derivation": "published-provider-status-entry"
+        }
+      ],
+      "content_type": "static-files",
+      "compatibility": {
+        "operating_systems": [],
+        "distributions": [],
+        "versions": [],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "evidence": "The provider status feed publishes ROS 2; the adapter validates signed Ubuntu metadata and a distribution-specific package for each architecture."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "ros2",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/84"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "A tool-specific metadata/artifact probe is required before this entry can become supported."
+      },
+      "provider_metadata": {
+        "upstream": "rsync://packages.ros.org/ros2-main/"
+      }
+    },
+    {
+      "id": "nyist:6a57257de3c6945671ea",
+      "provider_id": "nyist",
+      "raw_name": "ros2",
+      "normalized_upstream": "ros2",
+      "source_url": "https://mirror.nyist.edu.cn/static/tunasync.json",
+      "observed_at": "2026-09-09T03:43:57Z",
+      "public_endpoints": [
+        {
+          "url": "https://mirror.nyist.edu.cn/ros2/",
+          "protocol": "https",
+          "derivation": "published-provider-status-entry"
+        }
+      ],
+      "content_type": "static-files",
+      "compatibility": {
+        "operating_systems": [],
+        "distributions": [],
+        "versions": [],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "evidence": "The provider status feed publishes ROS 2; the adapter validates signed Ubuntu metadata and a distribution-specific package for each architecture."
+      },
+      "inventory_state": "cataloged",
+      "adapter_state": "planned",
+      "adapter_targets": [
+        {
+          "tool_id": "ros2",
+          "state": "planned",
+          "issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/84"
+        }
+      ],
+      "validation": {
+        "status": "pending-adapter",
+        "reason": "A tool-specific metadata/artifact probe is required before this entry can become supported."
+      },
+      "provider_metadata": {
+        "upstream": "rsync://packages.ros.org/ros2-main/"
       }
     }
   ],

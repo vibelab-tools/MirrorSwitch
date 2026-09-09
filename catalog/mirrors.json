@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "content_version": "2026.09.09+2c2224fc1be4",
-  "content_revision": 20260909025922,
-  "generated_at": "2026-09-09T02:59:22Z",
+  "content_version": "2026.09.09+f3f3ef4f9a1a",
+  "content_revision": 20260909034357,
+  "generated_at": "2026-09-09T03:43:57Z",
   "providers": [
     {
       "id": "aliyun",
@@ -25,9 +25,19 @@
       "catalog_source": "https://mirrors.nju.edu.cn/"
     },
     {
+      "id": "nyist",
+      "display_name": "Nanyang Institute of Technology",
+      "catalog_source": "https://mirror.nyist.edu.cn/"
+    },
+    {
       "id": "onepanel",
       "display_name": "1Panel",
       "catalog_source": "https://1panel.cn/docs/v2/user_manual/containers/setting/"
+    },
+    {
+      "id": "qlu",
+      "display_name": "Qilu University of Technology",
+      "catalog_source": "https://mirrors.qlu.edu.cn/"
     },
     {
       "id": "sjtug",
@@ -43,6 +53,16 @@
       "id": "ustc",
       "display_name": "USTC",
       "catalog_source": "https://mirrors.ustc.edu.cn/"
+    },
+    {
+      "id": "xjtu",
+      "display_name": "Xi'an Jiaotong University",
+      "catalog_source": "https://mirrors.xjtu.edu.cn/"
+    },
+    {
+      "id": "zju",
+      "display_name": "Zhejiang University",
+      "catalog_source": "https://mirrors.zju.edu.cn/"
     }
   ],
   "upstreams": [
@@ -1321,18 +1341,18 @@
       ]
     },
     {
-      "id": "ros2--static-files",
-      "family": "ros2",
-      "display_name": "ros2",
-      "content_kind": "static-files",
+      "id": "ros2-apt--repository-metadata",
+      "family": "ros2-apt",
+      "display_name": "ros2-apt",
+      "content_kind": "repository-metadata",
       "aliases": [
         "ros2"
       ]
     },
     {
-      "id": "ros2-rhel--repository-metadata",
-      "family": "ros2-rhel",
-      "display_name": "ros2-rhel",
+      "id": "ros2-rpm--repository-metadata",
+      "family": "ros2-rpm",
+      "display_name": "ros2-rpm",
       "content_kind": "repository-metadata",
       "aliases": [
         "ros2-rhel"
@@ -2232,7 +2252,7 @@
       "id": "ros2",
       "adapter_key": "ros2",
       "display_name": "ros2",
-      "state": "planned",
+      "state": "supported",
       "implementation_issue": "https://github.com/vibelab-tools/MirrorSwitch/issues/84",
       "supported_scopes": [
         "system"
@@ -3153,36 +3173,6 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "03f22ceeeeadc71e1370ff6b",
-      "provider_id": "ustc",
-      "upstream_id": "ros2--static-files",
-      "tool_id": "ros2",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ros2"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.ustc.edu.cn/ros2/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.ustc.edu.cn/help/ros2.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -4988,6 +4978,102 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "0fe7f48ce78baff298d9ed00",
+      "provider_id": "nju",
+      "upstream_id": "ros2-apt--repository-metadata",
+      "tool_id": "ros2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros2"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ros2/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [
+              "22.04",
+              "24.04",
+              "26.04"
+            ],
+            "codenames": [
+              "jammy",
+              "noble",
+              "resolute"
+            ]
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/dists/{suite}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/main/binary-{apt_arch}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "10bf3073c3da2272c33574c8",
       "provider_id": "nju",
       "upstream_id": "nix4loong--binary-cache",
@@ -5595,6 +5681,102 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "14fe5e80ba9684860b6a897e",
+      "provider_id": "ustc",
+      "upstream_id": "ros2-apt--repository-metadata",
+      "tool_id": "ros2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros2"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.ustc.edu.cn/ros2/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [
+              "22.04",
+              "24.04",
+              "26.04"
+            ],
+            "codenames": [
+              "jammy",
+              "noble",
+              "resolute"
+            ]
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/dists/{suite}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/main/binary-{apt_arch}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.ustc.edu.cn/help/ros2.html"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -8778,6 +8960,186 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "2de18361c6ad22a5a951d1b3",
+      "provider_id": "nju",
+      "upstream_id": "ros2-rpm--repository-metadata",
+      "tool_id": "ros2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros2-rhel"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ros2-rhel/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ros2-rhel/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.nju.edu.cn/ros2-rhel/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "rhel",
+            "versions": [],
+            "codenames": []
+          },
+          {
+            "id": "almalinux",
+            "versions": [],
+            "codenames": []
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/{release}/x86_64/repodata/repomd.xml",
+          "expected_status": [
+            200
+          ],
+          "contains": "<data type=\"primary\">"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/{release}/x86_64/repodata/repomd.xml.asc",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.nju.edu.cn/configs/tunasync.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "2f3d12c77b2a0a81306f96dc",
+      "provider_id": "tuna",
+      "upstream_id": "ros2-apt--repository-metadata",
+      "tool_id": "ros2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros2"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.tuna.tsinghua.edu.cn/ros2/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [
+              "22.04",
+              "24.04",
+              "26.04"
+            ],
+            "codenames": [
+              "jammy",
+              "noble",
+              "resolute"
+            ]
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/dists/{suite}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/main/binary-{apt_arch}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "2f9529c39b9140692a36b602",
       "provider_id": "aliyun",
       "upstream_id": "rust-toolchain--release-artifacts",
@@ -10915,36 +11277,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "3d48fe746c20ef752b29c7e1",
-      "provider_id": "aliyun",
-      "upstream_id": "ros2--static-files",
-      "tool_id": "ros2",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ros2"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.aliyun.com/ros2/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "3d6f5cdbe3b83ee9ef5cb5a9",
       "provider_id": "aliyun",
       "upstream_id": "centos-vault--repository-metadata",
@@ -11833,38 +12165,6 @@
       ],
       "source_urls": [
         "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "4400b8ca795f0746365815f8",
-      "provider_id": "huaweicloud",
-      "upstream_id": "ros2--static-files",
-      "tool_id": "ros2",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ros2"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://repo.huaweicloud.com/ros2/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [
-          "x86_64"
-        ],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -18660,6 +18960,102 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "7de8bebdf32d386b7b7dc1a7",
+      "provider_id": "qlu",
+      "upstream_id": "ros2-apt--repository-metadata",
+      "tool_id": "ros2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros2"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.qlu.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.qlu.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.qlu.edu.cn/ros2/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [
+              "22.04",
+              "24.04",
+              "26.04"
+            ],
+            "codenames": [
+              "jammy",
+              "noble",
+              "resolute"
+            ]
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/dists/{suite}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/main/binary-{apt_arch}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.qlu.edu.cn/static/tunasync.json"
+      ],
+      "observed_at": "2026-09-09T03:43:57Z"
+    },
+    {
       "id": "7e1f429a2537fd90eb16c80a",
       "provider_id": "sjtug",
       "upstream_id": "pypi--language-registry",
@@ -18803,36 +19199,6 @@
       "probes": [],
       "source_urls": [
         "https://developer.aliyun.com/mirror/?serviceType=mirror"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "7f6013a4c66adda1d8ae55bd",
-      "provider_id": "nju",
-      "upstream_id": "ros2--static-files",
-      "tool_id": "ros2",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ros2"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/ros2/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -23586,41 +23952,6 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
-      "id": "a7783d415675f675612d8f99",
-      "provider_id": "nju",
-      "upstream_id": "ros2-rhel--repository-metadata",
-      "tool_id": "ros2",
-      "catalog_state": "cataloged",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ros2-rhel"
-      ],
-      "endpoints": [
-        {
-          "role": "metadata",
-          "protocol": "https",
-          "url": "https://mirrors.nju.edu.cn/ros2-rhel/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [
-          "linux"
-        ],
-        "architectures": [],
-        "environments": [
-          "container",
-          "host"
-        ],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
       "id": "a85353fd53bfb513a86668f7",
       "provider_id": "nju",
       "upstream_id": "opam-repository--git-mirror",
@@ -23885,6 +24216,102 @@
       "probes": [],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/addition.json"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "aa36d14cb36744f81d3907fe",
+      "provider_id": "huaweicloud",
+      "upstream_id": "ros2-apt--repository-metadata",
+      "tool_id": "ros2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros2"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/ros2/ubuntu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/ros2/ubuntu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://repo.huaweicloud.com/ros2/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [
+              "22.04",
+              "24.04",
+              "26.04"
+            ],
+            "codenames": [
+              "jammy",
+              "noble",
+              "resolute"
+            ]
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/dists/{suite}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/main/binary-{apt_arch}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -28443,6 +28870,102 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "c84800f30103c7ca98b3f1c8",
+      "provider_id": "nyist",
+      "upstream_id": "ros2-apt--repository-metadata",
+      "tool_id": "ros2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros2"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirror.nyist.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirror.nyist.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirror.nyist.edu.cn/ros2/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [
+              "22.04",
+              "24.04",
+              "26.04"
+            ],
+            "codenames": [
+              "jammy",
+              "noble",
+              "resolute"
+            ]
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/dists/{suite}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/main/binary-{apt_arch}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirror.nyist.edu.cn/static/tunasync.json"
+      ],
+      "observed_at": "2026-09-09T03:43:57Z"
+    },
+    {
       "id": "c8486f2635a0db5eb98cc8f2",
       "provider_id": "ustc",
       "upstream_id": "homebrew-bottles--binary-cache",
@@ -32753,6 +33276,102 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "e7109ed4d3afaf9fb19e94d0",
+      "provider_id": "aliyun",
+      "upstream_id": "ros2-apt--repository-metadata",
+      "tool_id": "ros2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros2"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/ros2/ubuntu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/ros2/ubuntu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.aliyun.com/ros2/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [
+              "22.04",
+              "24.04",
+              "26.04"
+            ],
+            "codenames": [
+              "jammy",
+              "noble",
+              "resolute"
+            ]
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/dists/{suite}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/main/binary-{apt_arch}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://developer.aliyun.com/mirror/?pageNum=2&serviceType=mirror"
+      ],
+      "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
       "id": "e716bd2e86b5ee44b7925291",
       "provider_id": "ustc",
       "upstream_id": "rubygems--language-registry",
@@ -33675,6 +34294,102 @@
       "observed_at": "2026-08-28T10:52:05Z"
     },
     {
+      "id": "ec39d395f7f346fa3659ca34",
+      "provider_id": "xjtu",
+      "upstream_id": "ros2-apt--repository-metadata",
+      "tool_id": "ros2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros2"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.xjtu.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.xjtu.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.xjtu.edu.cn/ros2/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [
+              "22.04",
+              "24.04",
+              "26.04"
+            ],
+            "codenames": [
+              "jammy",
+              "noble",
+              "resolute"
+            ]
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/dists/{suite}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/main/binary-{apt_arch}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.xjtu.edu.cn/.well-known/mirrorz-org-mirrors.json"
+      ],
+      "observed_at": "2026-09-09T03:43:57Z"
+    },
+    {
       "id": "ec3eb1905d37cd16f1981873",
       "provider_id": "nju",
       "upstream_id": "melpa--language-registry",
@@ -34589,36 +35304,6 @@
       ],
       "source_urls": [
         "https://mirrors.nju.edu.cn/configs/tunasync.json"
-      ],
-      "observed_at": "2026-08-28T10:52:05Z"
-    },
-    {
-      "id": "f08aec3173a2a3e952412f10",
-      "provider_id": "tuna",
-      "upstream_id": "ros2--static-files",
-      "tool_id": "ros2",
-      "catalog_state": "partial",
-      "delivery_mode": "unknown",
-      "raw_names": [
-        "ros2"
-      ],
-      "endpoints": [
-        {
-          "role": "artifacts",
-          "protocol": "https",
-          "url": "https://mirrors.tuna.tsinghua.edu.cn/ros2/"
-        }
-      ],
-      "compatibility": {
-        "operating_systems": [],
-        "architectures": [],
-        "environments": [],
-        "distributions": [],
-        "repository_versions": []
-      },
-      "probes": [],
-      "source_urls": [
-        "https://raw.githubusercontent.com/tuna/mirror-web/master/_helpz/enabled.yaml"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
     },
@@ -36016,6 +36701,102 @@
         "https://mirrors.huaweicloud.com/v1/repositories"
       ],
       "observed_at": "2026-08-28T10:52:05Z"
+    },
+    {
+      "id": "fa4f918c6b2ddf37ee0b98ba",
+      "provider_id": "zju",
+      "upstream_id": "ros2-apt--repository-metadata",
+      "tool_id": "ros2",
+      "catalog_state": "cataloged",
+      "delivery_mode": "mirror",
+      "raw_names": [
+        "ros2"
+      ],
+      "endpoints": [
+        {
+          "role": "index",
+          "protocol": "https",
+          "url": "https://mirrors.zju.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "metadata",
+          "protocol": "https",
+          "url": "https://mirrors.zju.edu.cn/ros2/ubuntu/"
+        },
+        {
+          "role": "packages",
+          "protocol": "https",
+          "url": "https://mirrors.zju.edu.cn/ros2/ubuntu/"
+        }
+      ],
+      "compatibility": {
+        "operating_systems": [
+          "linux"
+        ],
+        "architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "environments": [
+          "container",
+          "host"
+        ],
+        "distributions": [
+          {
+            "id": "ubuntu",
+            "versions": [
+              "22.04",
+              "24.04",
+              "26.04"
+            ],
+            "codenames": [
+              "jammy",
+              "noble",
+              "resolute"
+            ]
+          }
+        ],
+        "repository_versions": []
+      },
+      "probes": [
+        {
+          "endpoint_role": "index",
+          "method": "get",
+          "path": "/dists/{suite}/Release",
+          "expected_status": [
+            200
+          ],
+          "contains": "Origin: ROS"
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/Release.gpg",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "metadata",
+          "method": "head",
+          "path": "/dists/{suite}/main/binary-{apt_arch}/Packages.gz",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "endpoint_role": "packages",
+          "method": "head",
+          "path": "/{repository_path}",
+          "expected_status": [
+            200
+          ]
+        }
+      ],
+      "source_urls": [
+        "https://mirrors.zju.edu.cn/api/mirrorz.json"
+      ],
+      "observed_at": "2026-09-09T03:43:57Z"
     },
     {
       "id": "fa9e408f86dc75565dca59b3",

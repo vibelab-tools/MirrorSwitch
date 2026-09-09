@@ -74,6 +74,35 @@ PROVIDERS = {
             "https://1panel.cn/docs/v2/user_manual/containers/setting/"
         ],
     },
+    "qlu": {
+        "display_name": "Qilu University of Technology",
+        "homepage": "https://mirrors.qlu.edu.cn/",
+        "sources": ["https://mirrors.qlu.edu.cn/static/tunasync.json"],
+    },
+    "zju": {
+        "display_name": "Zhejiang University",
+        "homepage": "https://mirrors.zju.edu.cn/",
+        "sources": ["https://mirrors.zju.edu.cn/api/mirrorz.json"],
+    },
+    "xjtu": {
+        "display_name": "Xi'an Jiaotong University",
+        "homepage": "https://mirrors.xjtu.edu.cn/",
+        "sources": [
+            "https://mirrors.xjtu.edu.cn/.well-known/mirrorz-org-mirrors.json"
+        ],
+    },
+    "nyist": {
+        "display_name": "Nanyang Institute of Technology",
+        "homepage": "https://mirror.nyist.edu.cn/",
+        "sources": ["https://mirror.nyist.edu.cn/static/tunasync.json"],
+    },
+}
+
+ROS2_PROVIDER_ENDPOINTS = {
+    "qlu": "https://mirrors.qlu.edu.cn/ros2/",
+    "zju": "https://mirrors.zju.edu.cn/ros2/",
+    "xjtu": "https://mirrors.xjtu.edu.cn/ros2/",
+    "nyist": "https://mirror.nyist.edu.cn/ros2/",
 }
 
 USTC_NON_REPOSITORY_PAGES = {
@@ -830,6 +859,50 @@ def collect_onepanel(observed_at: str) -> tuple[list[dict[str, Any]], list[dict[
     )
 
 
+def collect_published_ros2_mirror(
+    provider_id: str, observed_at: str
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    url = PROVIDERS[provider_id]["sources"][0]
+    fetched = fetch(url)
+    if b"ros2" not in fetched.body.lower():
+        raise RuntimeError(f"published ROS 2 entry missing from {url}")
+    record = make_record(
+        provider_id,
+        "ros2",
+        url,
+        observed_at,
+        [
+            endpoint(
+                ROS2_PROVIDER_ENDPOINTS[provider_id],
+                "published-provider-status-entry",
+            )
+        ],
+        {"upstream": "rsync://packages.ros.org/ros2-main/"},
+    )
+    record["compatibility"]["architectures"] = ["x86_64", "arm64"]
+    record["compatibility"]["evidence"] = (
+        "The provider status feed publishes ROS 2; the adapter validates signed "
+        "Ubuntu metadata and a distribution-specific package for each architecture."
+    )
+    return [record], [fetched.source_snapshot(1, 1, [])]
+
+
+def collect_qlu(observed_at: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    return collect_published_ros2_mirror("qlu", observed_at)
+
+
+def collect_zju(observed_at: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    return collect_published_ros2_mirror("zju", observed_at)
+
+
+def collect_xjtu(observed_at: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    return collect_published_ros2_mirror("xjtu", observed_at)
+
+
+def collect_nyist(observed_at: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    return collect_published_ros2_mirror("nyist", observed_at)
+
+
 COLLECTORS: dict[str, Callable[[str], tuple[list[dict[str, Any]], list[dict[str, Any]]]]] = {
     "aliyun": collect_aliyun,
     "huaweicloud": collect_huawei,
@@ -839,6 +912,10 @@ COLLECTORS: dict[str, Callable[[str], tuple[list[dict[str, Any]], list[dict[str,
     "sjtug": collect_sjtug,
     "daocloud": collect_daocloud,
     "onepanel": collect_onepanel,
+    "qlu": collect_qlu,
+    "zju": collect_zju,
+    "xjtu": collect_xjtu,
+    "nyist": collect_nyist,
 }
 
 

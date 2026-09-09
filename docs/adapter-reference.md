@@ -86,7 +86,8 @@ content remain unchanged and are reported.
 | `podman-registry` | system/user | Registries.conf parse plus real pull; TLS/auth/custom policy preserved ([#76](https://github.com/vibelab-tools/MirrorSwitch/issues/76)) |
 | `kubernetes-packages` | system | Signed APT/RPM refresh for exact maintained minor channel ([#77](https://github.com/vibelab-tools/MirrorSwitch/issues/77)) |
 | `kubernetes-images` | user | Exact kubeadm image manifest/pull plan; CoreDNS mapping is explicit ([#74](https://github.com/vibelab-tools/MirrorSwitch/issues/74)) |
-| `ros` | system | Signed ROS 1 Noetic/Focal snapshot refresh; ROS 2 is a separate unsupported adapter ([#81](https://github.com/vibelab-tools/MirrorSwitch/issues/81)) |
+| `ros` | system | Signed ROS 1 Noetic/Focal snapshot refresh; ROS 2 remains a separate package surface ([#81](https://github.com/vibelab-tools/MirrorSwitch/issues/81)) |
+| `ros2` | system | Ubuntu 22.04/24.04/26.04 APT on amd64/arm64 and RHEL 8/9/10 or AlmaLinux 10 RPM on upstream-supported x86_64; signed metadata and exact package query ([details](adapters/ros2.md)) |
 | `gitlab-runner` | system | Signed package metadata refresh; runner registration/executor/server config untouched ([#93](https://github.com/vibelab-tools/MirrorSwitch/issues/93)) |
 | `mysql` | system | Signed MySQL Community 8.4 APT/RPM refresh; server/data untouched ([#85](https://github.com/vibelab-tools/MirrorSwitch/issues/85)) |
 | `mariadb` | system | Signed MariaDB 11.8 repository refresh; server/data untouched ([#88](https://github.com/vibelab-tools/MirrorSwitch/issues/88)) |
@@ -101,7 +102,8 @@ content remain unchanged and are reported.
 
 ## Not supported in v0.1.0
 
-The Linux catalog keeps Conan, Helm, Jenkins Update Center, and ROS 2 in `planned` state because
+The Linux catalog keeps Conan, Helm, and Jenkins Update Center in `planned` state because
 their acceptance evidence remains incomplete. They are not compiled adapters and cannot write
-configuration. Docker daemon registry mirrors were added in the v0.1.x follow-up tracked by
-[#75](https://github.com/vibelab-tools/MirrorSwitch/issues/75).
+configuration. Docker daemon registry mirrors and ROS 2 packages were added in the v0.1.x
+follow-up tracked by [#75](https://github.com/vibelab-tools/MirrorSwitch/issues/75) and
+[#84](https://github.com/vibelab-tools/MirrorSwitch/issues/84).

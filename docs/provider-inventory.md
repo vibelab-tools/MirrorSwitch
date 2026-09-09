@@ -23,15 +23,19 @@ adapter planning state, and source provenance.
 | --- | --- | ---: | --- |
 | DaoCloud | [public-image-mirror instructions](https://github.com/DaoCloud/public-image-mirror) | 1 | Publishes `https://docker.m.daocloud.io` for Docker daemon `registry-mirrors`; Registry v2 Bearer auth, architecture manifest, config and layer remain runtime probes. |
 | 1Panel | [container settings documentation](https://1panel.cn/docs/v2/user_manual/containers/setting/) | 1 | Publishes `https://docker.1panel.live` as a Docker mirror; the same runtime content probes apply. |
+| Qilu University of Technology | [tunasync status](https://mirrors.qlu.edu.cn/static/tunasync.json) | 1 | Publishes a current ROS 2 mirror; signed Ubuntu metadata and exact amd64/arm64 packages remain runtime probes. |
+| Zhejiang University | [MirrorZ status](https://mirrors.zju.edu.cn/api/mirrorz.json) | 1 | Publishes a current ROS 2 mirror with the same runtime package checks. |
+| Xi'an Jiaotong University | [mirror status](https://mirrors.xjtu.edu.cn/.well-known/mirrorz-org-mirrors.json) | 1 | Publishes a current ROS 2 mirror with the same runtime package checks. |
+| Nanyang Institute of Technology | [tunasync status](https://mirror.nyist.edu.cn/static/tunasync.json) | 1 | Publishes a current ROS 2 mirror with the same runtime package checks. |
 
-The snapshot contains 1,203 records. Current classification totals are 209
+The snapshot contains 1,207 records. Current classification totals are 209
 repository-metadata, 69 language-registry, 11 binary-cache, 7
 container-registry, 157 Git mirror, 4 release proxy, 2 raw proxy, 66 release
-artifacts, and 678 static/otherwise unclassified file trees. The large final
+artifacts, and 682 static/otherwise unclassified file trees. The large final
 class is intentional: a directory name is not enough evidence to invent a
 configuration protocol.
 
-There are 438 provider records mapped to already-created adapter Issues and 765
+There are 442 provider records mapped to already-created adapter Issues and 765
 kept as `not-supported`. `planned` still does not mean the current binary can
 configure the entry. Each mapping links to the relevant per-tool Issue; shared
 upstreams such as PyPI, npm, Maven, and NuGet retain multiple tool-specific

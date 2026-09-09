@@ -74,7 +74,7 @@ ROLE_BY_CONTENT = {
     "static-files": "artifacts",
 }
 
-CATALOG_FORMAT_REVISION = "113"
+CATALOG_FORMAT_REVISION = "114"
 
 APT_RUNTIME_UPSTREAMS = {
     "debian--repository-metadata": ["x86_64", "arm64"],
@@ -465,6 +465,22 @@ ROS1_BASELINE_PACKAGES = {
     "amd64": "ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.010531_amd64.deb",
     "arm64": "ubuntu/pool/main/r/ros-noetic-ros-base/ros-noetic-ros-base_1.5.0-1focal.20250521.024603_arm64.deb",
 }
+ROS2_APT_UPSTREAM = "ros2-apt--repository-metadata"
+ROS2_RPM_UPSTREAM = "ros2-rpm--repository-metadata"
+ROS2_APT_ENDPOINTS = {
+    "aliyun": "https://mirrors.aliyun.com/ros2/ubuntu/",
+    "huaweicloud": "https://repo.huaweicloud.com/ros2/ubuntu/",
+    "nju": "https://mirrors.nju.edu.cn/ros2/ubuntu/",
+    "tuna": "https://mirrors.tuna.tsinghua.edu.cn/ros2/ubuntu/",
+    "ustc": "https://mirrors.ustc.edu.cn/ros2/ubuntu/",
+    "qlu": "https://mirrors.qlu.edu.cn/ros2/ubuntu/",
+    "zju": "https://mirrors.zju.edu.cn/ros2/ubuntu/",
+    "xjtu": "https://mirrors.xjtu.edu.cn/ros2/ubuntu/",
+    "nyist": "https://mirror.nyist.edu.cn/ros2/ubuntu/",
+}
+ROS2_RPM_ENDPOINTS = {
+    "nju": "https://mirrors.nju.edu.cn/ros2-rhel/",
+}
 MYSQL_UPSTREAM = "mysql-community--repository-metadata"
 MYSQL_ENDPOINTS = {
     "nju": "https://mirrors.nju.edu.cn/mysql/",
@@ -726,6 +742,10 @@ def runtime_upstream_identity(
         return "registry.k8s.io", "container-registry"
     if tool_id == "ros" and entry["raw_name"] == "ros":
         return "ros1-packages", "repository-metadata"
+    if tool_id == "ros2" and entry["raw_name"] == "ros2":
+        return "ros2-apt", "repository-metadata"
+    if tool_id == "ros2" and entry["raw_name"] == "ros2-rhel":
+        return "ros2-rpm", "repository-metadata"
     if tool_id == "mysql" and entry["raw_name"].startswith(("mysql", "mysql-repo")):
         return "mysql-community", "repository-metadata"
     if tool_id == "mongodb" and entry["raw_name"].startswith("mongodb"):
@@ -1059,6 +1079,28 @@ def candidate_endpoints(
         ]
     if tool_id == "elpa" and entry["raw_name"].startswith("elpa/"):
         endpoint = entry["public_endpoints"][0]["url"]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "packages"]
+        ]
+    if (
+        tool_id == "ros2"
+        and upstream_key == ROS2_APT_UPSTREAM
+        and entry["provider_id"] in ROS2_APT_ENDPOINTS
+        and entry["raw_name"] == "ros2"
+    ):
+        endpoint = ROS2_APT_ENDPOINTS[entry["provider_id"]]
+        return [
+            {"role": role, "protocol": "https", "url": endpoint}
+            for role in ["index", "metadata", "packages"]
+        ]
+    if (
+        tool_id == "ros2"
+        and upstream_key == ROS2_RPM_UPSTREAM
+        and entry["provider_id"] in ROS2_RPM_ENDPOINTS
+        and entry["raw_name"] == "ros2-rhel"
+    ):
+        endpoint = ROS2_RPM_ENDPOINTS[entry["provider_id"]]
         return [
             {"role": role, "protocol": "https", "url": endpoint}
             for role in ["index", "metadata", "packages"]
@@ -3813,6 +3855,91 @@ def runtime_properties(
                 }
             )
     elif (
+        tool_id == "ros2"
+        and upstream_key == ROS2_APT_UPSTREAM
+        and entry["provider_id"] in ROS2_APT_ENDPOINTS
+        and entry["raw_name"] == "ros2"
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64", "arm64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = [
+            {
+                "id": "ubuntu",
+                "versions": ["22.04", "24.04", "26.04"],
+                "codenames": ["jammy", "noble", "resolute"],
+            }
+        ]
+        compatibility["repository_versions"] = []
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/dists/{suite}/Release",
+                "expected_status": [200],
+                "contains": "Origin: ROS",
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/dists/{suite}/Release.gpg",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/dists/{suite}/main/binary-{apt_arch}/Packages.gz",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "packages",
+                "method": "head",
+                "path": "/{repository_path}",
+                "expected_status": [200],
+            },
+        ]
+    elif (
+        tool_id == "ros2"
+        and upstream_key == ROS2_RPM_UPSTREAM
+        and entry["provider_id"] in ROS2_RPM_ENDPOINTS
+        and entry["raw_name"] == "ros2-rhel"
+    ):
+        compatibility["operating_systems"] = ["linux"]
+        compatibility["architectures"] = ["x86_64"]
+        compatibility["environments"] = ["container", "host"]
+        compatibility["distributions"] = [
+            {
+                "id": distribution,
+                "versions": [],
+                "codenames": [],
+            }
+            for distribution in ["rhel", "almalinux"]
+        ]
+        compatibility["repository_versions"] = []
+        delivery_mode = "mirror"
+        probes = [
+            {
+                "endpoint_role": "index",
+                "method": "get",
+                "path": "/{release}/x86_64/repodata/repomd.xml",
+                "expected_status": [200],
+                "contains": '<data type="primary">',
+            },
+            {
+                "endpoint_role": "metadata",
+                "method": "head",
+                "path": "/{release}/x86_64/repodata/repomd.xml.asc",
+                "expected_status": [200],
+            },
+            {
+                "endpoint_role": "packages",
+                "method": "head",
+                "path": "/{repository_path}",
+                "expected_status": [200],
+            },
+        ]
+    elif (
         tool_id == "ros"
         and upstream_key == ROS1_UPSTREAM
         and entry["provider_id"] in ROS1_ACTIONABLE_PROVIDERS
@@ -4710,6 +4837,7 @@ def build(inventory: dict[str, Any], revision: int, generated_at: str) -> dict[s
                         "rubygems",
                         "rustup",
                         "ros",
+                        "ros2",
                         "sbt",
                         "scoop",
                         "stack",
